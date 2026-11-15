@@ -63,14 +63,26 @@ async function startServer() {
     .toString()
     .padStart(6, "0");
 
-  const m1asSessionFlavorList = [
-  "fish",
-  "apple",
-  "square",
-  "rhombus",
-  "unicorn",
-  "blueMoon",
-  "raptor"
+//   const m1asSessionFlavorList = [
+//   "fish",
+//   "apple",
+//   "square",
+//   "rhombus",
+//   "unicorn",
+//   "blueMoon",
+//   "raptor"
+// ] as const;
+
+const m1asSessionFlavorList = m1asConfig.m1asDeploymentFlavorList || 
+[
+  'fish',
+  'apple',
+  'square',
+  'rhombus',
+  'unicorn',
+  'blueMoon',
+  'raptor',
+  'star'
 ] as const;
 
 const randomFlavor =
