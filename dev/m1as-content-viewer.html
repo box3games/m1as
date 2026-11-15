@@ -313,6 +313,64 @@
         <div id="recStatus" style="margin-top: 10px; font-size: 12px; color: #94a3b8;">Ready to record VP9 .webm.</div>
     </div>
 
+    <!-- BIG3R Organic Fractal Growth & Chaos Simulation Sandbox -->
+    <div class="playground-panel" style="background: #0b1120; border-color: #10b981;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <h3 style="color: #10b981; margin: 0;">🍄 BIG3R Organic Growth &amp; Chaos Sandbox (M1ASVFXEngine)</h3>
+            <span id="vfxTelemetryBadge"
+                style="background: #1e293b; color: #38bdf8; padding: 4px 10px; border-radius: 12px; font-family: monospace; font-size: 12px;">
+                Scale: 1.00x | Target: 1.00x | Status: Idle
+            </span>
+        </div>
+        <p style="font-size: 13px; color: #cbd5e1; margin: 6px 0 12px;">
+            Stream a <strong>.glb</strong> below, then use <strong>WASD / Arrows</strong> to move,
+            <strong>Click</strong> the 3D object, or test <strong>Tap</strong>, <strong>Hold</strong>, and
+            <strong>Delayed Colossal Chaos</strong> growth modes.
+        </p>
+
+        <div class="playground-form" style="flex-wrap: wrap;">
+            <input type="text" id="vfxGlbUrlInput" class="playground-input"
+                placeholder="Paste .glb signed URL (or click 'Send to VFX Sandbox' on any .glb card)..." />
+            <input type="text" id="vfxOverlayUrlInput" class="playground-input" style="max-width: 320px;"
+                placeholder="Optional .webm VFX signed URL..." />
+            <button id="mountVfxEngineBtn" class="playground-btn" style="background: #10b981; color: #052e16;">
+                Launch VFX Stage
+            </button>
+        </div>
+
+        <!-- Interactive Growth & Chaos Controls -->
+        <div id="vfxControlBar"
+            style="display: none; flex-wrap: wrap; gap: 10px; align-items: center; background: #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #334155;">
+            <label style="color: #f8fafc; font-size: 12px; font-weight: bold;">Trigger Mode:</label>
+            <select id="vfxGrowthMode" class="m1as-select" style="padding: 6px 10px; font-size: 12px;">
+                <option value="click">Click / Tap Impulse (+0.35x)</option>
+                <option value="tap">Rapid Mash / Tap Stacking</option>
+                <option value="hold">Hold-to-Charge Surge</option>
+                <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
+            </select>
+
+            <button id="vfxPulseBtn" class="playground-btn" style="background: #0076ff;">
+                🌱 Pulse Grow (Space)
+            </button>
+            <button id="vfxHoldBtn" class="playground-btn" style="background: #f59e0b; color: #1e1b4b;">
+                ✊ Hold to Charge
+            </button>
+            <button id="vfxChaosBtn" class="playground-btn" style="background: #a855f7;">
+                🌀 Trigger Delayed Colossal Event
+            </button>
+            <button id="vfxResetBtn" class="playground-btn" style="background: #475569;">
+                ↺ Reset (1.0x)
+            </button>
+        </div>
+
+        <!-- WebGL Viewport -->
+        <div id="vfxStageContainer"
+            style="width: 100%; height: 420px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; position: relative; overflow: hidden;">
+            <div style="text-align: center; color: #64748b; padding: 180px 0; font-style: italic;">
+                VFX Stage idle. Provide a signed .glb URL above or use a card's "VFX Sandbox" button...
+            </div>
+        </div>
+    </div>
 
     <button id="loadAssets" class="playground-btn">Load Public Assets</button>
 
@@ -339,11 +397,126 @@
         const bindRecClickVfxBtn = document.getElementById("bindRecClickVfxBtn");
         const recStatus = document.getElementById("recStatus");
 
+        const vfxGlbUrlInput = document.getElementById("vfxGlbUrlInput");
+        const vfxOverlayUrlInput = document.getElementById("vfxOverlayUrlInput");
+        const mountVfxEngineBtn = document.getElementById("mountVfxEngineBtn");
+        const vfxControlBar = document.getElementById("vfxControlBar");
+        const vfxStageContainer = document.getElementById("vfxStageContainer");
+        const vfxTelemetryBadge = document.getElementById("vfxTelemetryBadge");
+        const vfxGrowthMode = document.getElementById("vfxGrowthMode");
+        const vfxPulseBtn = document.getElementById("vfxPulseBtn");
+        const vfxHoldBtn = document.getElementById("vfxHoldBtn");
+        const vfxChaosBtn = document.getElementById("vfxChaosBtn");
+        const vfxResetBtn = document.getElementById("vfxResetBtn");
+
         let mediaRecorder = null;
         let recordedChunks = [];
         let lastRecordedBlobUrl = null;
         let countdownInterval = null;
         let activeFaceEngine = null;
+
+        let activeVfxEngine = null;
+
+        async function mountVfxSandbox(glbSignedUrl, vfxWebmSignedUrl = "") {
+            if (!glbSignedUrl || !glbSignedUrl.trim()) {
+                alert("Please provide a valid .glb signed URL first.");
+                return;
+            }
+
+            if (activeVfxEngine) {
+                activeVfxEngine.destroy();
+                activeVfxEngine = null;
+            }
+
+            vfxStageContainer.innerHTML = `<div style="text-align: center; color: #38bdf8; padding: 180px 0; font-style: italic;">Streaming .glb payload into M1ASVFXEngine...</div>`;
+
+            try {
+                const res = await fetch(glbSignedUrl, { headers: { "m1as-user-id": "dev-user" } });
+                if (!res.ok) throw new Error(`GLB stream failed (${res.status})`);
+                const glbBlob = await res.blob();
+                const glbBlobUrl = URL.createObjectURL(glbBlob);
+
+                // Dynamic ESM import matching your ./m1as-face-layer-engine.js build output
+                const { M1ASVFXEngine } = await import("./m1as-vfx-engine.js");
+
+                vfxStageContainer.innerHTML = "";
+                const canvas = document.createElement("canvas");
+                canvas.className = "inline-3d-canvas";
+                canvas.style.width = "100%";
+                canvas.style.height = "100%";
+                vfxStageContainer.appendChild(canvas);
+
+                vfxControlBar.style.display = "flex";
+
+                activeVfxEngine = new M1ASVFXEngine(canvas, glbBlobUrl, {
+                    userId: "dev-user",
+                    moveSpeed: 4.0,
+                    baseScale: 1.0,
+                    maxScale: 8.0,
+                    chaosProbability: 0.35,
+                    onStateChange: (state) => {
+                        let statusText = state.isChaosPending
+                            ? `⚠️ CHAOS STALL (Charging +${state.chaosCharge}x...)`
+                            : state.isHolding
+                                ? "✊ HOLDING CHARGE..."
+                                : `Mode: ${state.mode}`;
+
+                        vfxTelemetryBadge.textContent = `Scale: ${state.currentScale.toFixed(2)}x | Target: ${state.targetScale.toFixed(2)}x | ${statusText}`;
+                        vfxTelemetryBadge.style.color = state.isChaosPending ? "#f59e0b" : "#38bdf8";
+                    },
+                    onColossalSurge: (newScale) => {
+                        vfxTelemetryBadge.textContent = `💥 COLOSSAL SURGE! Scale: ${newScale.toFixed(2)}x`;
+                        vfxTelemetryBadge.style.color = "#10b981";
+                    }
+                });
+
+                activeVfxEngine.setMode(vfxGrowthMode.value);
+
+                const overlayUrl = vfxWebmSignedUrl || vfxOverlayUrlInput.value.trim();
+                if (overlayUrl) {
+                    await activeVfxEngine.setVfxWebm(overlayUrl);
+                }
+            } catch (err) {
+                vfxStageContainer.innerHTML = `<div style="color: #f87171; padding: 20px; font-family: monospace;">⚠️ M1ASVFXEngine Error: ${err.message}</div>`;
+            }
+        }
+
+        mountVfxEngineBtn.addEventListener("click", () => {
+            mountVfxSandbox(vfxGlbUrlInput.value.trim(), vfxOverlayUrlInput.value.trim());
+        });
+
+        vfxGrowthMode.addEventListener("change", () => {
+            activeVfxEngine?.setMode(vfxGrowthMode.value);
+        });
+
+        vfxPulseBtn.addEventListener("click", () => {
+            activeVfxEngine?.triggerGrowthImpulse(0.35);
+        });
+
+        // Pointer down/up/leave handling for Hold-to-Charge button
+        vfxHoldBtn.addEventListener("pointerdown", () => {
+            if (!activeVfxEngine) return;
+            vfxGrowthMode.value = "hold";
+            activeVfxEngine.setMode("hold");
+            activeVfxEngine.startHoldGrowth();
+            vfxHoldBtn.textContent = "🔥 Charging... Release to Surge!";
+        });
+
+        const releaseHold = () => {
+            if (!activeVfxEngine) return;
+            activeVfxEngine.releaseHoldGrowth();
+            vfxHoldBtn.textContent = "✊ Hold to Charge";
+        };
+        vfxHoldBtn.addEventListener("pointerup", releaseHold);
+        vfxHoldBtn.addEventListener("pointerleave", releaseHold);
+
+        vfxChaosBtn.addEventListener("click", () => {
+            activeVfxEngine?.triggerDelayedColossalChaos(1.8, 2.5);
+        });
+
+        vfxResetBtn.addEventListener("click", () => {
+            activeVfxEngine?.resetGrowth();
+        });
 
         recAlphaBg.addEventListener("change", () => {
             if (activeFaceEngine) {
@@ -522,6 +695,12 @@
                 const previewButton = asset.capabilities?.canPreview ? `<button class="preview-btn">Preview</button>` : "";
                 const streamButton = asset.capabilities?.canStream ? `<button class="stream-btn">Stream</button>` : "";
                 const signCopyButton = asset.capabilities?.canStream ? `<button class="sign-btn">Sign URL</button>` : "";
+                const vfxGlbBtn = isGlb
+                    ? `<button class="vfx-glb-btn" style="border-color: #10b981; color: #065f46; font-weight: bold;">🍄 VFX Stage</button>`
+                    : "";
+                const vfxWebmBtn = mime === "video/webm"
+                    ? `<button class="vfx-webm-btn" style="border-color: #8b5cf6; color: #5b21b6; font-weight: bold;">⚡ Set Growth VFX</button>`
+                    : "";
                 const faceAssignSelect = canPaintToFace
                     ? `<select class="face-assign-sel" title="Apply directly to active 3D cube face">
                            <option value="">Paint Face / BG...</option>
@@ -565,6 +744,28 @@
                         setTimeout(() => { signBtn.innerText = "Sign URL"; }, 1500);
                     });
                 }
+
+                const vfxGlbBtnEl = card.querySelector(".vfx-glb-btn");
+                if (vfxGlbBtnEl) {
+                    vfxGlbBtnEl.addEventListener("click", async () => {
+                        const signedUrl = await getSignedAssetUrl(asset);
+                        vfxGlbUrlInput.value = signedUrl;
+                        await mountVfxSandbox(signedUrl, vfxOverlayUrlInput.value.trim());
+                    });
+                }
+
+                const vfxWebmBtnEl = card.querySelector(".vfx-webm-btn");
+                if (vfxWebmBtnEl) {
+                    vfxWebmBtnEl.addEventListener("click", async () => {
+                        const signedUrl = await getSignedAssetUrl(asset);
+                        vfxOverlayUrlInput.value = signedUrl;
+                        if (activeVfxEngine) {
+                            await activeVfxEngine.setVfxWebm(signedUrl);
+                            vfxTelemetryBadge.textContent = `⚡ Bound "${asset.displayName}" as Growth VFX!`;
+                        }
+                    });
+                }
+
 
                 const faceSel = card.querySelector(".face-assign-sel");
                 if (faceSel) {
