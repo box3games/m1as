@@ -14,7 +14,7 @@ const NOSNIFF_HEADERS = Object.freeze({
 
 const SANDBOX_HEADERS = Object.freeze({
     ...NOSNIFF_HEADERS,
-    "Content-Security-Policy": "default-src 'self' https://cdn.jsdelivr.net; script-src 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://cdn.jsdelivr.net; worker-src 'self' blob: data:; sandbox allow-scripts allow-same-origin;"
+    "Content-Security-Policy": "default-src 'self' https://jsdelivr.net; script-src 'unsafe-inline' 'unsafe-eval' https://jsdelivr.net; style-src 'unsafe-inline' https://jsdelivr.net; img-src 'self' data: blob: https://jsdelivr.net; media-src 'self' data: blob:; worker-src 'self' blob: data:; sandbox allow-scripts allow-same-origin;"
 });
 
 const INLINE_POLICY = Object.freeze<BrowserContentPolicy>({
@@ -66,6 +66,27 @@ const XLSX_POLICY = Object.freeze<BrowserContentPolicy>({
     headers: SANDBOX_HEADERS
 });
 
+const CSV_POLICY = Object.freeze<BrowserContentPolicy>({
+    disposition: "inline",
+    previewMode: "sandboxed",
+    supportsPreview: true,
+    headers: SANDBOX_HEADERS
+});
+
+const JSON_POLICY = Object.freeze<BrowserContentPolicy>({
+    disposition: "inline",
+    previewMode: "sandboxed",
+    supportsPreview: true,
+    headers: SANDBOX_HEADERS
+});
+
+const WEBM_POLICY = Object.freeze<BrowserContentPolicy>({
+    disposition: "inline",
+    previewMode: "sandboxed",
+    supportsPreview: true,
+    headers: SANDBOX_HEADERS
+});
+
 const GLB_POLICY = Object.freeze<BrowserContentPolicy>({
     disposition: "inline",
     previewMode: "inline",
@@ -81,6 +102,9 @@ const GLB_POLICY = Object.freeze<BrowserContentPolicy>({
 
 
 const XLSX_TYPES = new Set(["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]);
+const CSV_TYPES = new Set(["text/csv", "application/vnd.ms-excel"]);
+const JSON_TYPES = new Set(["application/json", "text/json"]);
+const WEBM_TYPES = new Set(["video/webm"]);
 const GLB_TYPES = new Set(["model/gltf-binary"]);
 const DOCX_TYPES = new Set(["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]);
 const MERMAID_TYPES = new Set(["text/mermaid", "text/vnd.mermaid"]);
@@ -101,6 +125,9 @@ export function getBrowserContentPolicy(mimeType: string): BrowserContentPolicy 
     if (MERMAID_TYPES.has(cleanMime)) return MERMAID_POLICY;
     if (DOCX_TYPES.has(cleanMime)) return DOCX_POLICY;
     if (XLSX_TYPES.has(cleanMime)) return XLSX_POLICY;
+    if (CSV_TYPES.has(cleanMime)) return CSV_POLICY;
+    if (JSON_TYPES.has(cleanMime)) return JSON_POLICY;
+    if (WEBM_TYPES.has(cleanMime)) return WEBM_POLICY;
     if (GLB_TYPES.has(cleanMime)) return GLB_POLICY;
 
     return INLINE_POLICY;

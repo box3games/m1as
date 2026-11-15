@@ -1,7 +1,7 @@
 import { getBrowserContentPolicy } from "./BrowserContentPolicy.js";
 import { BrowserCapabilities } from "./BrowserCapabilities.js";
 
-// Immutable prefixes allowed to stream safely (e.g. video/mp4, audio/mpeg)
+// Immutable prefixes allowed to stream safely (e.g. video/mp4, video/webm, audio/mpeg)
 const SAFE_STREAM_PREFIXES = Object.freeze([
   "video/",
   "audio/"
@@ -14,6 +14,10 @@ const SAFE_STREAM_EXACT_TYPES = Object.freeze([
   "image/webp",
   "image/gif",
   "text/plain",
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/json",
+  "text/json",
   "application/pdf",
   "model/gltf-binary" 
 ]);

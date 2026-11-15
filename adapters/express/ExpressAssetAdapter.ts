@@ -21,6 +21,9 @@ import { MermaidBrowserContentProcessor } from "../../core/security/browser/proc
 import { DocxBrowserContentProcessor } from "../../core/security/browser/processors/DocxBrowserContentProcessor.js";
 import { XlsxBrowserContentProcessor } from "../../core/security/browser/processors/XlsxBrowserContentProcessor.js";
 import { GlbBrowserContentProcessor } from "../../core/security/browser/processors/GlbBrowserContentProcessor.js";
+import { CsvBrowserContentProcessor } from "../../core/security/browser/processors/CsvBrowserContentProcessor.js";
+import { WebmBrowserContentProcessor } from "../../core/security/browser/processors/WebmBrowserContentProcessor.js";
+import { JsonBrowserContentProcessor } from "../../core/security/browser/processors/JsonBrowserContentProcessor.js";
 import { renderPreview } from "../../core/utils/PreviewRender.js";
 
 const pipelineAsync = promisify(pipeline);
@@ -53,7 +56,11 @@ export class ExpressAssetAdapter implements AssetHttpAdapter {
           new MermaidBrowserContentProcessor(),
           new DocxBrowserContentProcessor(),
           new XlsxBrowserContentProcessor(),
-          new GlbBrowserContentProcessor()
+          new GlbBrowserContentProcessor(),
+          new WebmBrowserContentProcessor(),
+          new JsonBrowserContentProcessor(),
+          new CsvBrowserContentProcessor()
+
         ],
         new DefaultBrowserContentProcessor()
       );
@@ -203,6 +210,12 @@ export class ExpressAssetAdapter implements AssetHttpAdapter {
       mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     } else if (fileName.endsWith(".glb")) {
       mimeType = "model/gltf-binary";
+    } else if (fileName.endsWith(".csv")) {
+      mimeType = "text/csv";
+    } else if (fileName.endsWith(".json")) {
+      mimeType = "application/json";
+    } else if (fileName.endsWith(".webm")) {
+      mimeType = "video/webm";
     }
 
     // 3. Clean parameters before array inspection
