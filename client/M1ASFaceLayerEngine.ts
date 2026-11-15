@@ -56,6 +56,8 @@ export class M1ASFaceLayerEngine {
   private audioCtx: AudioContext | null = null;
   private frameId: number | null = null;
   private autoRotate: boolean;
+  private clickVfxBlobUrl: string | null = null;
+  private activeVfxPlanes: Array<{ mesh: THREE.Mesh; video: HTMLVideoElement; texture: THREE.VideoTexture }> = [];
 
   constructor(canvasElement: HTMLCanvasElement, glbBlobUrl: string, options: M1ASEngineOptions = {}) {
     this.canvas = canvasElement;
@@ -74,6 +76,8 @@ export class M1ASFaceLayerEngine {
       canvas: this.canvas,
       antialias: true,
       alpha: true,
+      // Required for canvas.captureStream() recording
+      preserveDrawingBuffer: true,
     });
     this.renderer.setSize(width, height, false);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -112,9 +116,9 @@ export class M1ASFaceLayerEngine {
   }
 
   private onPointerUp(e: PointerEvent): void {
-    // Ignore drag-to-orbit gestures; only trigger on clean clicks (< 6px movement)
     const dist = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
-    if (dist > 6 || !this.modelRoot || this.audioSlots.size === 0) return;
+    if (dist > 6 || !this.modelRoot) return;
+    if (!this.clickVfxBlobUrl && this.audioSlots.size === 0) return;
 
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(
@@ -127,9 +131,15 @@ export class M1ASFaceLayerEngine {
     if (hits.length === 0) return;
 
     const hit = hits[0];
+
+    // Trigger bound .webm VFX burst at the clicked 3D surface point
+    if (this.clickVfxBlobUrl) {
+      this.spawnClickVfxBurst(hit.point);
+    }
+
+    // Existing audio face toggle logic
     const hitMesh = hit.object as THREE.Mesh;
     let slotIndex = 0;
-
     if (Array.isArray(hitMesh.material) && hit.face) {
       const mat = hitMesh.material[hit.face.materialIndex] as THREE.MeshStandardMaterial;
       slotIndex = this.materials.indexOf(mat);
@@ -139,15 +149,87 @@ export class M1ASFaceLayerEngine {
 
     const audioSlot = this.audioSlots.get(slotIndex);
     if (audioSlot) {
-      if (this.audioCtx?.state === 'suspended') {
-        this.audioCtx.resume();
-      }
+      if (this.audioCtx?.state === 'suspended') this.audioCtx.resume();
       if (audioSlot.audio.paused) {
         audioSlot.audio.play().catch((err) => console.warn('Audio play blocked:', err));
       } else {
         audioSlot.audio.pause();
       }
     }
+  }
+
+  public getCanvas(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
+  public setTransparentBackground(transparent: boolean): void {
+    if (transparent) {
+      this.cleanupBackground();
+      this.scene.background = null;
+      this.renderer.setClearColor(0x000000, 0);
+    } else if (!this.scene.background) {
+      this.scene.background = new THREE.Color(0x18181b);
+    }
+  }
+
+  public async setClickVfx(signedOrBlobUrl: string): Promise<void> {
+    if (this.clickVfxBlobUrl) {
+      URL.revokeObjectURL(this.clickVfxBlobUrl);
+      this.clickVfxBlobUrl = null;
+    }
+    if (!signedOrBlobUrl) return;
+
+    if (signedOrBlobUrl.startsWith('blob:')) {
+      this.clickVfxBlobUrl = signedOrBlobUrl;
+    } else {
+      const res = await fetch(signedOrBlobUrl, { headers: { 'm1as-user-id': this.userId } });
+      if (!res.ok) throw new Error(`Click VFX stream failed (${res.status})`);
+      const blob = await res.blob();
+      this.clickVfxBlobUrl = URL.createObjectURL(blob);
+    }
+  }
+
+  private spawnClickVfxBurst(worldPoint: THREE.Vector3): void {
+    if (!this.clickVfxBlobUrl) return;
+
+    const video = document.createElement('video');
+    video.src = this.clickVfxBlobUrl;
+    video.muted = true;
+    video.loop = false;
+    video.playsInline = true;
+
+    const texture = new THREE.VideoTexture(video);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const geo = new THREE.PlaneGeometry(1.4, 1.4);
+    const mat = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+
+    const plane = new THREE.Mesh(geo, mat);
+    // Nudge slightly toward camera so it doesn't z-fight with the cube face
+    const toCam = this.camera.position.clone().sub(worldPoint).normalize().multiplyScalar(0.15);
+    plane.position.copy(worldPoint).add(toCam);
+    plane.quaternion.copy(this.camera.quaternion);
+    this.scene.add(plane);
+
+    const entry = { mesh: plane, video, texture };
+    this.activeVfxPlanes.push(entry);
+
+    const cleanup = () => {
+      this.scene.remove(plane);
+      geo.dispose();
+      mat.dispose();
+      texture.dispose();
+      video.src = '';
+      this.activeVfxPlanes = this.activeVfxPlanes.filter((p) => p !== entry);
+    };
+
+    video.onended = cleanup;
+    video.play().catch(cleanup);
   }
 
   private loadGlbAsset(): void {
@@ -323,7 +405,7 @@ export class M1ASFaceLayerEngine {
     return `<table style="width:100%;border-collapse:collapse;font-family:system-ui,-apple-system,sans-serif;font-size:17px;">${rowsHtml}</table>`;
   }
 
-    private async renderTextToTexture(urlOrText: string, label = 'Text Document'): Promise<THREE.CanvasTexture> {
+  private async renderTextToTexture(urlOrText: string, label = 'Text Document'): Promise<THREE.CanvasTexture> {
     let content = urlOrText;
 
     if (
@@ -380,7 +462,7 @@ export class M1ASFaceLayerEngine {
   }
 
 
-    private async renderPdfSnapshotToTexture(pdfUrl: string, label = 'PDF Document'): Promise<THREE.CanvasTexture> {
+  private async renderPdfSnapshotToTexture(pdfUrl: string, label = 'PDF Document'): Promise<THREE.CanvasTexture> {
     const res = await fetch(pdfUrl, { headers: { 'm1as-user-id': this.userId } });
     if (!res.ok) throw new Error(`PDF fetch failed (${res.status})`);
     const arrayBuffer = await res.arrayBuffer();
@@ -735,7 +817,7 @@ export class M1ASFaceLayerEngine {
         }
       }
 
-           // 2. Full CSS-Styled DOM Snapshot via html-to-image (.html, .md, .docx, .xlsx)
+      // 2. Full CSS-Styled DOM Snapshot via html-to-image (.html, .md, .docx, .xlsx)
       if (doc.body) {
         const iframeWin = tempIframe.contentWindow;
         const bodyBg = iframeWin ? iframeWin.getComputedStyle(doc.body).backgroundColor : '';
@@ -870,7 +952,7 @@ export class M1ASFaceLayerEngine {
     }
   }
 
-    public cleanupBackground(): void {
+  public cleanupBackground(): void {
     if (this.bgTexture) {
       this.bgTexture.dispose();
       this.bgTexture = null;
@@ -903,7 +985,7 @@ export class M1ASFaceLayerEngine {
       return;
     }
 
-     if (!value) return;
+    if (!value) return;
 
     try {
       if (type === 'text' || type === 'pdf-snapshot' || type === 'preview' || type === 'svg-preview') {
@@ -1009,6 +1091,9 @@ export class M1ASFaceLayerEngine {
     if (this.modelRoot && this.autoRotate) {
       this.modelRoot.rotation.y += 0.005;
     }
+    for (const vfx of this.activeVfxPlanes) {
+      vfx.mesh.quaternion.copy(this.camera.quaternion);
+    }
     for (const slot of this.audioSlots.values()) {
       if (!slot.audio.paused) {
         this.renderAudioFrame(slot);
@@ -1028,6 +1113,10 @@ export class M1ASFaceLayerEngine {
     this.materials.forEach((m) => m.dispose());
     if (this.audioCtx) {
       this.audioCtx.close().catch(() => { });
+    }
+    if (this.clickVfxBlobUrl) {
+      URL.revokeObjectURL(this.clickVfxBlobUrl);
+      this.clickVfxBlobUrl = null;
     }
     this.controls.dispose();
     this.renderer.dispose();

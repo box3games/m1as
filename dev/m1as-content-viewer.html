@@ -265,6 +265,54 @@
             </div>
         </div>
     </div>
+    <div class="playground-panel" style="background: #0f172a; border-color: #38bdf8;">
+        <h3 style="color: #38bdf8; margin-top: 0;">🎬 .webm VFX &amp; CCSA Composition Recorder</h3>
+        <p style="font-size: 13px; color: #cbd5e1; margin-top: -6px;">
+            Record the live CCSA 3D stage (with streamed cube faces, background videos, and click-triggered VFX) or
+            generate a standalone transparent 2D VFX overlay.
+        </p>
+
+        <div class="playground-form" style="flex-wrap: wrap; align-items: center;">
+            <select id="recSourceMode" class="m1as-select" style="padding: 8px; font-size: 13px;">
+                <option value="ccsa">Source: Live CCSA 3D Stage</option>
+                <option value="procedural-growth">Source: Procedural Alpha VFX — Growth Surge (1.5s)</option>
+                <option value="procedural-fireball">Source: Procedural Alpha VFX — Fireball (1.5s)</option>
+                <option value="procedural-collapse">Source: Procedural Alpha VFX — Box Collapse (1.8s)</option>
+            </select>
+
+            <label style="color: #f8fafc; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="recAlphaBg" />
+                Transparent BG (CCSA)
+            </label>
+
+            <button id="startRecBtn" class="playground-btn" style="background: #10b981; color: #052e16;">● Start
+                Recording (.webm)</button>
+            <button id="stopRecBtn" class="playground-btn" style="background: #ef4444;" disabled>■ Stop &amp;
+                Preview</button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+            <!-- Hidden/Offscreen 512x512 canvas used when recording procedural 2D alpha VFX -->
+            <canvas id="proceduralVfxCanvas" width="512" height="512" style="display: none;"></canvas>
+
+            <!-- Checkerboard preview box for the recorded .webm -->
+            <div id="recPreviewBox"
+                style="display: none; flex-direction: column; gap: 8px; background: #1e293b; padding: 12px; border-radius: 6px; border: 1px solid #334155;">
+                <span style="font-size: 12px; font-weight: bold; color: #38bdf8;">Recorded .webm Preview (Alpha
+                    Preserved):</span>
+                <video id="recPreviewVideo" controls loop muted playsinline
+                    style="width: 320px; height: 240px; border-radius: 4px; background-image: linear-gradient(45deg, #2b2b2b 25%, transparent 25%), linear-gradient(-45deg, #2b2b2b 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2b2b2b 75%), linear-gradient(-45deg, transparent 75%, #2b2b2b 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;"></video>
+                <div style="display: flex; gap: 8px;">
+                    <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
+                    <button id="bindRecClickVfxBtn" class="playground-btn" style="background: #8b5cf6;">⚡ Bind to Active
+                        .glb Click</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="recStatus" style="margin-top: 10px; font-size: 12px; color: #94a3b8;">Ready to record VP9 .webm.</div>
+    </div>
+
 
     <button id="loadAssets" class="playground-btn">Load Public Assets</button>
 
@@ -281,8 +329,102 @@
         const renderComponentBtn = document.getElementById("renderComponentBtn");
         const componentStage = document.getElementById("componentStage");
 
+        const recSourceMode = document.getElementById("recSourceMode");
+        const recAlphaBg = document.getElementById("recAlphaBg");
+        const startRecBtn = document.getElementById("startRecBtn");
+        const stopRecBtn = document.getElementById("stopRecBtn");
+        const recPreviewBox = document.getElementById("recPreviewBox");
+        const recPreviewVideo = document.getElementById("recPreviewVideo");
+        const downloadRecBtn = document.getElementById("downloadRecBtn");
+        const bindRecClickVfxBtn = document.getElementById("bindRecClickVfxBtn");
+        const recStatus = document.getElementById("recStatus");
+
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let lastRecordedBlobUrl = null;
         let countdownInterval = null;
         let activeFaceEngine = null;
+
+        recAlphaBg.addEventListener("change", () => {
+            if (activeFaceEngine) {
+                activeFaceEngine.setTransparentBackground(recAlphaBg.checked);
+            }
+        });
+
+        startRecBtn.addEventListener("click", () => {
+            const mode = recSourceMode.value;
+            let targetCanvas;
+
+            if (mode === "ccsa") {
+                if (!activeFaceEngine) {
+                    alert("Stream a .glb asset into the CCSA stage first!");
+                    return;
+                }
+                activeFaceEngine.setTransparentBackground(recAlphaBg.checked);
+                targetCanvas = activeFaceEngine.getCanvas();
+            } else {
+                targetCanvas = document.getElementById("proceduralVfxCanvas");
+                targetCanvas.style.display = "block";
+            }
+
+            const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+                ? "video/webm;codecs=vp9"
+                : "video/webm";
+
+            const stream = targetCanvas.captureStream(60);
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4000000 });
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: "video/webm" });
+                if (lastRecordedBlobUrl) URL.revokeObjectURL(lastRecordedBlobUrl);
+                lastRecordedBlobUrl = URL.createObjectURL(blob);
+
+                recPreviewVideo.src = lastRecordedBlobUrl;
+                recPreviewBox.style.display = "flex";
+                startRecBtn.disabled = false;
+                stopRecBtn.disabled = true;
+                recStatus.textContent = `Captured ${(blob.size / 1024).toFixed(1)} KB (${mimeType}). Ready to download or bind to .glb click!`;
+            };
+
+            startRecBtn.disabled = true;
+            stopRecBtn.disabled = false;
+            recStatus.textContent = `Recording ${mode} at 60 FPS...`;
+            mediaRecorder.start();
+
+            // Auto-stop if using one of the timed procedural presets from webm-vfx-generator.html
+            if (mode.startsWith("procedural-")) {
+                const preset = mode.replace("procedural-", "");
+                // Call your playAnimation(preset, () => setTimeout(() => mediaRecorder.stop(), 80)) here
+            }
+        });
+
+        stopRecBtn.addEventListener("click", () => {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+        });
+
+        downloadRecBtn.addEventListener("click", () => {
+            if (!lastRecordedBlobUrl) return;
+            const a = document.createElement("a");
+            a.href = lastRecordedBlobUrl;
+            a.download = `m1as-ccsa-capture-${Date.now()}.webm`;
+            a.click();
+        });
+
+        bindRecClickVfxBtn.addEventListener("click", async () => {
+            if (!lastRecordedBlobUrl || !activeFaceEngine) {
+                alert("Ensure a .glb is active in CCSA and you have recorded a .webm clip.");
+                return;
+            }
+            await activeFaceEngine.setClickVfx(lastRecordedBlobUrl);
+            recStatus.textContent = "⚡ Recorded .webm bound to .glb click! Click the 3D object in CCSA to test.";
+        });
 
         document.getElementById("loadAssets").addEventListener("click", loadAssets);
         renderComponentBtn.addEventListener("click", triggerManualRender);
@@ -358,6 +500,7 @@
                 const isGlb = mime === "model/gltf-binary" || lowerName.endsWith(".glb");
                 const isSvg = mime === "image/svg+xml" || lowerName.endsWith(".svg");
                 const isPdf = mime === "application/pdf" || lowerName.endsWith(".pdf");
+
                 const isText =
                     mime === "text/plain" ||
                     mime === "text/csv" ||
@@ -383,6 +526,7 @@
                     ? `<select class="face-assign-sel" title="Apply directly to active 3D cube face">
                            <option value="">Paint Face / BG...</option>
                            <option value="bg">Scene Background</option>
+                           <option value="click-vfx">⚡ On-Click VFX Burst</option>
                            <option value="0">Face 0 (Right)</option>
                            <option value="1">Face 1 (Left)</option>
                            <option value="2">Face 2 (Top)</option>
@@ -434,6 +578,14 @@
                             return;
                         }
 
+                        if (rawTarget === "click-vfx") {
+                            const signedUrl = await getSignedAssetUrl(asset);
+                            await activeFaceEngine.setClickVfx(signedUrl);
+                            alert(`⚡ Bound "${asset.displayName}" to 3D mesh clicks! Click the .glb object in the stage to trigger.`);
+                            return;
+                        }
+
+
                         const isGlb =
                             mime === "model/gltf-binary" ||
                             (asset.displayName || "").toLowerCase().endsWith(".glb");
@@ -448,6 +600,7 @@
                             mime === "text/csv" ||
                             mime === "application/json" ||
                             (asset.displayName || "").toLowerCase().endsWith(".txt");
+                        const isWebm = mime === "video/webm"
 
 
                         let targetUrl;
