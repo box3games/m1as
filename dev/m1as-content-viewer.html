@@ -274,11 +274,13 @@
 
         <div class="playground-form" style="flex-wrap: wrap; align-items: center;">
             <select id="recSourceMode" class="m1as-select" style="padding: 8px; font-size: 13px;">
-                <option value="ccsa">Source: Live CCSA 3D Stage</option>
-                <option value="procedural-growth">Source: Procedural Alpha VFX — Growth Surge (1.5s)</option>
-                <option value="procedural-fireball">Source: Procedural Alpha VFX — Fireball (1.5s)</option>
-                <option value="procedural-collapse">Source: Procedural Alpha VFX — Box Collapse (1.8s)</option>
+                <option value="big3r">🍄 Source: BIG3R Growth &amp; Cinema Sandbox</option>
+                <option value="ccsa">🚀 Source: Live CCSA 3D Stage</option>
+                <option value="procedural-growth">✨ Procedural Alpha VFX: Growth Surge (1.5s)</option>
+                <option value="procedural-fireball">🔥 Procedural Alpha VFX: Colossal Burst (1.5s)</option>
+                <option value="procedural-collapse">💥 Procedural Alpha VFX: Gate Shatter &amp; Dust (1.8s)</option>
             </select>
+
 
             <label style="color: #f8fafc; font-size: 13px; display: flex; align-items: center; gap: 6px;">
                 <input type="checkbox" id="recAlphaBg" />
@@ -306,6 +308,7 @@
                     <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
                     <button id="bindRecClickVfxBtn" class="playground-btn" style="background: #8b5cf6;">⚡ Bind to Active
                         .glb Click</button>
+                    <button id="bindRecBig3rVfxBtn" class="playground-btn" style="background: #10b981; color: #052e16;">🍄 Bind to BIG3R Growth VFX</button>
                 </div>
             </div>
         </div>
@@ -659,7 +662,7 @@
             activeVfxEngine?.setCinematicCamera(vfxCinematicCamToggle.checked);
         });
 
-                vfxSpawnPropBtn.addEventListener("click", async () => {
+        vfxSpawnPropBtn.addEventListener("click", async () => {
             if (!activeVfxEngine) {
                 alert("Launch the VFX Stage with your primary character .glb first!");
                 return;
@@ -686,11 +689,89 @@
         });
 
 
+                recAlphaBg.addEventListener("change", () => {
+            if (recSourceMode.value === "big3r") {
+                activeVfxEngine?.setTransparentBackground(recAlphaBg.checked);
+            } else {
+                activeFaceEngine?.setTransparentBackground(recAlphaBg.checked);
+            }
+        });
+
+        function runProceduralVfxClip(canvas, preset, onComplete) {
+            const ctx = canvas.getContext("2d", { alpha: true });
+            const W = canvas.width, H = canvas.height, CX = W / 2, CY = H / 2;
+            const durationMs = preset === "collapse" ? 1800 : 1500;
+            const particles = [];
+
+            for (let i = 0; i < 75; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x: CX + (preset === "growth" ? Math.cos(angle) * (20 + Math.random() * 90) : 0),
+                    y: CY + (preset === "growth" ? 60 : 0),
+                    vx: preset === "growth" ? (Math.random() - 0.5) * 1.5 : Math.cos(angle) * speed,
+                    vy: preset === "growth" ? -3 - Math.random() * 4 : Math.sin(angle) * speed,
+                    size: preset === "collapse" ? 10 + Math.random() * 18 : 5 + Math.random() * 10,
+                    hue: preset === "fireball" ? 15 + Math.random() * 35 : 148 + Math.random() * 30,
+                    maxLife: 0.65 + Math.random() * 0.35
+                });
+            }
+
+            const start = performance.now();
+            function tick(now) {
+                const progress = Math.min(1, (now - start) / durationMs);
+                ctx.clearRect(0, 0, W, H);
+
+                for (let r = 0; r < 3; r++) {
+                    const lp = Math.max(0, Math.min(1, (progress - r * 0.14) / 0.72));
+                    if (lp > 0 && lp < 1) {
+                        ctx.beginPath();
+                        ctx.arc(CX, CY, 25 + lp * 200, 0, Math.PI * 2);
+                        ctx.strokeStyle = preset === "fireball"
+                            ? `rgba(251, 146, 60, ${(1 - lp) * 0.85})`
+                            : preset === "collapse"
+                                ? `rgba(148, 163, 184, ${(1 - lp) * 0.85})`
+                                : `rgba(16, 185, 129, ${(1 - lp) * 0.85})`;
+                        ctx.lineWidth = 8 * (1 - lp);
+                        ctx.stroke();
+                    }
+                }
+
+                for (const p of particles) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    const alpha = Math.max(0, 1 - progress / p.maxLife);
+                    if (alpha <= 0) continue;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * (1 - progress * 0.35), 0, Math.PI * 2);
+                    ctx.fillStyle = preset === "collapse"
+                        ? `rgba(203, 213, 225, ${alpha})`
+                        : `hsla(${p.hue}, 95%, 62%, ${alpha})`;
+                    ctx.fill();
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(tick);
+                } else {
+                    ctx.clearRect(0, 0, W, H);
+                    onComplete?.();
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
         startRecBtn.addEventListener("click", () => {
             const mode = recSourceMode.value;
             let targetCanvas;
 
-            if (mode === "ccsa") {
+            if (mode === "big3r") {
+                if (!activeVfxEngine) {
+                    alert("Launch the BIG3R VFX Stage first!");
+                    return;
+                }
+                activeVfxEngine.setTransparentBackground(recAlphaBg.checked);
+                targetCanvas = activeVfxEngine.getCanvas();
+            } else if (mode === "ccsa") {
                 if (!activeFaceEngine) {
                     alert("Stream a .glb asset into the CCSA stage first!");
                     return;
@@ -723,7 +804,8 @@
                 recPreviewBox.style.display = "flex";
                 startRecBtn.disabled = false;
                 stopRecBtn.disabled = true;
-                recStatus.textContent = `Captured ${(blob.size / 1024).toFixed(1)} KB (${mimeType}). Ready to download or bind to .glb click!`;
+                if (mode.startsWith("procedural-")) targetCanvas.style.display = "none";
+                recStatus.textContent = `Captured ${(blob.size / 1024).toFixed(1)} KB (${mimeType}). Ready to download or bind!`;
             };
 
             startRecBtn.disabled = true;
@@ -731,10 +813,13 @@
             recStatus.textContent = `Recording ${mode} at 60 FPS...`;
             mediaRecorder.start();
 
-            // Auto-stop if using one of the timed procedural presets from webm-vfx-generator.html
             if (mode.startsWith("procedural-")) {
                 const preset = mode.replace("procedural-", "");
-                // Call your playAnimation(preset, () => setTimeout(() => mediaRecorder.stop(), 80)) here
+                runProceduralVfxClip(targetCanvas, preset, () => {
+                    setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+                    }, 80);
+                });
             }
         });
 
@@ -748,7 +833,7 @@
             if (!lastRecordedBlobUrl) return;
             const a = document.createElement("a");
             a.href = lastRecordedBlobUrl;
-            a.download = `m1as-ccsa-capture-${Date.now()}.webm`;
+            a.download = `m1as-${recSourceMode.value}-${Date.now()}.webm`;
             a.click();
         });
 
@@ -758,7 +843,17 @@
                 return;
             }
             await activeFaceEngine.setClickVfx(lastRecordedBlobUrl);
-            recStatus.textContent = "⚡ Recorded .webm bound to .glb click! Click the 3D object in CCSA to test.";
+            recStatus.textContent = "⚡ Recorded .webm bound to CCSA .glb click!";
+        });
+
+        document.getElementById("bindRecBig3rVfxBtn")?.addEventListener("click", async () => {
+            if (!lastRecordedBlobUrl || !activeVfxEngine) {
+                alert("Launch the BIG3R VFX Stage and record a .webm clip first.");
+                return;
+            }
+            vfxOverlayUrlInput.value = lastRecordedBlobUrl;
+            await activeVfxEngine.setVfxWebm(lastRecordedBlobUrl);
+            recStatus.textContent = "🍄 Bound recorded .webm directly into BIG3R Growth & Prop-Break VFX!";
         });
 
         document.getElementById("loadAssets").addEventListener("click", loadAssets);
@@ -920,7 +1015,7 @@
                     });
                 }
 
-                                const vfxPropBtnEl = card.querySelector(".vfx-prop-btn");
+                const vfxPropBtnEl = card.querySelector(".vfx-prop-btn");
                 if (vfxPropBtnEl) {
                     vfxPropBtnEl.addEventListener("click", async () => {
                         const signedUrl = await getSignedAssetUrl(asset);

@@ -123,6 +123,7 @@ export class M1ASVFXEngine {
         video: HTMLVideoElement;
         texture: THREE.VideoTexture;
     }> = [];
+    private activeRings: Array<{ mesh: THREE.Mesh; age: number; maxAge: number; maxRadius: number }> = [];
 
     private onStateChange?: (state: VFXEngineTelemetry) => void;
     private onRoomCollapse?: (newBoxTier: number, newCeiling: number) => void;
@@ -262,10 +263,42 @@ export class M1ASVFXEngine {
             undefined,
             (err) => console.error('[M1ASVFXEngine] Failed to load .glb:', err)
         );
+
+
+    }
+
+    private spawnGroundShockwave(worldPos: THREE.Vector3, radius: number, colorHex = 0x10b981): void {
+        const geo = new THREE.RingGeometry(0.15, 0.35, 36);
+        geo.rotateX(-Math.PI / 2);
+        const mat = new THREE.MeshBasicMaterial({
+            color: colorHex,
+            transparent: true,
+            opacity: 0.85,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+        });
+
+        const ring = new THREE.Mesh(geo, mat);
+        ring.position.set(worldPos.x, 0.02, worldPos.z);
+        this.scene.add(ring);
+        this.activeRings.push({ mesh: ring, age: 0, maxAge: 0.65, maxRadius: radius });
     }
     // =========================================================================
     // PUBLIC GROWTH, STIMULUS & CAMERA CONTROLS
     // =========================================================================
+
+    public getCanvas(): HTMLCanvasElement {
+        return this.canvas;
+    }
+
+    public setTransparentBackground(transparent: boolean): void {
+        if (transparent) {
+            this.scene.background = null;
+            this.renderer.setClearColor(0x000000, 0);
+        } else {
+            this.scene.background = new THREE.Color(0x0b1120);
+        }
+    }
 
     public setMode(mode: GrowthTriggerMode): void {
         this.mode = mode;
@@ -356,17 +389,26 @@ export class M1ASVFXEngine {
         this.enqueueGrowth(surgeAmount, GrowthStimulusType.Environmental, delaySeconds);
     }
 
-    private handleCascadeBurst(burst: CascadeBurstPayload): void {
-        this.spawnVfxAtPosition(
-            this.subjectRoot.position,
-            Math.max(1.8, this.baseModelHeight * this.growthQueue.currentVisualScale * 1.45)
-        );
-        this.currentFovKick = Math.min(9.0, 3.0 + burst.bugKineticKick * 1.4);
+     private handleCascadeBurst(burst: CascadeBurstPayload): void {
+    const scale = this.growthQueue.currentVisualScale;
+    this.spawnVfxAtPosition(
+      this.subjectRoot.position,
+      Math.max(1.8, this.baseModelHeight * scale * 1.45)
+    );
+    this.spawnGroundShockwave(
+      this.subjectRoot.position,
+      Math.max(1.2, scale * 1.1),
+      0x10b981
+    );
+    this.currentFovKick = Math.min(9.0, 3.0 + burst.bugKineticKick * 1.4);
 
-        if (this.actions.has('grow_surge')) {
-            this.playOneShotAnimation('grow_surge');
-        }
+    if (this.actions.has('grow_surge')) {
+      this.playOneShotAnimation('grow_surge');
     }
+  }
+
+
+
 
     // =========================================================================
     // MULTI-.GLB SPATIAL PROPS & THRESHOLD-BREAK COLLISIONS
@@ -504,32 +546,38 @@ export class M1ASVFXEngine {
         });
     }
 
-    private breakOrAbsorbProp(prop: ActiveSceneProp): void {
-        prop.broken = true;
-        prop.root.visible = false;
+      private breakOrAbsorbProp(prop: ActiveSceneProp): void {
+    prop.broken = true;
+    prop.root.visible = false;
 
-        const roleMultiplier =
-            prop.role === 'growth-gate'
-                ? 1.15
-                : prop.role === 'container'
-                    ? 0.85
-                    : prop.role === 'wearable'
-                        ? 0.65
-                        : 0.45;
+    const roleMultiplier =
+      prop.role === 'growth-gate'
+        ? 1.15
+        : prop.role === 'container'
+          ? 0.85
+          : prop.role === 'wearable'
+            ? 0.65
+            : 0.45;
 
-        const stimulus =
-            prop.role === 'wearable'
-                ? GrowthStimulusType.Buff
-                : prop.role === 'growth-gate' || prop.role === 'container'
-                    ? GrowthStimulusType.Environmental
-                    : GrowthStimulusType.Consumption;
+    const stimulus =
+      prop.role === 'wearable'
+        ? GrowthStimulusType.Buff
+        : prop.role === 'growth-gate' || prop.role === 'container'
+          ? GrowthStimulusType.Environmental
+          : GrowthStimulusType.Consumption;
 
-        const growthGain = Math.max(0.25, prop.targetHeight * roleMultiplier);
+    const growthGain = Math.max(0.25, prop.targetHeight * roleMultiplier);
 
-        this.spawnVfxAtPosition(prop.root.position, Math.max(1.5, prop.targetHeight * 1.6));
-        this.enqueueGrowth(growthGain, stimulus);
-        this.notifyPropsChanged();
-    }
+    this.spawnVfxAtPosition(prop.root.position, Math.max(1.5, prop.targetHeight * 1.6));
+    this.spawnGroundShockwave(
+      prop.root.position,
+      Math.max(1.0, prop.targetHeight * 1.2),
+      prop.role === 'growth-gate' ? 0xa855f7 : 0x38bdf8
+    );
+    this.enqueueGrowth(growthGain, stimulus);
+    this.notifyPropsChanged();
+  }
+
     // =========================================================================
     // GOLDEN-RATIO BONES, VENOUS PULSE & CEILING POSTURE SOLVER
     // =========================================================================
@@ -875,36 +923,61 @@ export class M1ASVFXEngine {
             mode: this.mode,
         });
     }
-    private animate(): void {
-        this.frameId = requestAnimationFrame(this.animate);
-        const dt = Math.min(this.clock.getDelta(), 0.05);
-        if (this.isHolding) {
-            this.holdDuration += dt;
-            this.venousPulseEnergy = Math.min(1.0, 0.3 + this.holdDuration * 0.4);
-        }
-        if (this.mixer) {
-            this.mixer.update(dt);
-        }
-        this.updateMovement(dt);
-        this.checkPropCollisionsAndBreaks();
-        const queueTelemetry = this.growthQueue.step(dt);
-        this.applyOrganicAndBoneScaling(
-            dt,
-            queueTelemetry.absoluteFinalScale,
-            queueTelemetry.instabilityScore
-        );
-        this.updateCinematicCamera(
-            dt,
-            queueTelemetry.absoluteFinalScale,
-            queueTelemetry.instabilityScore
-        );
-        for (const vfx of this.activeVfxPlanes) {
-            vfx.mesh.quaternion.copy(this.camera.quaternion);
-        }
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
-        this.emitTelemetry();
+      private animate(): void {
+    this.frameId = requestAnimationFrame(this.animate);
+    const dt = Math.min(this.clock.getDelta(), 0.05);
+
+    if (this.isHolding) {
+      this.holdDuration += dt;
+      this.venousPulseEnergy = Math.min(1.0, 0.3 + this.holdDuration * 0.4);
     }
+
+    if (this.mixer) {
+      this.mixer.update(dt);
+    }
+
+    this.updateMovement(dt);
+    this.checkPropCollisionsAndBreaks();
+
+    const queueTelemetry = this.growthQueue.step(dt);
+    this.applyOrganicAndBoneScaling(
+      dt,
+      queueTelemetry.absoluteFinalScale,
+      queueTelemetry.instabilityScore
+    );
+    this.updateCinematicCamera(
+      dt,
+      queueTelemetry.absoluteFinalScale,
+      queueTelemetry.instabilityScore
+    );
+
+    // Update expanding ground shockwave rings
+    for (let i = this.activeRings.length - 1; i >= 0; i--) {
+      const r = this.activeRings[i];
+      r.age += dt;
+      const t = Math.min(1, r.age / r.maxAge);
+      const easeOut = 1 - Math.pow(1 - t, 3);
+      const s = 1 + easeOut * r.maxRadius * 3.0;
+      r.mesh.scale.set(s, 1, s);
+      (r.mesh.material as THREE.MeshBasicMaterial).opacity = (1 - t) * 0.85;
+
+      if (t >= 1) {
+        this.scene.remove(r.mesh);
+        r.mesh.geometry.dispose();
+        (r.mesh.material as THREE.Material).dispose();
+        this.activeRings.splice(i, 1);
+      }
+    }
+
+    for (const vfx of this.activeVfxPlanes) {
+      vfx.mesh.quaternion.copy(this.camera.quaternion);
+    }
+
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
+    this.emitTelemetry();
+  }
+
     public destroy(): void {
         if (this.frameId !== null) cancelAnimationFrame(this.frameId);
         window.removeEventListener('keydown', this.onKeyDown);
