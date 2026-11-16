@@ -394,6 +394,35 @@
                     🎥 Cinematic Low-Angle &amp; FOV Kick
                 </label>
             </div>
+            <!-- Row 3: Multi-.glb Spatial Prop & Reference Scale Spawner -->
+            <div
+                style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid #334155; padding-top: 8px;">
+                <label style="color: #38bdf8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Add Scene
+                    .glb:</label>
+                <input type="text" id="vfxPropUrlInput" class="m1as-input-txt" style="min-width: 220px;"
+                    placeholder="Paste signed .glb URL (Cube, T-Pose, Tank, Gate)..." />
+
+                <select id="vfxPropRole" class="m1as-select">
+                    <option value="consumable">🍎 Consumable (Breaks at 65% height)</option>
+                    <option value="wearable">👕 Clothes / Growth Suit (85%)</option>
+                    <option value="container">🧪 Growth Tank / Jar (102%)</option>
+                    <option value="growth-gate">🚪 Growth Gate / Ceiling Vent (102%)</option>
+                    <option value="reference">🧍 Scale Reference (T-Pose / Car / House)</option>
+                </select>
+
+                <label style="color: #f8fafc; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                    Height: <input type="number" id="vfxPropHeight" value="0.6" min="0.1" max="15.0" step="0.1"
+                        style="width: 58px; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 4px; padding: 3px 6px;" />m
+                </label>
+
+                <button id="vfxSpawnPropBtn" class="playground-btn" style="background: #0284c7;">+ Spawn Prop</button>
+                <button id="vfxRespawnPropsBtn" class="playground-btn" style="background: #334155;">↺ Respawn
+                    Broken</button>
+            </div>
+
+            <!-- Active Scene Props List (with live height sliders!) -->
+            <div id="vfxPropListContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;"></div>
+
         </div>
 
         <!-- WebGL Viewport -->
@@ -405,15 +434,6 @@
         </div>
     </div>
 
-
-    <!-- WebGL Viewport -->
-    <div id="vfxStageContainer"
-        style="width: 100%; height: 420px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; position: relative; overflow: hidden;">
-        <div style="text-align: center; color: #64748b; padding: 180px 0; font-style: italic;">
-            VFX Stage idle. Provide a signed .glb URL above or use a card's "VFX Sandbox" button...
-        </div>
-    </div>
-    </div>
 
     <button id="loadAssets" class="playground-btn">Load Public Assets</button>
 
@@ -465,6 +485,52 @@
         const vfxCeilingVal = document.getElementById("vfxCeilingVal");
         const vfxCinematicCamToggle = document.getElementById("vfxCinematicCamToggle");
 
+        const vfxPropUrlInput = document.getElementById("vfxPropUrlInput");
+        const vfxPropRole = document.getElementById("vfxPropRole");
+        const vfxPropHeight = document.getElementById("vfxPropHeight");
+        const vfxSpawnPropBtn = document.getElementById("vfxSpawnPropBtn");
+        const vfxRespawnPropsBtn = document.getElementById("vfxRespawnPropsBtn");
+        const vfxPropListContainer = document.getElementById("vfxPropListContainer");
+
+        vfxPropRole.addEventListener("change", () => {
+            const defaults = {
+                consumable: "0.4",
+                wearable: "0.9",
+                container: "1.6",
+                "growth-gate": "2.6",
+                reference: "1.8"
+            };
+            vfxPropHeight.value = defaults[vfxPropRole.value] || "1.0";
+        });
+
+        function renderActivePropsUI(props) {
+            vfxPropListContainer.innerHTML = "";
+            props.forEach((p) => {
+                const chip = document.createElement("div");
+                chip.style.cssText = `background: #0f172a; border: 1px solid ${p.broken ? "#ef4444" : "#334155"}; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: #f8fafc; opacity: ${p.broken ? "0.55" : "1"};`;
+                chip.innerHTML = `
+                    <span>${p.broken ? "💥" : "📦"} <strong>${p.role}</strong></span>
+                    <input type="range" min="0.2" max="10.0" step="0.1" value="${p.targetHeight}" style="width: 75px;" ${p.broken ? "disabled" : ""} />
+                    <span class="prop-h-label" style="font-family: monospace; color: #38bdf8;">${p.targetHeight.toFixed(1)}m</span>
+                    <button style="background: none; border: none; color: #f87171; cursor: pointer; font-weight: bold;">✕</button>
+                `;
+
+                const slider = chip.querySelector("input[type='range']");
+                const hLabel = chip.querySelector(".prop-h-label");
+                slider.addEventListener("input", () => {
+                    const h = parseFloat(slider.value);
+                    hLabel.textContent = `${h.toFixed(1)}m`;
+                    activeVfxEngine?.updatePropHeight(p.id, h);
+                });
+
+                chip.querySelector("button").addEventListener("click", () => {
+                    activeVfxEngine?.removeProp(p.id);
+                });
+
+                vfxPropListContainer.appendChild(chip);
+            });
+        }
+
         const BOX_TIER_NAMES = [
             "Broken Jar",
             "Sewer Pipes",
@@ -512,6 +578,7 @@
                     baseScale: 1.0,
                     initialRoomCeiling: initialCeiling,
                     cinematicCamera: vfxCinematicCamToggle.checked,
+                    onPropsChanged: renderActivePropsUI,
                     onStateChange: (state) => {
                         const tierLabel = BOX_TIER_NAMES[Math.min(state.boxTier - 1, BOX_TIER_NAMES.length - 1)];
                         const rigTag = state.hasSkeleton ? `Rigged (${state.boneCount} bones)` : "Unrigged Mesh";
@@ -591,6 +658,33 @@
         vfxCinematicCamToggle.addEventListener("change", () => {
             activeVfxEngine?.setCinematicCamera(vfxCinematicCamToggle.checked);
         });
+
+                vfxSpawnPropBtn.addEventListener("click", async () => {
+            if (!activeVfxEngine) {
+                alert("Launch the VFX Stage with your primary character .glb first!");
+                return;
+            }
+            const url = vfxPropUrlInput.value.trim();
+            if (!url) {
+                alert("Paste a signed .glb URL (or click 'Sign URL' on any .glb card) first!");
+                return;
+            }
+            try {
+                await activeVfxEngine.addSpatialProp(url, {
+                    role: vfxPropRole.value,
+                    targetHeight: parseFloat(vfxPropHeight.value) || 1.0,
+                    x: (Math.random() - 0.5) * 5,
+                    z: (Math.random() - 0.5) * 5
+                });
+            } catch (err) {
+                alert(`Failed to spawn prop: ${err.message}`);
+            }
+        });
+
+        vfxRespawnPropsBtn.addEventListener("click", () => {
+            activeVfxEngine?.resetAllProps();
+        });
+
 
         startRecBtn.addEventListener("click", () => {
             const mode = recSourceMode.value;
@@ -764,7 +858,8 @@
                 const streamButton = asset.capabilities?.canStream ? `<button class="stream-btn">Stream</button>` : "";
                 const signCopyButton = asset.capabilities?.canStream ? `<button class="sign-btn">Sign URL</button>` : "";
                 const vfxGlbBtn = isGlb
-                    ? `<button class="vfx-glb-btn" style="border-color: #10b981; color: #065f46; font-weight: bold;">🍄 VFX Stage</button>`
+                    ? `<button class="vfx-glb-btn" style="border-color: #10b981; color: #065f46; font-weight: bold;">🍄 VFX Stage</button>
+                       <button class="vfx-prop-btn" style="border-color: #0284c7; color: #0369a1; font-weight: bold;">+ Prop</button>`
                     : "";
                 const vfxWebmBtn = mime === "video/webm"
                     ? `<button class="vfx-webm-btn" style="border-color: #8b5cf6; color: #5b21b6; font-weight: bold;">⚡ Set Growth VFX</button>`
@@ -793,8 +888,11 @@
                         ${previewButton}
                         ${streamButton}
                         ${signCopyButton}
+                        ${vfxGlbBtn}
+                        ${vfxWebmBtn}
                         ${faceAssignSelect}
                     </div>
+
                 `;
 
                 const streamBtn = card.querySelector(".stream-btn");
@@ -819,6 +917,27 @@
                         const signedUrl = await getSignedAssetUrl(asset);
                         vfxGlbUrlInput.value = signedUrl;
                         await mountVfxSandbox(signedUrl, vfxOverlayUrlInput.value.trim());
+                    });
+                }
+
+                                const vfxPropBtnEl = card.querySelector(".vfx-prop-btn");
+                if (vfxPropBtnEl) {
+                    vfxPropBtnEl.addEventListener("click", async () => {
+                        const signedUrl = await getSignedAssetUrl(asset);
+                        vfxPropUrlInput.value = signedUrl;
+
+                        if (!activeVfxEngine) {
+                            alert("Signed URL loaded into '+ Add Scene .glb'! Launch the VFX Stage with a primary character first, then click '+ Spawn Prop'.");
+                            return;
+                        }
+
+                        await activeVfxEngine.addSpatialProp(signedUrl, {
+                            name: asset.displayName,
+                            role: vfxPropRole.value,
+                            targetHeight: parseFloat(vfxPropHeight.value) || 0.6,
+                            x: (Math.random() - 0.5) * 5,
+                            z: (Math.random() - 0.5) * 5
+                        });
                     });
                 }
 

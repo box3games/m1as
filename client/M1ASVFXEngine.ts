@@ -2,667 +2,917 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  GrowthEventQueue,
-  GrowthStimulusType,
-  CascadeBurstPayload,
+    GrowthEventQueue,
+    GrowthStimulusType,
+    CascadeBurstPayload,
 } from './GrowthEventQueue.js';
 
 export type GrowthTriggerMode = 'click' | 'tap' | 'hold' | 'chaos-delayed';
 export type PostureState = 'stand' | 'hunch' | 'crawl';
+export type SpatialPropRole =
+    | 'consumable'
+    | 'wearable'
+    | 'container'
+    | 'growth-gate'
+    | 'reference';
+
+export interface SpatialPropEntry {
+    id: string;
+    name: string;
+    role: SpatialPropRole;
+    targetHeight: number;
+    position: { x: number; z: number };
+    broken: boolean;
+}
+
+interface ActiveSceneProp extends SpatialPropEntry {
+    root: THREE.Group;
+    colliderBox: THREE.Box3;
+}
 
 export interface VFXEngineTelemetry {
-  currentScale: number;
-  targetScale: number;
-  instability: number;
-  pendingQueue: number;
-  posture: PostureState;
-  occupancyRatio: number;
-  boxTier: number;
-  storedGoldenBuffer: number;
-  hasSkeleton: boolean;
-  boneCount: number;
-  isHolding: boolean;
-  mode: GrowthTriggerMode;
+    currentScale: number;
+    targetScale: number;
+    instability: number;
+    pendingQueue: number;
+    posture: PostureState;
+    occupancyRatio: number;
+    boxTier: number;
+    storedGoldenBuffer: number;
+    hasSkeleton: boolean;
+    boneCount: number;
+    isHolding: boolean;
+    mode: GrowthTriggerMode;
 }
 
 export interface M1ASVFXEngineOptions {
-  userId?: string;
-  moveSpeed?: number;
-  baseScale?: number;
-  initialRoomCeiling?: number;
-  cinematicCamera?: boolean;
-  onStateChange?: (state: VFXEngineTelemetry) => void;
-  onRoomCollapse?: (newBoxTier: number, newCeiling: number) => void;
+    userId?: string;
+    moveSpeed?: number;
+    baseScale?: number;
+    initialRoomCeiling?: number;
+    cinematicCamera?: boolean;
+    onStateChange?: (state: VFXEngineTelemetry) => void;
+    onRoomCollapse?: (newBoxTier: number, newCeiling: number) => void;
+    onPropsChanged?: (props: SpatialPropEntry[]) => void;
 }
 
 export class M1ASVFXEngine {
-  private canvas: HTMLCanvasElement;
-  private glbBlobUrl: string;
-  private userId: string;
+    private canvas: HTMLCanvasElement;
+    private glbBlobUrl: string;
+    private userId: string;
 
-  private renderer!: THREE.WebGLRenderer;
-  private scene!: THREE.Scene;
-  private camera!: THREE.PerspectiveCamera;
-  private controls!: OrbitControls;
-  private clock = new THREE.Clock();
-  private frameId: number | null = null;
+    private renderer!: THREE.WebGLRenderer;
+    private scene!: THREE.Scene;
+    private camera!: THREE.PerspectiveCamera;
+    private controls!: OrbitControls;
+    private clock = new THREE.Clock();
+    private frameId: number | null = null;
 
-  // Core Growth Queue (C# Port)
-  private growthQueue: GrowthEventQueue;
-  private projectedTargetScale = 1.0;
+    // Core Growth Queue (C# Port)
+    private growthQueue: GrowthEventQueue;
+    private projectedTargetScale = 1.0;
 
-  // Subject, Rig & AnimationMixer
-  private subjectRoot = new THREE.Group();
-  private loadedModel: THREE.Object3D | null = null;
-  private mixer: THREE.AnimationMixer | null = null;
-  private actions = new Map<string, THREE.AnimationAction>();
-  private activeAction: THREE.AnimationAction | null = null;
-  private bones = new Map<string, THREE.Bone>();
-  private subjectMaterials: THREE.MeshStandardMaterial[] = [];
-  private baseModelHeight = 1.0;
+    // Subject, Rig & AnimationMixer
+    private subjectRoot = new THREE.Group();
+    private loadedModel: THREE.Object3D | null = null;
+    private mixer: THREE.AnimationMixer | null = null;
+    private actions = new Map<string, THREE.AnimationAction>();
+    private activeAction: THREE.AnimationAction | null = null;
+    private bones = new Map<string, THREE.Bone>();
+    private subjectMaterials: THREE.MeshStandardMaterial[] = [];
+    private baseModelHeight = 1.0;
 
-  // Golden-Ratio Body Orchestration (\u03c6 = 1.618)
-  private readonly PHI = 1.61803398875;
-  private upperBodyExcess = 0.0;
-  private storedGoldenBuffer = 0.0;
+    // Golden-Ratio Body Orchestration (phi = 1.618)
+    private readonly PHI = 1.61803398875;
+    private upperBodyExcess = 0.0;
+    private storedGoldenBuffer = 0.0;
 
-  // Box-Within-a-Box Spatial Progression & Posture
-  private boxTier = 1;
-  private roomCeilingHeight: number;
-  private ceilingMesh!: THREE.Mesh;
-  private posture: PostureState = 'stand';
+    // Box-Within-a-Box Spatial Progression & Posture
+    private boxTier = 1;
+    private roomCeilingHeight: number;
+    private ceilingMesh!: THREE.Mesh;
+    private posture: PostureState = 'stand';
 
-  // Venous Pulse & Fractal Bulge
-  private pulsePhase = 0;
-  private venousPulseEnergy = 0;
+    // Multi-.glb Spatial Props & Threshold-Break Collisions
+    private sceneProps = new Map<string, ActiveSceneProp>();
+    private onPropsChanged?: (props: SpatialPropEntry[]) => void;
 
-  // Input & Controls
-  private mode: GrowthTriggerMode = 'click';
-  private isHolding = false;
-  private holdDuration = 0;
-  private keysPressed = new Set<string>();
-  private moveSpeed: number;
-  private isMovingBackward = false;
-  private raycaster = new THREE.Raycaster();
-  private pointerDownPos = new THREE.Vector2();
+    // Venous Pulse & Fractal Bulge
+    private pulsePhase = 0;
+    private venousPulseEnergy = 0;
 
-  // Cinematic Camera Amplification
-  private cinematicCamera: boolean;
-  private baseFov = 45;
-  private currentFovKick = 0;
+    // Input & Controls
+    private mode: GrowthTriggerMode = 'click';
+    private isHolding = false;
+    private holdDuration = 0;
+    private keysPressed = new Set<string>();
+    private moveSpeed: number;
+    private isMovingBackward = false;
+    private raycaster = new THREE.Raycaster();
+    private pointerDownPos = new THREE.Vector2();
 
-  // Transparent .webm VFX Overlays
-  private vfxBlobUrl: string | null = null;
-  private activeVfxPlanes: Array<{ mesh: THREE.Mesh; video: HTMLVideoElement; texture: THREE.VideoTexture }> = [];
+    // Cinematic Camera Amplification
+    private cinematicCamera: boolean;
+    private baseFov = 45;
+    private currentFovKick = 0;
 
-  private onStateChange?: (state: VFXEngineTelemetry) => void;
-  private onRoomCollapse?: (newBoxTier: number, newCeiling: number) => void;
+    // Transparent .webm VFX Overlays
+    private vfxBlobUrl: string | null = null;
+    private activeVfxPlanes: Array<{
+        mesh: THREE.Mesh;
+        video: HTMLVideoElement;
+        texture: THREE.VideoTexture;
+    }> = [];
 
-  constructor(canvas: HTMLCanvasElement, glbBlobUrl: string, options: M1ASVFXEngineOptions = {}) {
-    this.canvas = canvas;
-    this.glbBlobUrl = glbBlobUrl;
-    this.userId = options.userId ?? 'dev-user';
-    this.moveSpeed = options.moveSpeed ?? 3.8;
-    this.roomCeilingHeight = options.initialRoomCeiling ?? 3.2;
-    this.cinematicCamera = options.cinematicCamera ?? true;
-    this.onStateChange = options.onStateChange;
-    this.onRoomCollapse = options.onRoomCollapse;
+    private onStateChange?: (state: VFXEngineTelemetry) => void;
+    private onRoomCollapse?: (newBoxTier: number, newCeiling: number) => void;
 
-    const startScale = options.baseScale ?? 1.0;
-    this.projectedTargetScale = startScale;
-    this.growthQueue = new GrowthEventQueue(startScale);
-    this.growthQueue.onCascadeBurst = (burst) => this.handleCascadeBurst(burst);
+    constructor(canvas: HTMLCanvasElement, glbBlobUrl: string, options: M1ASVFXEngineOptions = {}) {
+        this.canvas = canvas;
+        this.glbBlobUrl = glbBlobUrl;
+        this.userId = options.userId ?? 'dev-user';
+        this.moveSpeed = options.moveSpeed ?? 3.8;
+        this.roomCeilingHeight = options.initialRoomCeiling ?? 3.2;
+        this.cinematicCamera = options.cinematicCamera ?? true;
+        this.onStateChange = options.onStateChange;
+        this.onRoomCollapse = options.onRoomCollapse;
+        this.onPropsChanged = options.onPropsChanged;
 
-    this.init();
-  }
+        const startScale = options.baseScale ?? 1.0;
+        this.projectedTargetScale = startScale;
+        this.growthQueue = new GrowthEventQueue(startScale);
+        this.growthQueue.onCascadeBurst = (burst) => this.handleCascadeBurst(burst);
 
-  private init(): void {
-    const width = this.canvas.clientWidth || 640;
-    const height = this.canvas.clientHeight || 420;
+        this.init();
+    }
 
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true,
-      alpha: true,
-      preserveDrawingBuffer: true,
-    });
-    this.renderer.setSize(width, height, false);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    private init(): void {
+        const width = this.canvas.clientWidth || 640;
+        const height = this.canvas.clientHeight || 420;
 
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0b1120);
-
-    // Ground Grid
-    const grid = new THREE.GridHelper(30, 30, 0x38bdf8, 0x1e293b);
-    this.scene.add(grid);
-
-    // Visual Room Ceiling Plane (represents active Box-Within-a-Box GrowthGate height)
-    const ceilingGeo = new THREE.PlaneGeometry(14, 14);
-    const ceilingMat = new THREE.MeshBasicMaterial({
-      color: 0x10b981,
-      transparent: true,
-      opacity: 0.14,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    this.ceilingMesh = new THREE.Mesh(ceilingGeo, ceilingMat);
-    this.ceilingMesh.rotation.x = Math.PI / 2;
-    this.ceilingMesh.position.y = this.roomCeilingHeight;
-    this.scene.add(this.ceilingMesh);
-
-    this.camera = new THREE.PerspectiveCamera(this.baseFov, width / height, 0.1, 250);
-    this.camera.position.set(0, 2.2, 5.8);
-
-    this.controls = new OrbitControls(this.camera, this.canvas);
-    this.controls.enableDamping = true;
-    this.controls.target.set(0, 0.8, 0);
-
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
-    dirLight.position.set(6, 12, 8);
-    this.scene.add(dirLight);
-
-    this.scene.add(this.subjectRoot);
-    this.loadGlb();
-
-    this.onKeyDown = this.onKeyDown.bind(this);
-    this.onKeyUp = this.onKeyUp.bind(this);
-    this.onPointerDown = this.onPointerDown.bind(this);
-    this.onPointerUp = this.onPointerUp.bind(this);
-
-    window.addEventListener('keydown', this.onKeyDown);
-    window.addEventListener('keyup', this.onKeyUp);
-    this.canvas.addEventListener('pointerdown', this.onPointerDown);
-    this.canvas.addEventListener('pointerup', this.onPointerUp);
-
-    this.animate = this.animate.bind(this);
-    this.animate();
-  }
-
-  private loadGlb(): void {
-    new GLTFLoader().load(
-      this.glbBlobUrl,
-      (gltf) => {
-        this.loadedModel = gltf.scene;
-        this.bones.clear();
-        this.subjectMaterials = [];
-
-        // Normalize model so feet rest cleanly at y = 0
-        const box = new THREE.Box3().setFromObject(this.loadedModel);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const normFactor = 1.2 / maxDim;
-
-        this.loadedModel.scale.setScalar(normFactor);
-        this.loadedModel.position.set(
-          -center.x * normFactor,
-          -box.min.y * normFactor,
-          -center.z * normFactor
-        );
-        this.baseModelHeight = size.y * normFactor;
-
-        // Discover Skeleton Bones & Materials (for Venous Pulse & Golden-Ratio Bone Scaling)
-        this.loadedModel.traverse((node) => {
-          if ((node as THREE.Bone).isBone) {
-            this.bones.set(node.name.toLowerCase(), node as THREE.Bone);
-          }
-          if ((node as THREE.Mesh).isMesh) {
-            const mesh = node as THREE.Mesh;
-            const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-            mats.forEach((m) => {
-              if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
-                this.subjectMaterials.push(m as THREE.MeshStandardMaterial);
-              }
-            });
-          }
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: this.canvas,
+            antialias: true,
+            alpha: true,
+            preserveDrawingBuffer: true,
         });
+        this.renderer.setSize(width, height, false);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // Setup AnimationMixer for Idle, Walk, Hunch, Crawl, Grow_Surge
-        if (gltf.animations && gltf.animations.length > 0) {
-          this.mixer = new THREE.AnimationMixer(this.loadedModel);
-          for (const clip of gltf.animations) {
-            const action = this.mixer.clipAction(clip);
-            this.actions.set(clip.name.toLowerCase(), action);
-          }
-          this.playAnimation('idle');
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x0b1120);
+
+        const grid = new THREE.GridHelper(30, 30, 0x38bdf8, 0x1e293b);
+        this.scene.add(grid);
+
+        const ceilingGeo = new THREE.PlaneGeometry(14, 14);
+        const ceilingMat = new THREE.MeshBasicMaterial({
+            color: 0x10b981,
+            transparent: true,
+            opacity: 0.14,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+        });
+        this.ceilingMesh = new THREE.Mesh(ceilingGeo, ceilingMat);
+        this.ceilingMesh.rotation.x = Math.PI / 2;
+        this.ceilingMesh.position.y = this.roomCeilingHeight;
+        this.scene.add(this.ceilingMesh);
+
+        this.camera = new THREE.PerspectiveCamera(this.baseFov, width / height, 0.1, 250);
+        this.camera.position.set(0, 2.2, 5.8);
+
+        this.controls = new OrbitControls(this.camera, this.canvas);
+        this.controls.enableDamping = true;
+        this.controls.target.set(0, 0.8, 0);
+
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
+        dirLight.position.set(6, 12, 8);
+        this.scene.add(dirLight);
+
+        this.scene.add(this.subjectRoot);
+        this.loadGlb();
+
+        this.onKeyDown = this.onKeyDown.bind(this);
+        this.onKeyUp = this.onKeyUp.bind(this);
+        this.onPointerDown = this.onPointerDown.bind(this);
+        this.onPointerUp = this.onPointerUp.bind(this);
+
+        window.addEventListener('keydown', this.onKeyDown);
+        window.addEventListener('keyup', this.onKeyUp);
+        this.canvas.addEventListener('pointerdown', this.onPointerDown);
+        this.canvas.addEventListener('pointerup', this.onPointerUp);
+
+        this.animate = this.animate.bind(this);
+        this.animate();
+    }
+
+    private loadGlb(): void {
+        new GLTFLoader().load(
+            this.glbBlobUrl,
+            (gltf) => {
+                this.loadedModel = gltf.scene;
+                this.bones.clear();
+                this.subjectMaterials = [];
+
+                const box = new THREE.Box3().setFromObject(this.loadedModel);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z) || 1;
+                const normFactor = 1.2 / maxDim;
+
+                this.loadedModel.scale.setScalar(normFactor);
+                this.loadedModel.position.set(
+                    -center.x * normFactor,
+                    -box.min.y * normFactor,
+                    -center.z * normFactor
+                );
+                this.baseModelHeight = size.y * normFactor;
+
+                this.loadedModel.traverse((node) => {
+                    if ((node as THREE.Bone).isBone) {
+                        this.bones.set(node.name.toLowerCase(), node as THREE.Bone);
+                    }
+                    if ((node as THREE.Mesh).isMesh) {
+                        const mesh = node as THREE.Mesh;
+                        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                        mats.forEach((m) => {
+                            if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+                                this.subjectMaterials.push(m as THREE.MeshStandardMaterial);
+                            }
+                        });
+                    }
+                });
+
+                if (gltf.animations && gltf.animations.length > 0) {
+                    this.mixer = new THREE.AnimationMixer(this.loadedModel);
+                    for (const clip of gltf.animations) {
+                        const action = this.mixer.clipAction(clip);
+                        this.actions.set(clip.name.toLowerCase(), action);
+                    }
+                    this.playAnimation('idle');
+                }
+
+                console.log(
+                    `[M1ASVFXEngine] Loaded .glb | Bones: ${this.bones.size} | Clips: [${Array.from(this.actions.keys()).join(', ')}]`
+                );
+                this.subjectRoot.add(this.loadedModel);
+                this.emitTelemetry();
+            },
+            undefined,
+            (err) => console.error('[M1ASVFXEngine] Failed to load .glb:', err)
+        );
+    }
+    // =========================================================================
+    // PUBLIC GROWTH, STIMULUS & CAMERA CONTROLS
+    // =========================================================================
+
+    public setMode(mode: GrowthTriggerMode): void {
+        this.mode = mode;
+        this.isHolding = false;
+        this.holdDuration = 0;
+        this.emitTelemetry();
+    }
+
+    public setCinematicCamera(enabled: boolean): void {
+        this.cinematicCamera = enabled;
+    }
+
+    public setRoomCeiling(height: number): void {
+        this.roomCeilingHeight = Math.max(1.5, height);
+        this.ceilingMesh.position.y = this.roomCeilingHeight;
+        this.emitTelemetry();
+    }
+
+    public setOnPropsChanged(cb: (props: SpatialPropEntry[]) => void): void {
+        this.onPropsChanged = cb;
+        this.notifyPropsChanged();
+    }
+
+    public resetGrowth(): void {
+        this.boxTier = 1;
+        this.roomCeilingHeight = 3.2;
+        this.ceilingMesh.position.y = this.roomCeilingHeight;
+        this.projectedTargetScale = 1.0;
+        this.upperBodyExcess = 0.0;
+        this.storedGoldenBuffer = 0.0;
+        this.posture = 'stand';
+        this.growthQueue.reset(1.0);
+        this.subjectRoot.position.set(0, 0, 0);
+        this.subjectRoot.rotation.set(0, 0, 0);
+        this.subjectRoot.scale.set(1, 1, 1);
+        this.resetBonesToIdentity();
+        this.emitTelemetry();
+    }
+
+    public enqueueGrowth(
+        amount = 0.35,
+        stimulus: GrowthStimulusType = GrowthStimulusType.Consumption,
+        customDelay?: number
+    ): void {
+        const oldScale = this.projectedTargetScale;
+
+        if (stimulus === GrowthStimulusType.Exercise || stimulus === GrowthStimulusType.Buff) {
+            const goldenCap = this.projectedTargetScale * (this.PHI - 1.0);
+            if (this.upperBodyExcess + amount > goldenCap) {
+                const overflow = this.upperBodyExcess + amount - goldenCap;
+                this.storedGoldenBuffer += overflow;
+                amount = Math.max(0.05, amount - overflow);
+            }
+            this.upperBodyExcess += amount * 0.5;
+        } else if (this.storedGoldenBuffer > 0) {
+            const release = Math.min(this.storedGoldenBuffer, amount * 0.8);
+            this.storedGoldenBuffer -= release;
+            amount += release;
+            this.upperBodyExcess = Math.max(0, this.upperBodyExcess - release * 0.5);
         }
 
-        console.log(
-          `[M1ASVFXEngine v2] Loaded .glb | Bones: ${this.bones.size} | Clips: [${Array.from(this.actions.keys()).join(', ')}]`
-        );
-        this.subjectRoot.add(this.loadedModel);
+        const newScale = oldScale + amount;
+        this.projectedTargetScale = newScale;
+
+        this.venousPulseEnergy = Math.min(1.0, this.venousPulseEnergy + 0.45);
+
+        const delay = this.mode === 'chaos-delayed' ? 1.8 + Math.random() * 1.2 : customDelay;
+        this.growthQueue.push(oldScale, newScale, stimulus, delay);
         this.emitTelemetry();
-      },
-      undefined,
-      (err) => console.error('[M1ASVFXEngine v2] Failed to load .glb:', err)
-    );
-  }
+    }
 
-  // =========================================================================
-  // PUBLIC GROWTH, STIMULUS & CAMERA CONTROLS
-  // =========================================================================
+    public startHoldGrowth(): void {
+        this.isHolding = true;
+        this.holdDuration = 0;
+        this.emitTelemetry();
+    }
 
-  public setMode(mode: GrowthTriggerMode): void {
-    this.mode = mode;
-    this.isHolding = false;
-    this.holdDuration = 0;
-    this.emitTelemetry();
-  }
+    public releaseHoldGrowth(): void {
+        if (!this.isHolding) return;
+        this.isHolding = false;
+        const bonus = Math.min(3.0, this.holdDuration * 1.25);
+        this.holdDuration = 0;
+        this.enqueueGrowth(0.3 + bonus, GrowthStimulusType.Buff);
+    }
 
-  public setCinematicCamera(enabled: boolean): void {
-    this.cinematicCamera = enabled;
-  }
+    public triggerDelayedColossalChaos(delaySeconds = 2.0, surgeAmount = 2.6): void {
+        this.venousPulseEnergy = 1.0;
+        this.enqueueGrowth(surgeAmount, GrowthStimulusType.Environmental, delaySeconds);
+    }
 
-  public setRoomCeiling(height: number): void {
-    this.roomCeilingHeight = Math.max(1.5, height);
-    this.ceilingMesh.position.y = this.roomCeilingHeight;
-    this.emitTelemetry();
-  }
+    private handleCascadeBurst(burst: CascadeBurstPayload): void {
+        this.spawnVfxAtPosition(
+            this.subjectRoot.position,
+            Math.max(1.8, this.baseModelHeight * this.growthQueue.currentVisualScale * 1.45)
+        );
+        this.currentFovKick = Math.min(9.0, 3.0 + burst.bugKineticKick * 1.4);
 
-  public resetGrowth(): void {
-    this.boxTier = 1;
-    this.roomCeilingHeight = 3.2;
-    this.ceilingMesh.position.y = this.roomCeilingHeight;
-    this.projectedTargetScale = 1.0;
-    this.upperBodyExcess = 0.0;
-    this.storedGoldenBuffer = 0.0;
-    this.posture = 'stand';
-    this.growthQueue.reset(1.0);
-    this.subjectRoot.position.set(0, 0, 0);
-    this.subjectRoot.rotation.set(0, 0, 0);
-    this.subjectRoot.scale.set(1, 1, 1);
-    this.resetBonesToIdentity();
-    this.emitTelemetry();
-  }
+        if (this.actions.has('grow_surge')) {
+            this.playOneShotAnimation('grow_surge');
+        }
+    }
 
-  /** Pushes a stimulus into the C#-ported GrowthEventQueue */
-  public enqueueGrowth(
-    amount = 0.35,
-    stimulus: GrowthStimulusType = GrowthStimulusType.Consumption,
-    customDelay?: number
-  ): void {
-    const oldScale = this.projectedTargetScale;
+    // =========================================================================
+    // MULTI-.GLB SPATIAL PROPS & THRESHOLD-BREAK COLLISIONS
+    // =========================================================================
 
-    // Golden-Ratio Orchestration: If localized Exercise/Buff tries to over-balloon upper body,
-// bank the excess into storedGoldenBuffer to release proportionally into height later.
-if (stimulus === GrowthStimulusType.Exercise || stimulus === GrowthStimulusType.Buff) {
-const goldenCap = this.projectedTargetScale * (this.PHI - 1.0); // ~0.618 ratio allowance
-if (this.upperBodyExcess + amount > goldenCap) {
-const overflow = this.upperBodyExcess + amount - goldenCap;
-this.storedGoldenBuffer += overflow;
-amount = Math.max(0.05, amount - overflow);
-}
-this.upperBodyExcess += amount * 0.5;
-} else if (this.storedGoldenBuffer > 0) {
-// Proportional height stimulus unlocks stored golden buffer for harmonious expansion
-const release = Math.min(this.storedGoldenBuffer, amount * 0.8);
-this.storedGoldenBuffer -= release;
-amount += release;
-this.upperBodyExcess = Math.max(0, this.upperBodyExcess - release * 0.5);
-}
-const newScale = oldScale + amount;
-this.projectedTargetScale = newScale;
-// Start venous surface pulse immediately while event sits in queue
-this.venousPulseEnergy = Math.min(1.0, this.venousPulseEnergy + 0.45);
-const delay = this.mode === 'chaos-delayed' ? 1.8 + Math.random() * 1.2 : customDelay;
-this.growthQueue.push(oldScale, newScale, stimulus, delay);
-this.emitTelemetry();
-}
-public startHoldGrowth(): void {
-this.isHolding = true;
-this.holdDuration = 0;
-this.emitTelemetry();
-}
-public releaseHoldGrowth(): void {
-if (!this.isHolding) return;
-this.isHolding = false;
-const bonus = Math.min(3.0, this.holdDuration * 1.25);
-this.holdDuration = 0;
-this.enqueueGrowth(0.3 + bonus, GrowthStimulusType.Buff);
-}
-public triggerDelayedColossalChaos(delaySeconds = 2.0, surgeAmount = 2.6): void {
-this.venousPulseEnergy = 1.0;
-this.enqueueGrowth(surgeAmount, GrowthStimulusType.Environmental, delaySeconds);
-}
-private handleCascadeBurst(burst: CascadeBurstPayload): void {
-// 1. Trigger .webm VFX burst & FOV surge kick
-this.spawnVfxOverlay();
-this.currentFovKick = Math.min(9.0, 3.0 + burst.bugKineticKick * 1.4);
-// 2. Play Grow_Surge clip if rigged .glb includes it
-if (this.actions.has('grow_surge')) {
-this.playOneShotAnimation('grow_surge');
-}
-}
-// =========================================================================
-// GOLDEN-RATIO BONES, VENOUS PULSE & CEILING POSTURE SOLVER
-// =========================================================================
-private applyOrganicAndBoneScaling(dt: number, finalScale: number, instability: number): void {
-this.pulsePhase += dt * (8.0 + instability * 10.0);
-// Venous pre-surge throbbing when events are queued or instability is high
-const hasPending = this.growthQueue.pendingCount > 0;
-if (hasPending) {
-this.venousPulseEnergy = Math.min(1.0, this.venousPulseEnergy + dt * 0.8);
-} else {
-this.venousPulseEnergy = Math.max(0.0, this.venousPulseEnergy - dt * 1.2);
-}
-// Apply subtle emissive venous throb to materials
-const veinWave = (Math.sin(this.pulsePhase * 1.6) * 0.5 + 0.5) * this.venousPulseEnergy;
-for (const mat of this.subjectMaterials) {
-if (mat.emissive) {
-mat.emissive.setHex(0x10b981);
-mat.emissiveIntensity = veinWave * 0.45;
-}
-}
-// Fractal turgor wave (mimics mushroom expansion & surface vein swell)
-const fractalPulse =
-(Math.sin(this.pulsePhase) * 0.6 + Math.sin(this.pulsePhase * 2.17) * 0.4) *
-(0.03 * this.venousPulseEnergy + instability * 0.04);
-// Posture compression factor when approaching room ceiling (Stand -> Hunch -> Crawl)
-const rawHeight = this.baseModelHeight * finalScale;
-const occupancyRatio = rawHeight / this.roomCeilingHeight;
-let postureYMultiplier = 1.0;
-let postureXZMultiplier = 1.0;
-let nextPosture: PostureState = 'stand';
-if (occupancyRatio >= 0.92) {
-nextPosture = 'crawl';
-postureYMultiplier = 0.52;
-postureXZMultiplier = 1.24;
-} else if (occupancyRatio >= 0.75) {
-nextPosture = 'hunch';
-postureYMultiplier = 0.78;
-postureXZMultiplier = 1.12;
-}
-if (nextPosture !== this.posture) {
-this.posture = nextPosture;
-this.updateLocomotionAnimation(this.isMoving());
-}
-// Check Box-Within-a-Box Room Threshold Breach (>= 1.05x ceiling)
-if (occupancyRatio >= 1.05) {
-this.triggerBoxProgression();
-return;
-}
-// Apply Root Scale + Anisotropic Bulge
-const sx = finalScale * postureXZMultiplier * (1 + fractalPulse);
-const sy = finalScale * postureYMultiplier * (1 - fractalPulse * 0.5);
-const sz = finalScale * postureXZMultiplier * (1 + fractalPulse);
-this.subjectRoot.scale.set(sx, sy, sz);
-// If a Skeleton is present (Single-Bone or Full-Body Rig), distribute Golden-Ratio harmonic swell
-if (this.bones.size > 0) {
-const goldenArmRatio = Math.min(1.22, 1.0 + (this.upperBodyExcess / Math.max(finalScale, 1)) * 0.35);
-const spineBend = this.posture === 'crawl' ? 0.85 : this.posture === 'hunch' ? 0.42 : 0.0;
-this.bones.forEach((bone, name) => {
-if (name.includes('spine') || name.includes('chest')) {
-bone.scale.set(goldenArmRatio + fractalPulse, 1.0, goldenArmRatio + fractalPulse);
-bone.rotation.x = THREE.MathUtils.lerp(bone.rotation.x, spineBend, dt * 8);
-} else if (name.includes('arm') || name.includes('shoulder')) {
-bone.scale.setScalar(goldenArmRatio);
-} else if (name.includes('thigh') || name.includes('leg')) {
-const legBalance = 1.0 + (goldenArmRatio - 1.0) * 0.85;
-bone.scale.setScalar(legBalance);
-}
-});
-}
-}
-private triggerBoxProgression(): void {
-this.boxTier += 1;
-// Expand room ceiling by 2.4x (Box_01 -> Box_02 -> Box_03...)
-this.roomCeilingHeight *= 2.4;
-this.ceilingMesh.position.y = this.roomCeilingHeight;
-this.posture = 'stand';
-this.spawnVfxOverlay();
-this.currentFovKick = 8.0;
-this.onRoomCollapse?.(this.boxTier, this.roomCeilingHeight);
-}
-private resetBonesToIdentity(): void {
-this.bones.forEach((bone) => {
-bone.scale.set(1, 1, 1);
-bone.rotation.set(0, 0, 0);
-});
-}
-// =========================================================================
-// ANIMATION MIXER & WALK FORWARD / BACKWARD LOCOMOTION
-// =========================================================================
-private isMoving(): boolean {
-return (
-this.keysPressed.has('KeyW') ||
-this.keysPressed.has('KeyS') ||
-this.keysPressed.has('ArrowUp') ||
-this.keysPressed.has('ArrowDown') ||
-this.keysPressed.has('KeyA') ||
-this.keysPressed.has('KeyD') ||
-this.keysPressed.has('ArrowLeft') ||
-this.keysPressed.has('ArrowRight')
-);
-}
-private updateLocomotionAnimation(moving: boolean): void {
-if (!this.mixer || this.actions.size === 0) return;
-let targetClip = 'idle';
-let timeScale = 1.0;
-if (this.posture === 'crawl') {
-targetClip = this.actions.has('crawl') ? 'crawl' : 'idle';
-timeScale = moving ? (this.isMovingBackward ? -1.0 : 1.0) : 0.0;
-} else if (this.posture === 'hunch') {
-targetClip = this.actions.has('hunch') ? 'hunch' : this.actions.has('walk') ? 'walk' : 'idle';
-timeScale = moving ? (this.isMovingBackward ? -0.85 : 0.85) : 0.2;
-} else if (moving) {
-if (this.isMovingBackward && this.actions.has('walk_backward')) {
-targetClip = 'walk_backward';
-} else if (this.actions.has('walk')) {
-targetClip = 'walk';
-timeScale = this.isMovingBackward ? -1.0 : 1.0;
-}
-}
-this.playAnimation(targetClip, timeScale);
-}
-private playAnimation(name: string, timeScale = 1.0): void {
-const next = this.actions.get(name) ?? this.actions.values().next().value;
-if (!next) return;
-next.timeScale = timeScale;
-if (this.activeAction === next) return;
-next.reset().play();
-if (this.activeAction) {
-next.crossFadeFrom(this.activeAction, 0.22, true);
-}
-this.activeAction = next;
-}
-private playOneShotAnimation(name: string): void {
-const action = this.actions.get(name);
-if (!action) return;
-action.reset().setLoop(THREE.LoopOnce, 1).play();
-}
-private updateMovement(dt: number): void {
-let forward = 0;
-let strafe = 0;
-if (this.keysPressed.has('KeyW') || this.keysPressed.has('ArrowUp')) forward += 1;
-if (this.keysPressed.has('KeyS') || this.keysPressed.has('ArrowDown')) forward -= 1;
-if (this.keysPressed.has('KeyA') || this.keysPressed.has('ArrowLeft')) strafe -= 1;
-if (this.keysPressed.has('KeyD') || this.keysPressed.has('ArrowRight')) strafe += 1;
-const moving = forward !== 0 || strafe !== 0;
-this.isMovingBackward = forward < 0;
-if (moving) {
-// Scale stride speed gently with character size so giants cover proportional ground
-const strideSpeed = this.moveSpeed * (1 + (this.growthQueue.currentVisualScale - 1) * 0.35);
-const len = Math.hypot(forward, strafe);
-const normF = forward / len;
-const normS = strafe / len;
-this.subjectRoot.position.z -= normF * strideSpeed * dt;
-this.subjectRoot.position.x += normS * strideSpeed * dt;
-// Face forward when walking forward/strafing; backpedal facing camera/direction when walking backward
-if (forward >= 0) {
-const targetYaw = Math.atan2(normS, -normF);
-this.subjectRoot.rotation.y = THREE.MathUtils.lerp(this.subjectRoot.rotation.y, targetYaw, dt * 10);
-}
-}
-this.updateLocomotionAnimation(moving);
-}
-// =========================================================================
-// CINEMATIC CAMERA AMPLIFICATION
-// =========================================================================
-private updateCinematicCamera(dt: number, currentScale: number, instability: number): void {
-// Smoothly decay FOV surge kick
-if (this.currentFovKick > 0.01) {
-this.currentFovKick = THREE.MathUtils.lerp(this.currentFovKick, 0, dt * 4.5);
-} else {
-this.currentFovKick = 0;
-}
-this.camera.fov = this.baseFov + this.currentFovKick;
-this.camera.updateProjectionMatrix();
-if (!this.cinematicCamera) return;
-const charHeight = this.baseModelHeight * currentScale * (this.posture === 'crawl' ? 0.55 : 1.0);
-// Aim at upper chest so camera tilts upward as character towers over the scene
-const desiredTarget = new THREE.Vector3(
-this.subjectRoot.position.x,
-Math.max(0.6, charHeight * 0.58),
-this.subjectRoot.position.z
-);
-// Subtle camera trauma shake during high growth instability
-if (instability > 0.15) {
-desiredTarget.x += (Math.random() - 0.5) * instability * 0.08;
-desiredTarget.y += (Math.random() - 0.5) * instability * 0.08;
-}
-this.controls.target.lerp(desiredTarget, dt * 5.5);
-// Low-angle hero framing: keep camera eye below chest height while dollying back proportionally
-const desiredDist = Math.max(4.8, charHeight * 2.4);
-const currentOffset = this.camera.position.clone().sub(this.controls.target);
-const currentDist = currentOffset.length() || 1;
-const blendedDist = THREE.MathUtils.lerp(currentDist, desiredDist, dt * 3.0);
-currentOffset.normalize().multiplyScalar(blendedDist);
-// Bias Y lower relative to target to emphasize towering vertical scale
-currentOffset.y = Math.max(0.7, charHeight * 0.38);
-this.camera.position.copy(this.controls.target).add(currentOffset);
-}
-// =========================================================================
-// INPUT & .WEBM VFX HELPERS
-// =========================================================================
-private onKeyDown(e: KeyboardEvent): void {
-if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
-this.keysPressed.add(e.code);
-if (e.code === 'Space' && !e.repeat) {
-e.preventDefault();
-if (this.mode === 'hold') this.startHoldGrowth();
-else this.enqueueGrowth(0.35, GrowthStimulusType.Consumption);
-}
-}
-private onKeyUp(e: KeyboardEvent): void {
-this.keysPressed.delete(e.code);
-if (e.code === 'Space' && this.mode === 'hold') {
-this.releaseHoldGrowth();
-}
-}
-private onPointerDown(e: PointerEvent): void {
-this.pointerDownPos.set(e.clientX, e.clientY);
-}
-private onPointerUp(e: PointerEvent): void {
-const dist = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
-if (dist > 6 || !this.loadedModel) return;
-const rect = this.canvas.getBoundingClientRect();
-const ndc = new THREE.Vector2(
-((e.clientX - rect.left) / rect.width) * 2 - 1,
--((e.clientY - rect.top) / rect.height) * 2 + 1
-);
-this.raycaster.setFromCamera(ndc, this.camera);
-if (this.raycaster.intersectObject(this.loadedModel, true).length > 0) {
-this.enqueueGrowth(0.35, GrowthStimulusType.ToolActivation);
-}
-}
-public async setVfxWebm(signedOrBlobUrl: string): Promise<void> {
-if (this.vfxBlobUrl) {
-URL.revokeObjectURL(this.vfxBlobUrl);
-this.vfxBlobUrl = null;
-}
-if (!signedOrBlobUrl) return;
-if (signedOrBlobUrl.startsWith('blob:')) {
-this.vfxBlobUrl = signedOrBlobUrl;
-} else {
-const res = await fetch(signedOrBlobUrl, { headers: { 'm1as-user-id': this.userId } });
-if (!res.ok) throw new Error(`VFX stream failed (${res.status})`);
-this.vfxBlobUrl = URL.createObjectURL(await res.blob());
-}
-}
-private spawnVfxOverlay(): void {
-if (!this.vfxBlobUrl) return;
-const video = document.createElement('video');
-video.src = this.vfxBlobUrl;
-video.muted = true;
-video.loop = false;
-video.playsInline = true;
-const texture = new THREE.VideoTexture(video);
-texture.colorSpace = THREE.SRGBColorSpace;
-const scale = this.growthQueue.currentVisualScale;
-const size = Math.max(1.8, this.baseModelHeight * scale * 1.45);
-const geo = new THREE.PlaneGeometry(size, size);
-const mat = new THREE.MeshBasicMaterial({
-map: texture,
-transparent: true,
-depthWrite: false,
-side: THREE.DoubleSide,
-});
-const plane = new THREE.Mesh(geo, mat);
-plane.position.copy(this.subjectRoot.position);
-plane.position.y += (this.baseModelHeight * scale) * 0.5;
-plane.quaternion.copy(this.camera.quaternion);
-this.scene.add(plane);
-const entry = { mesh: plane, video, texture };
-this.activeVfxPlanes.push(entry);
-const cleanup = () => {
-this.scene.remove(plane);
-geo.dispose();
-mat.dispose();
-texture.dispose();
-video.src = '';
-this.activeVfxPlanes = this.activeVfxPlanes.filter((p) => p !== entry);
-};
-video.onended = cleanup;
-video.play().catch(cleanup);
-}
-private emitTelemetry(): void {
-const currentScale = this.growthQueue.currentVisualScale;
-const occupancyRatio = (this.baseModelHeight * currentScale) / this.roomCeilingHeight;
-this.onStateChange?.({
-currentScale: Number(currentScale.toFixed(2)),
-targetScale: Number(this.growthQueue.currentTargetScale.toFixed(2)),
-instability: Number(this.growthQueue.currentInstability.toFixed(2)),
-pendingQueue: this.growthQueue.pendingCount,
-posture: this.posture,
-occupancyRatio: Number(occupancyRatio.toFixed(2)),
-boxTier: this.boxTier,
-storedGoldenBuffer: Number(this.storedGoldenBuffer.toFixed(2)),
-hasSkeleton: this.bones.size > 0,
-boneCount: this.bones.size,
-isHolding: this.isHolding,
-mode: this.mode,
-});
-}
-private animate(): void {
-this.frameId = requestAnimationFrame(this.animate);
-const dt = Math.min(this.clock.getDelta(), 0.05);
-if (this.isHolding) {
-this.holdDuration += dt;
-this.venousPulseEnergy = Math.min(1.0, 0.3 + this.holdDuration * 0.4);
-}
-if (this.mixer) {
-this.mixer.update(dt);
-}
-this.updateMovement(dt);
-const queueTelemetry = this.growthQueue.step(dt);
-this.applyOrganicAndBoneScaling(dt, queueTelemetry.absoluteFinalScale, queueTelemetry.instabilityScore);
-this.updateCinematicCamera(dt, queueTelemetry.absoluteFinalScale, queueTelemetry.instabilityScore);
-for (const vfx of this.activeVfxPlanes) {
-vfx.mesh.quaternion.copy(this.camera.quaternion);
-}
-this.controls.update();
-this.renderer.render(this.scene, this.camera);
-this.emitTelemetry();
-}
-public destroy(): void {
-if (this.frameId !== null) cancelAnimationFrame(this.frameId);
-window.removeEventListener('keydown', this.onKeyDown);
-window.removeEventListener('keyup', this.onKeyUp);
-this.canvas.removeEventListener('pointerdown', this.onPointerDown);
-this.canvas.removeEventListener('pointerup', this.onPointerUp);
-if (this.vfxBlobUrl) URL.revokeObjectURL(this.vfxBlobUrl);
-this.controls.dispose();
-this.renderer.dispose();
-}
+    public async addSpatialProp(
+        glbSignedUrl: string,
+        options: {
+            name?: string;
+            role?: SpatialPropRole;
+            targetHeight?: number;
+            x?: number;
+            z?: number;
+        } = {}
+    ): Promise<string> {
+        const res = await fetch(glbSignedUrl, { headers: { 'm1as-user-id': this.userId } });
+        if (!res.ok) throw new Error(`Prop GLB stream failed (${res.status})`);
+        const blobUrl = URL.createObjectURL(await res.blob());
+
+        const id = `prop-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const role = options.role ?? 'consumable';
+        const targetHeight = options.targetHeight ?? 0.5;
+        const posX = options.x ?? (Math.random() - 0.5) * 6;
+        const posZ = options.z ?? (Math.random() - 0.5) * 6;
+
+        return new Promise((resolve, reject) => {
+            new GLTFLoader().load(
+                blobUrl,
+                (gltf) => {
+                    URL.revokeObjectURL(blobUrl);
+                    const model = gltf.scene;
+
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const rawHeight = size.y || 1;
+                    const scaleFactor = targetHeight / rawHeight;
+
+                    model.scale.setScalar(scaleFactor);
+                    model.position.set(
+                        -center.x * scaleFactor,
+                        -box.min.y * scaleFactor,
+                        -center.z * scaleFactor
+                    );
+
+                    const propRoot = new THREE.Group();
+                    propRoot.position.set(posX, 0, posZ);
+                    propRoot.add(model);
+                    this.scene.add(propRoot);
+
+                    const propEntry: ActiveSceneProp = {
+                        id,
+                        name: options.name ?? `${role.toUpperCase()} (${targetHeight.toFixed(2)}m)`,
+                        role,
+                        targetHeight,
+                        position: { x: posX, z: posZ },
+                        broken: false,
+                        root: propRoot,
+                        colliderBox: new THREE.Box3().setFromObject(propRoot),
+                    };
+
+                    this.sceneProps.set(id, propEntry);
+                    this.notifyPropsChanged();
+                    resolve(id);
+                },
+                undefined,
+                (err) => {
+                    URL.revokeObjectURL(blobUrl);
+                    reject(err);
+                }
+            );
+        });
+    }
+
+    public updatePropHeight(propId: string, newHeight: number): void {
+        const prop = this.sceneProps.get(propId);
+        if (!prop || prop.broken) return;
+
+        const clampedHeight = Math.max(0.1, newHeight);
+        const ratio = clampedHeight / prop.targetHeight;
+        prop.root.scale.multiplyScalar(ratio);
+        prop.targetHeight = clampedHeight;
+        prop.colliderBox.setFromObject(prop.root);
+        this.notifyPropsChanged();
+    }
+
+    public removeProp(propId: string): void {
+        const prop = this.sceneProps.get(propId);
+        if (!prop) return;
+        this.scene.remove(prop.root);
+        this.sceneProps.delete(propId);
+        this.notifyPropsChanged();
+    }
+
+    public resetAllProps(): void {
+        this.sceneProps.forEach((prop) => {
+            prop.broken = false;
+            prop.root.visible = true;
+            prop.colliderBox.setFromObject(prop.root);
+        });
+        this.notifyPropsChanged();
+    }
+
+    private notifyPropsChanged(): void {
+        if (!this.onPropsChanged) return;
+        const list: SpatialPropEntry[] = Array.from(this.sceneProps.values()).map((p) => ({
+            id: p.id,
+            name: p.name,
+            role: p.role,
+            targetHeight: p.targetHeight,
+            position: p.position,
+            broken: p.broken,
+        }));
+        this.onPropsChanged(list);
+    }
+
+    private checkPropCollisionsAndBreaks(): void {
+        if (!this.loadedModel || this.sceneProps.size === 0) return;
+
+        const playerBox = new THREE.Box3().setFromObject(this.subjectRoot);
+        const playerHeight = playerBox.max.y - playerBox.min.y;
+
+        this.sceneProps.forEach((prop) => {
+            if (prop.broken || prop.role === 'reference') return;
+
+            prop.colliderBox.setFromObject(prop.root);
+            if (!playerBox.intersectsBox(prop.colliderBox)) return;
+
+            const requiredHeightRatio =
+                prop.role === 'consumable' ? 0.65 : prop.role === 'wearable' ? 0.85 : 1.02;
+
+            if (playerHeight >= prop.targetHeight * requiredHeightRatio) {
+                this.breakOrAbsorbProp(prop);
+            }
+        });
+    }
+
+    private breakOrAbsorbProp(prop: ActiveSceneProp): void {
+        prop.broken = true;
+        prop.root.visible = false;
+
+        const roleMultiplier =
+            prop.role === 'growth-gate'
+                ? 1.15
+                : prop.role === 'container'
+                    ? 0.85
+                    : prop.role === 'wearable'
+                        ? 0.65
+                        : 0.45;
+
+        const stimulus =
+            prop.role === 'wearable'
+                ? GrowthStimulusType.Buff
+                : prop.role === 'growth-gate' || prop.role === 'container'
+                    ? GrowthStimulusType.Environmental
+                    : GrowthStimulusType.Consumption;
+
+        const growthGain = Math.max(0.25, prop.targetHeight * roleMultiplier);
+
+        this.spawnVfxAtPosition(prop.root.position, Math.max(1.5, prop.targetHeight * 1.6));
+        this.enqueueGrowth(growthGain, stimulus);
+        this.notifyPropsChanged();
+    }
+    // =========================================================================
+    // GOLDEN-RATIO BONES, VENOUS PULSE & CEILING POSTURE SOLVER
+    // =========================================================================
+
+    private applyOrganicAndBoneScaling(dt: number, finalScale: number, instability: number): void {
+        this.pulsePhase += dt * (8.0 + instability * 10.0);
+
+        const hasPending = this.growthQueue.pendingCount > 0;
+        if (hasPending) {
+            this.venousPulseEnergy = Math.min(1.0, this.venousPulseEnergy + dt * 0.8);
+        } else {
+            this.venousPulseEnergy = Math.max(0.0, this.venousPulseEnergy - dt * 1.2);
+        }
+
+        const veinWave = (Math.sin(this.pulsePhase * 1.6) * 0.5 + 0.5) * this.venousPulseEnergy;
+        for (const mat of this.subjectMaterials) {
+            if (mat.emissive) {
+                mat.emissive.setHex(0x10b981);
+                mat.emissiveIntensity = veinWave * 0.45;
+            }
+        }
+
+        const fractalPulse =
+            (Math.sin(this.pulsePhase) * 0.6 + Math.sin(this.pulsePhase * 2.17) * 0.4) *
+            (0.03 * this.venousPulseEnergy + instability * 0.04);
+
+        const rawHeight = this.baseModelHeight * finalScale;
+        const occupancyRatio = rawHeight / this.roomCeilingHeight;
+
+        let postureYMultiplier = 1.0;
+        let postureXZMultiplier = 1.0;
+        let nextPosture: PostureState = 'stand';
+
+        if (occupancyRatio >= 0.92) {
+            nextPosture = 'crawl';
+            postureYMultiplier = 0.52;
+            postureXZMultiplier = 1.24;
+        } else if (occupancyRatio >= 0.75) {
+            nextPosture = 'hunch';
+            postureYMultiplier = 0.78;
+            postureXZMultiplier = 1.12;
+        }
+
+        if (nextPosture !== this.posture) {
+            this.posture = nextPosture;
+            this.updateLocomotionAnimation(this.isMoving());
+        }
+
+        if (occupancyRatio >= 1.05) {
+            this.triggerBoxProgression();
+            return;
+        }
+
+        const sx = finalScale * postureXZMultiplier * (1 + fractalPulse);
+        const sy = finalScale * postureYMultiplier * (1 - fractalPulse * 0.5);
+        const sz = finalScale * postureXZMultiplier * (1 + fractalPulse);
+        this.subjectRoot.scale.set(sx, sy, sz);
+
+        if (this.bones.size > 0) {
+            const goldenArmRatio = Math.min(
+                1.22,
+                1.0 + (this.upperBodyExcess / Math.max(finalScale, 1)) * 0.35
+            );
+            const spineBend = this.posture === 'crawl' ? 0.85 : this.posture === 'hunch' ? 0.42 : 0.0;
+
+            this.bones.forEach((bone, name) => {
+                if (name.includes('spine') || name.includes('chest')) {
+                    bone.scale.set(goldenArmRatio + fractalPulse, 1.0, goldenArmRatio + fractalPulse);
+                    bone.rotation.x = THREE.MathUtils.lerp(bone.rotation.x, spineBend, dt * 8);
+                } else if (name.includes('arm') || name.includes('shoulder')) {
+                    bone.scale.setScalar(goldenArmRatio);
+                } else if (name.includes('thigh') || name.includes('leg')) {
+                    const legBalance = 1.0 + (goldenArmRatio - 1.0) * 0.85;
+                    bone.scale.setScalar(legBalance);
+                }
+            });
+        }
+    }
+
+    private triggerBoxProgression(): void {
+        this.boxTier += 1;
+        this.roomCeilingHeight *= 2.4;
+        this.ceilingMesh.position.y = this.roomCeilingHeight;
+        this.posture = 'stand';
+        this.spawnVfxAtPosition(
+            this.subjectRoot.position,
+            Math.max(2.0, this.baseModelHeight * this.growthQueue.currentVisualScale * 1.5)
+        );
+        this.currentFovKick = 8.0;
+        this.onRoomCollapse?.(this.boxTier, this.roomCeilingHeight);
+    }
+
+    private resetBonesToIdentity(): void {
+        this.bones.forEach((bone) => {
+            bone.scale.set(1, 1, 1);
+            bone.rotation.set(0, 0, 0);
+        });
+    }
+
+    // =========================================================================
+    // ANIMATION MIXER & WALK FORWARD / BACKWARD LOCOMOTION
+    // =========================================================================
+
+    private isMoving(): boolean {
+        return (
+            this.keysPressed.has('KeyW') ||
+            this.keysPressed.has('KeyS') ||
+            this.keysPressed.has('ArrowUp') ||
+            this.keysPressed.has('ArrowDown') ||
+            this.keysPressed.has('KeyA') ||
+            this.keysPressed.has('KeyD') ||
+            this.keysPressed.has('ArrowLeft') ||
+            this.keysPressed.has('ArrowRight')
+        );
+    }
+
+    private updateLocomotionAnimation(moving: boolean): void {
+        if (!this.mixer || this.actions.size === 0) return;
+
+        let targetClip = 'idle';
+        let timeScale = 1.0;
+
+        if (this.posture === 'crawl') {
+            targetClip = this.actions.has('crawl') ? 'crawl' : 'idle';
+            timeScale = moving ? (this.isMovingBackward ? -1.0 : 1.0) : 0.0;
+        } else if (this.posture === 'hunch') {
+            targetClip = this.actions.has('hunch')
+                ? 'hunch'
+                : this.actions.has('walk')
+                    ? 'walk'
+                    : 'idle';
+            timeScale = moving ? (this.isMovingBackward ? -0.85 : 0.85) : 0.2;
+        } else if (moving) {
+            if (this.isMovingBackward && this.actions.has('walk_backward')) {
+                targetClip = 'walk_backward';
+            } else if (this.actions.has('walk')) {
+                targetClip = 'walk';
+                timeScale = this.isMovingBackward ? -1.0 : 1.0;
+            }
+        }
+
+        this.playAnimation(targetClip, timeScale);
+    }
+
+    private playAnimation(name: string, timeScale = 1.0): void {
+        const next = this.actions.get(name) ?? this.actions.values().next().value;
+        if (!next) return;
+
+        next.timeScale = timeScale;
+        if (this.activeAction === next) return;
+
+        next.reset().play();
+        if (this.activeAction) {
+            next.crossFadeFrom(this.activeAction, 0.22, true);
+        }
+        this.activeAction = next;
+    }
+
+    private playOneShotAnimation(name: string): void {
+        const action = this.actions.get(name);
+        if (!action) return;
+        action.reset().setLoop(THREE.LoopOnce, 1).play();
+    }
+
+    private updateMovement(dt: number): void {
+        let forward = 0;
+        let strafe = 0;
+
+        if (this.keysPressed.has('KeyW') || this.keysPressed.has('ArrowUp')) forward += 1;
+        if (this.keysPressed.has('KeyS') || this.keysPressed.has('ArrowDown')) forward -= 1;
+        if (this.keysPressed.has('KeyA') || this.keysPressed.has('ArrowLeft')) strafe -= 1;
+        if (this.keysPressed.has('KeyD') || this.keysPressed.has('ArrowRight')) strafe += 1;
+
+        const moving = forward !== 0 || strafe !== 0;
+        this.isMovingBackward = forward < 0;
+
+        if (moving) {
+            const strideSpeed = this.moveSpeed * (1 + (this.growthQueue.currentVisualScale - 1) * 0.35);
+            const len = Math.hypot(forward, strafe);
+            const normF = forward / len;
+            const normS = strafe / len;
+
+            this.subjectRoot.position.z -= normF * strideSpeed * dt;
+            this.subjectRoot.position.x += normS * strideSpeed * dt;
+
+            if (forward >= 0) {
+                const targetYaw = Math.atan2(normS, -normF);
+                this.subjectRoot.rotation.y = THREE.MathUtils.lerp(
+                    this.subjectRoot.rotation.y,
+                    targetYaw,
+                    dt * 10
+                );
+            }
+        }
+
+        this.updateLocomotionAnimation(moving);
+    }
+
+    // =========================================================================
+    // CINEMATIC CAMERA AMPLIFICATION
+    // =========================================================================
+
+    private updateCinematicCamera(dt: number, currentScale: number, instability: number): void {
+        if (this.currentFovKick > 0.01) {
+            this.currentFovKick = THREE.MathUtils.lerp(this.currentFovKick, 0, dt * 4.5);
+        } else {
+            this.currentFovKick = 0;
+        }
+        this.camera.fov = this.baseFov + this.currentFovKick;
+        this.camera.updateProjectionMatrix();
+
+        if (!this.cinematicCamera) return;
+
+        const charHeight =
+            this.baseModelHeight * currentScale * (this.posture === 'crawl' ? 0.55 : 1.0);
+        const desiredTarget = new THREE.Vector3(
+            this.subjectRoot.position.x,
+            Math.max(0.6, charHeight * 0.58),
+            this.subjectRoot.position.z
+        );
+
+        if (instability > 0.15) {
+            desiredTarget.x += (Math.random() - 0.5) * instability * 0.08;
+            desiredTarget.y += (Math.random() - 0.5) * instability * 0.08;
+        }
+
+        this.controls.target.lerp(desiredTarget, dt * 5.5);
+
+        const desiredDist = Math.max(4.8, charHeight * 2.4);
+        const currentOffset = this.camera.position.clone().sub(this.controls.target);
+        const currentDist = currentOffset.length() || 1;
+        const blendedDist = THREE.MathUtils.lerp(currentDist, desiredDist, dt * 3.0);
+
+        currentOffset.normalize().multiplyScalar(blendedDist);
+        currentOffset.y = Math.max(0.7, charHeight * 0.38);
+        this.camera.position.copy(this.controls.target).add(currentOffset);
+    }
+
+    // =========================================================================
+    // INPUT & .WEBM VFX HELPERS
+    // =========================================================================
+
+    private onKeyDown(e: KeyboardEvent): void {
+        if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+        this.keysPressed.add(e.code);
+
+        if (e.code === 'Space' && !e.repeat) {
+            e.preventDefault();
+            if (this.mode === 'hold') this.startHoldGrowth();
+            else this.enqueueGrowth(0.35, GrowthStimulusType.Consumption);
+        }
+    }
+
+    private onKeyUp(e: KeyboardEvent): void {
+        this.keysPressed.delete(e.code);
+        if (e.code === 'Space' && this.mode === 'hold') {
+            this.releaseHoldGrowth();
+        }
+    }
+
+    private onPointerDown(e: PointerEvent): void {
+        this.pointerDownPos.set(e.clientX, e.clientY);
+    }
+
+    private onPointerUp(e: PointerEvent): void {
+        const dist = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+        if (dist > 6 || !this.loadedModel) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const ndc = new THREE.Vector2(
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            -((e.clientY - rect.top) / rect.height) * 2 + 1
+        );
+
+        this.raycaster.setFromCamera(ndc, this.camera);
+        if (this.raycaster.intersectObject(this.loadedModel, true).length > 0) {
+            this.enqueueGrowth(0.35, GrowthStimulusType.ToolActivation);
+        }
+    }
+
+    public async setVfxWebm(signedOrBlobUrl: string): Promise<void> {
+        if (this.vfxBlobUrl) {
+            URL.revokeObjectURL(this.vfxBlobUrl);
+            this.vfxBlobUrl = null;
+        }
+        if (!signedOrBlobUrl) return;
+        if (signedOrBlobUrl.startsWith('blob:')) {
+            this.vfxBlobUrl = signedOrBlobUrl;
+        } else {
+            const res = await fetch(signedOrBlobUrl, { headers: { 'm1as-user-id': this.userId } });
+            if (!res.ok) throw new Error(`VFX stream failed (${res.status})`);
+            this.vfxBlobUrl = URL.createObjectURL(await res.blob());
+        }
+    }
+    private spawnVfxAtPosition(worldPos: THREE.Vector3, size: number): void {
+        if (!this.vfxBlobUrl) return;
+        const video = document.createElement('video');
+        video.src = this.vfxBlobUrl;
+        video.muted = true;
+        video.loop = false;
+        video.playsInline = true;
+        const texture = new THREE.VideoTexture(video);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const geo = new THREE.PlaneGeometry(size, size);
+        const mat = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+        });
+        const plane = new THREE.Mesh(geo, mat);
+        plane.position.set(worldPos.x, size * 0.45, worldPos.z);
+        plane.quaternion.copy(this.camera.quaternion);
+        this.scene.add(plane);
+        const entry = { mesh: plane, video, texture };
+        this.activeVfxPlanes.push(entry);
+        const cleanup = () => {
+            this.scene.remove(plane);
+            geo.dispose();
+            mat.dispose();
+            texture.dispose();
+            video.src = '';
+            this.activeVfxPlanes = this.activeVfxPlanes.filter((p) => p !== entry);
+        };
+        video.onended = cleanup;
+        video.play().catch(cleanup);
+    }
+    private emitTelemetry(): void {
+        const currentScale = this.growthQueue.currentVisualScale;
+        const occupancyRatio = (this.baseModelHeight * currentScale) / this.roomCeilingHeight;
+        this.onStateChange?.({
+            currentScale: Number(currentScale.toFixed(2)),
+            targetScale: Number(this.growthQueue.currentTargetScale.toFixed(2)),
+            instability: Number(this.growthQueue.currentInstability.toFixed(2)),
+            pendingQueue: this.growthQueue.pendingCount,
+            posture: this.posture,
+            occupancyRatio: Number(occupancyRatio.toFixed(2)),
+            boxTier: this.boxTier,
+            storedGoldenBuffer: Number(this.storedGoldenBuffer.toFixed(2)),
+            hasSkeleton: this.bones.size > 0,
+            boneCount: this.bones.size,
+            isHolding: this.isHolding,
+            mode: this.mode,
+        });
+    }
+    private animate(): void {
+        this.frameId = requestAnimationFrame(this.animate);
+        const dt = Math.min(this.clock.getDelta(), 0.05);
+        if (this.isHolding) {
+            this.holdDuration += dt;
+            this.venousPulseEnergy = Math.min(1.0, 0.3 + this.holdDuration * 0.4);
+        }
+        if (this.mixer) {
+            this.mixer.update(dt);
+        }
+        this.updateMovement(dt);
+        this.checkPropCollisionsAndBreaks();
+        const queueTelemetry = this.growthQueue.step(dt);
+        this.applyOrganicAndBoneScaling(
+            dt,
+            queueTelemetry.absoluteFinalScale,
+            queueTelemetry.instabilityScore
+        );
+        this.updateCinematicCamera(
+            dt,
+            queueTelemetry.absoluteFinalScale,
+            queueTelemetry.instabilityScore
+        );
+        for (const vfx of this.activeVfxPlanes) {
+            vfx.mesh.quaternion.copy(this.camera.quaternion);
+        }
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+        this.emitTelemetry();
+    }
+    public destroy(): void {
+        if (this.frameId !== null) cancelAnimationFrame(this.frameId);
+        window.removeEventListener('keydown', this.onKeyDown);
+        window.removeEventListener('keyup', this.onKeyUp);
+        this.canvas.removeEventListener('pointerdown', this.onPointerDown);
+        this.canvas.removeEventListener('pointerup', this.onPointerUp);
+        if (this.vfxBlobUrl) URL.revokeObjectURL(this.vfxBlobUrl);
+        this.controls.dispose();
+        this.renderer.dispose();
+    }
 }
