@@ -5,242 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>m1as Media Browser & Composable Component Playground</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #fdfdfd;
-            color: #212529;
-        }
-
-        #assetList {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .asset-card {
-            border: 1px solid #ccc;
-            padding: 12px;
-            width: 300px;
-            background: #fff;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-        }
-
-        .asset-card:hover {
-            background: #f8f9fa;
-        }
-
-        .card-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .card-actions button,
-        .card-actions select {
-            padding: 4px 8px;
-            font-size: 12px;
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-            cursor: pointer;
-            background: #fff;
-        }
-
-        .card-actions button:hover {
-            background: #e9ecef;
-        }
-
-        .url-display {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 6px;
-            font-family: monospace;
-            font-size: 11px;
-            color: #495057;
-            word-break: break-all;
-            margin: 8px 0;
-            display: block;
-            min-height: 28px;
-        }
-
-        .playground-panel {
-            background: #170e7c;
-            border: 2px dashed #999;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            width: 100%;
-        }
-
-        .playground-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .playground-input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .playground-btn {
-            padding: 8px 16px;
-            background: #0076ff;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .playground-btn:hover {
-            background: #0056b3;
-        }
-
-        .inline-3d-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        .m1as-interactive-wrapper {
-            position: relative;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            width: 100%;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #dee2e6;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            padding: 16px;
-        }
-
-        .m1as-interactive-wrapper.compact-media {
-            max-width: 520px;
-            height: 320px;
-            padding: 0;
-            background: #000;
-        }
-
-        .m1as-stage-surface {
-            flex: 1;
-            min-width: 300px;
-            height: 400px;
-            background: #1a1a1a;
-            position: relative;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .m1as-interactive-wrapper.compact-media .m1as-stage-surface {
-            height: 100%;
-            border-radius: 0;
-        }
-
-        .m1as-btn-label {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(0, 118, 255, 0.9);
-            color: #fff;
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            z-index: 10;
-            cursor: pointer;
-            border: none;
-        }
-
-        .m1as-btn-label:hover {
-            background: rgba(0, 90, 200, 1);
-        }
-
-        .m1as-visualization-inspector {
-            width: 360px;
-            background: #252526;
-            border: 1px solid #3c3c3c;
-            border-radius: 6px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            color: #f5f5f5;
-            height: 400px;
-            overflow-y: auto;
-        }
-
-        .inspector-title {
-            font-size: 12px;
-            font-weight: bold;
-            color: #38bdf8;
-            text-transform: uppercase;
-            border-bottom: 1px solid #3c3c3c;
-            padding-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .face-slot-row {
-            background: #1e1e1e;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #333;
-        }
-
-        .face-label {
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #d4d4d4;
-        }
-
-        .control-flex {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
-        .m1as-select {
-            background: #3c3c3c;
-            color: #fff;
-            border: 1px solid #555;
-            border-radius: 3px;
-            font-size: 11px;
-            padding: 4px 6px;
-        }
-
-        .m1as-input-txt {
-            flex: 1;
-            min-width: 0;
-            background: #3c3c3c;
-            color: #fff;
-            border: 1px solid #555;
-            border-radius: 3px;
-            font-size: 11px;
-            padding: 4px 6px;
-        }
-    </style>
-
+    <link rel="stylesheet" href="styles.css">
     <script type="module" id="m1as-runtime-engine"></script>
 </head>
 
@@ -249,8 +14,8 @@
     <h1>m1as Streaming Test</h1>
 
     <div class="playground-panel">
-        <h3 style="color: #cbea30; margin-top: 0;">🚀 Composable Component Simulation Area</h3>
-        <p style="font-size: 13px; color: #f6f1f1; margin-top: -6px;">
+        <h3 class="panel-title">🚀 Composable Component Simulation Area</h3>
+        <p class="panel-subtitle">
             Click <strong>Stream</strong> on any asset to render it below, or click <strong>Sign URL</strong> to copy a
             signed stream token for a 3D cube face.
         </p>
@@ -260,20 +25,21 @@
             <button id="renderComponentBtn" class="playground-btn">Render Component</button>
         </div>
         <div id="componentStage">
-            <div style="text-align: center; color: #bbb; padding: 40px 0; font-style: italic;">
+            <div class="stage-placeholder">
                 Stage empty. Awaiting signed asset target string link...
             </div>
         </div>
     </div>
-    <div class="playground-panel" style="background: #0f172a; border-color: #38bdf8;">
-        <h3 style="color: #38bdf8; margin-top: 0;">🎬 .webm VFX &amp; CCSA Composition Recorder</h3>
-        <p style="font-size: 13px; color: #cbd5e1; margin-top: -6px;">
+
+    <div class="playground-panel playground-panel--recorder">
+        <h3 class="panel-title panel-title--recorder">🎬 .webm VFX &amp; CCSA Composition Recorder</h3>
+        <p class="panel-subtitle panel-subtitle--slate">
             Record the live CCSA 3D stage (with streamed cube faces, background videos, and click-triggered VFX) or
             generate a standalone transparent 2D VFX overlay.
         </p>
 
-        <div class="playground-form" style="flex-wrap: wrap; align-items: center;">
-            <select id="recSourceMode" class="m1as-select" style="padding: 8px; font-size: 13px;">
+        <div class="playground-form playground-form--wrap">
+            <select id="recSourceMode" class="m1as-select m1as-select--lg">
                 <option value="big3r">🍄 Source: BIG3R Growth &amp; Cinema Sandbox</option>
                 <option value="ccsa">🚀 Source: Live CCSA 3D Stage</option>
                 <option value="procedural-growth">✨ Procedural Alpha VFX: Growth Surge (1.5s)</option>
@@ -281,73 +47,57 @@
                 <option value="procedural-collapse">💥 Procedural Alpha VFX: Gate Shatter &amp; Dust (1.8s)</option>
             </select>
 
-
-            <label style="color: #f8fafc; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+            <label class="control-checkbox-label">
                 <input type="checkbox" id="recAlphaBg" />
                 Transparent BG (CCSA)
             </label>
 
-            <button id="startRecBtn" class="playground-btn" style="background: #10b981; color: #052e16;">● Start
-                Recording (.webm)</button>
-            <button id="stopRecBtn" class="playground-btn" style="background: #ef4444;" disabled>■ Stop &amp;
-                Preview</button>
+            <button id="startRecBtn" class="playground-btn btn--emerald">● Start Recording (.webm)</button>
+            <button id="stopRecBtn" class="playground-btn btn--danger" disabled>■ Stop &amp; Preview</button>
         </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
-            <!-- Hidden/Offscreen 512x512 canvas used when recording procedural 2D alpha VFX -->
-            <canvas id="proceduralVfxCanvas" width="512" height="512" style="display: none;"></canvas>
+        <div class="rec-workspace">
+            <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
 
-            <!-- Checkerboard preview box for the recorded .webm -->
-            <div id="recPreviewBox"
-                style="display: none; flex-direction: column; gap: 8px; background: #1e293b; padding: 12px; border-radius: 6px; border: 1px solid #334155;">
-                <span style="font-size: 12px; font-weight: bold; color: #38bdf8;">Recorded .webm Preview (Alpha
-                    Preserved):</span>
-                <video id="recPreviewVideo" controls loop muted playsinline
-                    style="width: 320px; height: 240px; border-radius: 4px; background-image: linear-gradient(45deg, #2b2b2b 25%, transparent 25%), linear-gradient(-45deg, #2b2b2b 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2b2b2b 75%), linear-gradient(-45deg, transparent 75%, #2b2b2b 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;"></video>
-                <div style="display: flex; gap: 8px;">
+            <div id="recPreviewBox" class="rec-preview-box">
+                <span class="rec-preview-title">Recorded .webm Preview (Alpha Preserved):</span>
+                <video id="recPreviewVideo" class="rec-preview-video" controls loop muted playsinline></video>
+                <div class="rec-preview-actions">
                     <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
-                    <button id="bindRecClickVfxBtn" class="playground-btn" style="background: #8b5cf6;">⚡ Bind to Active
-                        .glb Click</button>
-                    <button id="bindRecBig3rVfxBtn" class="playground-btn" style="background: #10b981; color: #052e16;">🍄 Bind to BIG3R Growth VFX</button>
+                    <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb Click</button>
+                    <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth VFX</button>
                 </div>
             </div>
         </div>
 
-        <div id="recStatus" style="margin-top: 10px; font-size: 12px; color: #94a3b8;">Ready to record VP9 .webm.</div>
+        <div id="recStatus" class="rec-status">Ready to record VP9 .webm.</div>
     </div>
 
-    <!-- BIG3R Organic Fractal Growth, Cinema & Box-Tier Sandbox -->
-    <div class="playground-panel" style="background: #0b1120; border-color: #10b981;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <h3 style="color: #10b981; margin: 0;">🍄 BIG3R Growth, Cinema &amp; Spatial Progression Sandbox</h3>
-            <span id="vfxTelemetryBadge"
-                style="background: #1e293b; color: #38bdf8; padding: 5px 12px; border-radius: 12px; font-family: monospace; font-size: 12px;">
+    <div class="playground-panel playground-panel--vfx">
+        <div class="panel-header-row">
+            <h3 class="panel-title panel-title--vfx">🍄 BIG3R Growth, Cinema &amp; Spatial Progression Sandbox</h3>
+            <span id="vfxTelemetryBadge" class="vfx-telemetry-badge">
                 Tier 1: Broken Jar | Scale: 1.00x | Posture: STAND | Golden Buf: 0.00
             </span>
         </div>
-        <p style="font-size: 13px; color: #cbd5e1; margin: 6px 0 12px;">
+        <p class="panel-subtitle--vfx">
             <strong>WASD / Arrows</strong> to walk forward/backward, <strong>Click</strong> the .glb, or test stimulus
             queues, clothing/suit limits, and nested box escapes.
         </p>
 
-        <div class="playground-form" style="flex-wrap: wrap;">
+        <div class="playground-form playground-form--wrap">
             <input type="text" id="vfxGlbUrlInput" class="playground-input"
                 placeholder="Paste .glb signed URL (or click '🍄 VFX Stage' on any .glb card)..." />
-            <input type="text" id="vfxOverlayUrlInput" class="playground-input" style="max-width: 300px;"
+            <input type="text" id="vfxOverlayUrlInput" class="playground-input playground-input--compact"
                 placeholder="Optional .webm VFX signed URL..." />
-            <button id="mountVfxEngineBtn" class="playground-btn" style="background: #10b981; color: #052e16;">
+            <button id="mountVfxEngineBtn" class="playground-btn btn--emerald">
                 Launch VFX Stage
             </button>
         </div>
 
-        <!-- Expanded Growth, Stimulus, Wardrobe & Cinema Controls -->
-        <div id="vfxControlBar"
-            style="display: none; flex-direction: column; gap: 10px; background: #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #334155;">
-
-            <!-- Row 1: Growth Triggers & Stimulus Queue -->
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                <label
-                    style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Mode:</label>
+        <div id="vfxControlBar" class="vfx-control-bar">
+            <div class="vfx-control-row">
+                <label class="control-group-label">Mode:</label>
                 <select id="vfxGrowthMode" class="m1as-select">
                     <option value="click">Click / Tap Impulse</option>
                     <option value="tap">Rapid Mash Cascade</option>
@@ -355,8 +105,7 @@
                     <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
                 </select>
 
-                <label
-                    style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Stimulus:</label>
+                <label class="control-group-label">Stimulus:</label>
                 <select id="vfxStimulusType" class="m1as-select">
                     <option value="Consumption">Consumption (Proportional Height)</option>
                     <option value="Exercise">Exercise (Upper Body → Golden Ratio Buffer)</option>
@@ -364,19 +113,14 @@
                     <option value="Environmental">Environmental Surge</option>
                 </select>
 
-                <button id="vfxPulseBtn" class="playground-btn" style="background: #0076ff;">🌱 Queue Stimulus
-                    (Space)</button>
-                <button id="vfxHoldBtn" class="playground-btn" style="background: #f59e0b; color: #1e1b4b;">✊ Hold
-                    Charge</button>
-                <button id="vfxChaosBtn" class="playground-btn" style="background: #a855f7;">🌀 Colossal Chaos</button>
-                <button id="vfxResetBtn" class="playground-btn" style="background: #475569;">↺ Reset</button>
+                <button id="vfxPulseBtn" class="playground-btn">🌱 Queue Stimulus (Space)</button>
+                <button id="vfxHoldBtn" class="playground-btn btn--amber">✊ Hold Charge</button>
+                <button id="vfxChaosBtn" class="playground-btn btn--violet">🌀 Colossal Chaos</button>
+                <button id="vfxResetBtn" class="playground-btn btn--slate">↺ Reset</button>
             </div>
 
-            <!-- Row 2: Box-Within-a-Box Progression, Ceiling Gate & Cinematic Camera -->
-            <div
-                style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid #334155; padding-top: 8px;">
-                <label style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Nested Box
-                    Stage:</label>
+            <div class="vfx-control-row vfx-control-row--divided">
+                <label class="control-group-label">Nested Box Stage:</label>
                 <select id="vfxBoxPreset" class="m1as-select">
                     <option value="1.6">1. Broken Jar (1.6m Ceiling)</option>
                     <option value="2.4">2. Sewer Pipes (2.4m Ceiling)</option>
@@ -385,24 +129,20 @@
                     <option value="9.5">5. Escape: Street / Cars &amp; Houses (9.5m)</option>
                 </select>
 
-                <label style="color: #f8fafc; font-size: 12px; display: flex; align-items: center; gap: 6px;">
-                    Ceiling: <input type="range" id="vfxCeilingSlider" min="1.5" max="12.0" step="0.1" value="3.2"
-                        style="width: 100px;" />
-                    <span id="vfxCeilingVal" style="font-family: monospace; color: #10b981;">3.2m</span>
+                <label class="control-inline-label">
+                    Ceiling: <input type="range" id="vfxCeilingSlider" class="ceiling-slider" min="1.5" max="12.0" step="0.1" value="3.2" />
+                    <span id="vfxCeilingVal" class="ceiling-readout">3.2m</span>
                 </label>
 
-                <label
-                    style="color: #f8fafc; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <label class="control-checkbox-label control-checkbox-label--sm">
                     <input type="checkbox" id="vfxCinematicCamToggle" checked />
                     🎥 Cinematic Low-Angle &amp; FOV Kick
                 </label>
             </div>
-            <!-- Row 3: Multi-.glb Spatial Prop & Reference Scale Spawner -->
-            <div
-                style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid #334155; padding-top: 8px;">
-                <label style="color: #38bdf8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Add Scene
-                    .glb:</label>
-                <input type="text" id="vfxPropUrlInput" class="m1as-input-txt" style="min-width: 220px;"
+
+            <div class="vfx-control-row vfx-control-row--divided-tight">
+                <label class="control-group-label control-group-label--sky">Add Scene .glb:</label>
+                <input type="text" id="vfxPropUrlInput" class="m1as-input-txt m1as-input-txt--wide"
                     placeholder="Paste signed .glb URL (Cube, T-Pose, Tank, Gate)..." />
 
                 <select id="vfxPropRole" class="m1as-select">
@@ -413,34 +153,27 @@
                     <option value="reference">🧍 Scale Reference (T-Pose / Car / House)</option>
                 </select>
 
-                <label style="color: #f8fafc; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                    Height: <input type="number" id="vfxPropHeight" value="0.6" min="0.1" max="15.0" step="0.1"
-                        style="width: 58px; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 4px; padding: 3px 6px;" />m
+                <label class="control-inline-label control-inline-label--tight">
+                    Height: <input type="number" id="vfxPropHeight" class="prop-height-input" value="0.6" min="0.1" max="15.0" step="0.1" />m
                 </label>
 
-                <button id="vfxSpawnPropBtn" class="playground-btn" style="background: #0284c7;">+ Spawn Prop</button>
-                <button id="vfxRespawnPropsBtn" class="playground-btn" style="background: #334155;">↺ Respawn
-                    Broken</button>
+                <button id="vfxSpawnPropBtn" class="playground-btn btn--sky">+ Spawn Prop</button>
+                <button id="vfxRespawnPropsBtn" class="playground-btn btn--slate-dark">↺ Respawn Broken</button>
             </div>
 
-            <!-- Active Scene Props List (with live height sliders!) -->
-            <div id="vfxPropListContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;"></div>
-
+            <div id="vfxPropListContainer" class="vfx-prop-list"></div>
         </div>
 
-        <!-- WebGL Viewport -->
-        <div id="vfxStageContainer"
-            style="width: 100%; height: 440px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; position: relative; overflow: hidden;">
-            <div style="text-align: center; color: #64748b; padding: 190px 0; font-style: italic;">
+        <div id="vfxStageContainer" class="vfx-stage-container">
+            <div class="stage-placeholder stage-placeholder--vfx">
                 VFX Stage idle. Provide a signed .glb URL above or click "🍄 VFX Stage" on an asset card...
             </div>
         </div>
     </div>
 
-
     <button id="loadAssets" class="playground-btn">Load Public Assets</button>
 
-    <div id="ttlStatus" style="margin-top: 10px; font-size: 13px;"></div>
+    <div id="ttlStatus" class="ttl-status"></div>
     <div id="viewer"></div>
     <div id="assetList"></div>
 
