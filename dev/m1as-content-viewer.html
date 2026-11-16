@@ -313,63 +313,106 @@
         <div id="recStatus" style="margin-top: 10px; font-size: 12px; color: #94a3b8;">Ready to record VP9 .webm.</div>
     </div>
 
-    <!-- BIG3R Organic Fractal Growth & Chaos Simulation Sandbox -->
+    <!-- BIG3R Organic Fractal Growth, Cinema & Box-Tier Sandbox -->
     <div class="playground-panel" style="background: #0b1120; border-color: #10b981;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <h3 style="color: #10b981; margin: 0;">🍄 BIG3R Organic Growth &amp; Chaos Sandbox (M1ASVFXEngine)</h3>
+            <h3 style="color: #10b981; margin: 0;">🍄 BIG3R Growth, Cinema &amp; Spatial Progression Sandbox</h3>
             <span id="vfxTelemetryBadge"
-                style="background: #1e293b; color: #38bdf8; padding: 4px 10px; border-radius: 12px; font-family: monospace; font-size: 12px;">
-                Scale: 1.00x | Target: 1.00x | Status: Idle
+                style="background: #1e293b; color: #38bdf8; padding: 5px 12px; border-radius: 12px; font-family: monospace; font-size: 12px;">
+                Tier 1: Broken Jar | Scale: 1.00x | Posture: STAND | Golden Buf: 0.00
             </span>
         </div>
         <p style="font-size: 13px; color: #cbd5e1; margin: 6px 0 12px;">
-            Stream a <strong>.glb</strong> below, then use <strong>WASD / Arrows</strong> to move,
-            <strong>Click</strong> the 3D object, or test <strong>Tap</strong>, <strong>Hold</strong>, and
-            <strong>Delayed Colossal Chaos</strong> growth modes.
+            <strong>WASD / Arrows</strong> to walk forward/backward, <strong>Click</strong> the .glb, or test stimulus
+            queues, clothing/suit limits, and nested box escapes.
         </p>
 
         <div class="playground-form" style="flex-wrap: wrap;">
             <input type="text" id="vfxGlbUrlInput" class="playground-input"
-                placeholder="Paste .glb signed URL (or click 'Send to VFX Sandbox' on any .glb card)..." />
-            <input type="text" id="vfxOverlayUrlInput" class="playground-input" style="max-width: 320px;"
+                placeholder="Paste .glb signed URL (or click '🍄 VFX Stage' on any .glb card)..." />
+            <input type="text" id="vfxOverlayUrlInput" class="playground-input" style="max-width: 300px;"
                 placeholder="Optional .webm VFX signed URL..." />
             <button id="mountVfxEngineBtn" class="playground-btn" style="background: #10b981; color: #052e16;">
                 Launch VFX Stage
             </button>
         </div>
 
-        <!-- Interactive Growth & Chaos Controls -->
+        <!-- Expanded Growth, Stimulus, Wardrobe & Cinema Controls -->
         <div id="vfxControlBar"
-            style="display: none; flex-wrap: wrap; gap: 10px; align-items: center; background: #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #334155;">
-            <label style="color: #f8fafc; font-size: 12px; font-weight: bold;">Trigger Mode:</label>
-            <select id="vfxGrowthMode" class="m1as-select" style="padding: 6px 10px; font-size: 12px;">
-                <option value="click">Click / Tap Impulse (+0.35x)</option>
-                <option value="tap">Rapid Mash / Tap Stacking</option>
-                <option value="hold">Hold-to-Charge Surge</option>
-                <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
-            </select>
+            style="display: none; flex-direction: column; gap: 10px; background: #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #334155;">
 
-            <button id="vfxPulseBtn" class="playground-btn" style="background: #0076ff;">
-                🌱 Pulse Grow (Space)
-            </button>
-            <button id="vfxHoldBtn" class="playground-btn" style="background: #f59e0b; color: #1e1b4b;">
-                ✊ Hold to Charge
-            </button>
-            <button id="vfxChaosBtn" class="playground-btn" style="background: #a855f7;">
-                🌀 Trigger Delayed Colossal Event
-            </button>
-            <button id="vfxResetBtn" class="playground-btn" style="background: #475569;">
-                ↺ Reset (1.0x)
-            </button>
+            <!-- Row 1: Growth Triggers & Stimulus Queue -->
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                <label
+                    style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Mode:</label>
+                <select id="vfxGrowthMode" class="m1as-select">
+                    <option value="click">Click / Tap Impulse</option>
+                    <option value="tap">Rapid Mash Cascade</option>
+                    <option value="hold">Hold-to-Charge Surge</option>
+                    <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
+                </select>
+
+                <label
+                    style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Stimulus:</label>
+                <select id="vfxStimulusType" class="m1as-select">
+                    <option value="Consumption">Consumption (Proportional Height)</option>
+                    <option value="Exercise">Exercise (Upper Body → Golden Ratio Buffer)</option>
+                    <option value="Buff">Buff / Growth Tool (High Pressure)</option>
+                    <option value="Environmental">Environmental Surge</option>
+                </select>
+
+                <button id="vfxPulseBtn" class="playground-btn" style="background: #0076ff;">🌱 Queue Stimulus
+                    (Space)</button>
+                <button id="vfxHoldBtn" class="playground-btn" style="background: #f59e0b; color: #1e1b4b;">✊ Hold
+                    Charge</button>
+                <button id="vfxChaosBtn" class="playground-btn" style="background: #a855f7;">🌀 Colossal Chaos</button>
+                <button id="vfxResetBtn" class="playground-btn" style="background: #475569;">↺ Reset</button>
+            </div>
+
+            <!-- Row 2: Box-Within-a-Box Progression, Ceiling Gate & Cinematic Camera -->
+            <div
+                style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid #334155; padding-top: 8px;">
+                <label style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;">Nested Box
+                    Stage:</label>
+                <select id="vfxBoxPreset" class="m1as-select">
+                    <option value="1.6">1. Broken Jar (1.6m Ceiling)</option>
+                    <option value="2.4">2. Sewer Pipes (2.4m Ceiling)</option>
+                    <option value="3.2" selected>3. Lab Growth Tank (3.2m Ceiling)</option>
+                    <option value="5.0">4. Lab Viewing Room / Vent (5.0m Ceiling)</option>
+                    <option value="9.5">5. Escape: Street / Cars &amp; Houses (9.5m)</option>
+                </select>
+
+                <label style="color: #f8fafc; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                    Ceiling: <input type="range" id="vfxCeilingSlider" min="1.5" max="12.0" step="0.1" value="3.2"
+                        style="width: 100px;" />
+                    <span id="vfxCeilingVal" style="font-family: monospace; color: #10b981;">3.2m</span>
+                </label>
+
+                <label
+                    style="color: #f8fafc; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="vfxCinematicCamToggle" checked />
+                    🎥 Cinematic Low-Angle &amp; FOV Kick
+                </label>
+            </div>
         </div>
 
         <!-- WebGL Viewport -->
         <div id="vfxStageContainer"
-            style="width: 100%; height: 420px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; position: relative; overflow: hidden;">
-            <div style="text-align: center; color: #64748b; padding: 180px 0; font-style: italic;">
-                VFX Stage idle. Provide a signed .glb URL above or use a card's "VFX Sandbox" button...
+            style="width: 100%; height: 440px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; position: relative; overflow: hidden;">
+            <div style="text-align: center; color: #64748b; padding: 190px 0; font-style: italic;">
+                VFX Stage idle. Provide a signed .glb URL above or click "🍄 VFX Stage" on an asset card...
             </div>
         </div>
+    </div>
+
+
+    <!-- WebGL Viewport -->
+    <div id="vfxStageContainer"
+        style="width: 100%; height: 420px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; position: relative; overflow: hidden;">
+        <div style="text-align: center; color: #64748b; padding: 180px 0; font-style: italic;">
+            VFX Stage idle. Provide a signed .glb URL above or use a card's "VFX Sandbox" button...
+        </div>
+    </div>
     </div>
 
     <button id="loadAssets" class="playground-btn">Load Public Assets</button>
@@ -397,18 +440,6 @@
         const bindRecClickVfxBtn = document.getElementById("bindRecClickVfxBtn");
         const recStatus = document.getElementById("recStatus");
 
-        const vfxGlbUrlInput = document.getElementById("vfxGlbUrlInput");
-        const vfxOverlayUrlInput = document.getElementById("vfxOverlayUrlInput");
-        const mountVfxEngineBtn = document.getElementById("mountVfxEngineBtn");
-        const vfxControlBar = document.getElementById("vfxControlBar");
-        const vfxStageContainer = document.getElementById("vfxStageContainer");
-        const vfxTelemetryBadge = document.getElementById("vfxTelemetryBadge");
-        const vfxGrowthMode = document.getElementById("vfxGrowthMode");
-        const vfxPulseBtn = document.getElementById("vfxPulseBtn");
-        const vfxHoldBtn = document.getElementById("vfxHoldBtn");
-        const vfxChaosBtn = document.getElementById("vfxChaosBtn");
-        const vfxResetBtn = document.getElementById("vfxResetBtn");
-
         let mediaRecorder = null;
         let recordedChunks = [];
         let lastRecordedBlobUrl = null;
@@ -416,6 +447,33 @@
         let activeFaceEngine = null;
 
         let activeVfxEngine = null;
+
+        const vfxGlbUrlInput = document.getElementById("vfxGlbUrlInput");
+        const vfxOverlayUrlInput = document.getElementById("vfxOverlayUrlInput");
+        const mountVfxEngineBtn = document.getElementById("mountVfxEngineBtn");
+        const vfxControlBar = document.getElementById("vfxControlBar");
+        const vfxStageContainer = document.getElementById("vfxStageContainer");
+        const vfxTelemetryBadge = document.getElementById("vfxTelemetryBadge");
+        const vfxGrowthMode = document.getElementById("vfxGrowthMode");
+        const vfxStimulusType = document.getElementById("vfxStimulusType");
+        const vfxPulseBtn = document.getElementById("vfxPulseBtn");
+        const vfxHoldBtn = document.getElementById("vfxHoldBtn");
+        const vfxChaosBtn = document.getElementById("vfxChaosBtn");
+        const vfxResetBtn = document.getElementById("vfxResetBtn");
+        const vfxBoxPreset = document.getElementById("vfxBoxPreset");
+        const vfxCeilingSlider = document.getElementById("vfxCeilingSlider");
+        const vfxCeilingVal = document.getElementById("vfxCeilingVal");
+        const vfxCinematicCamToggle = document.getElementById("vfxCinematicCamToggle");
+
+        const BOX_TIER_NAMES = [
+            "Broken Jar",
+            "Sewer Pipes",
+            "Lab Sink",
+            "Lab Growth Tank",
+            "Lab Viewing Room",
+            "Ceiling Vent Escape",
+            "Street World (Cars & Houses)"
+        ];
 
         async function mountVfxSandbox(glbSignedUrl, vfxWebmSignedUrl = "") {
             if (!glbSignedUrl || !glbSignedUrl.trim()) {
@@ -428,7 +486,7 @@
                 activeVfxEngine = null;
             }
 
-            vfxStageContainer.innerHTML = `<div style="text-align: center; color: #38bdf8; padding: 180px 0; font-style: italic;">Streaming .glb payload into M1ASVFXEngine...</div>`;
+            vfxStageContainer.innerHTML = `<div style="text-align: center; color: #38bdf8; padding: 190px 0; font-style: italic;">Streaming .glb payload into M1ASVFXEngine v2...</div>`;
 
             try {
                 const res = await fetch(glbSignedUrl, { headers: { "m1as-user-id": "dev-user" } });
@@ -436,7 +494,6 @@
                 const glbBlob = await res.blob();
                 const glbBlobUrl = URL.createObjectURL(glbBlob);
 
-                // Dynamic ESM import matching your ./m1as-face-layer-engine.js build output
                 const { M1ASVFXEngine } = await import("./m1as-vfx-engine.js");
 
                 vfxStageContainer.innerHTML = "";
@@ -447,26 +504,24 @@
                 vfxStageContainer.appendChild(canvas);
 
                 vfxControlBar.style.display = "flex";
+                const initialCeiling = parseFloat(vfxCeilingSlider.value) || 3.2;
 
                 activeVfxEngine = new M1ASVFXEngine(canvas, glbBlobUrl, {
                     userId: "dev-user",
                     moveSpeed: 4.0,
                     baseScale: 1.0,
-                    maxScale: 8.0,
-                    chaosProbability: 0.35,
+                    initialRoomCeiling: initialCeiling,
+                    cinematicCamera: vfxCinematicCamToggle.checked,
                     onStateChange: (state) => {
-                        let statusText = state.isChaosPending
-                            ? `⚠️ CHAOS STALL (Charging +${state.chaosCharge}x...)`
-                            : state.isHolding
-                                ? "✊ HOLDING CHARGE..."
-                                : `Mode: ${state.mode}`;
+                        const tierLabel = BOX_TIER_NAMES[Math.min(state.boxTier - 1, BOX_TIER_NAMES.length - 1)];
+                        const rigTag = state.hasSkeleton ? `Rigged (${state.boneCount} bones)` : "Unrigged Mesh";
+                        const postureColor = state.posture === "crawl" ? "#f43f5e" : state.posture === "hunch" ? "#f59e0b" : "#38bdf8";
 
-                        vfxTelemetryBadge.textContent = `Scale: ${state.currentScale.toFixed(2)}x | Target: ${state.targetScale.toFixed(2)}x | ${statusText}`;
-                        vfxTelemetryBadge.style.color = state.isChaosPending ? "#f59e0b" : "#38bdf8";
+                        vfxTelemetryBadge.innerHTML = `Box ${state.boxTier}: <strong>${tierLabel}</strong> | Scale: <strong>${state.currentScale.toFixed(2)}x</strong> | Posture: <strong style="color:${postureColor}">${state.posture.toUpperCase()}</strong> (${Math.round(state.occupancyRatio * 100)}%) | Golden Buf: ${state.storedGoldenBuffer.toFixed(2)} | ${rigTag}`;
                     },
-                    onColossalSurge: (newScale) => {
-                        vfxTelemetryBadge.textContent = `💥 COLOSSAL SURGE! Scale: ${newScale.toFixed(2)}x`;
-                        vfxTelemetryBadge.style.color = "#10b981";
+                    onRoomCollapse: (newBoxTier, newCeiling) => {
+                        vfxCeilingSlider.value = Math.min(12, newCeiling).toFixed(1);
+                        vfxCeilingVal.textContent = `${newCeiling.toFixed(1)}m`;
                     }
                 });
 
@@ -490,7 +545,7 @@
         });
 
         vfxPulseBtn.addEventListener("click", () => {
-            activeVfxEngine?.triggerGrowthImpulse(0.35);
+            activeVfxEngine?.enqueueGrowth(0.35, vfxStimulusType.value);
         });
 
         // Pointer down/up/leave handling for Hold-to-Charge button
@@ -499,29 +554,42 @@
             vfxGrowthMode.value = "hold";
             activeVfxEngine.setMode("hold");
             activeVfxEngine.startHoldGrowth();
-            vfxHoldBtn.textContent = "🔥 Charging... Release to Surge!";
+            vfxHoldBtn.textContent = "🔥 Charging... Release!";
         });
 
         const releaseHold = () => {
             if (!activeVfxEngine) return;
             activeVfxEngine.releaseHoldGrowth();
-            vfxHoldBtn.textContent = "✊ Hold to Charge";
+            vfxHoldBtn.textContent = "✊ Hold Charge";
         };
         vfxHoldBtn.addEventListener("pointerup", releaseHold);
         vfxHoldBtn.addEventListener("pointerleave", releaseHold);
 
         vfxChaosBtn.addEventListener("click", () => {
-            activeVfxEngine?.triggerDelayedColossalChaos(1.8, 2.5);
+            activeVfxEngine?.triggerDelayedColossalChaos(2.0, 2.6);
         });
 
         vfxResetBtn.addEventListener("click", () => {
+            vfxCeilingSlider.value = "3.2";
+            vfxCeilingVal.textContent = "3.2m";
             activeVfxEngine?.resetGrowth();
         });
 
-        recAlphaBg.addEventListener("change", () => {
-            if (activeFaceEngine) {
-                activeFaceEngine.setTransparentBackground(recAlphaBg.checked);
-            }
+        vfxBoxPreset.addEventListener("change", () => {
+            const h = parseFloat(vfxBoxPreset.value);
+            vfxCeilingSlider.value = h.toFixed(1);
+            vfxCeilingVal.textContent = `${h.toFixed(1)}m`;
+            activeVfxEngine?.setRoomCeiling(h);
+        });
+
+        vfxCeilingSlider.addEventListener("input", () => {
+            const h = parseFloat(vfxCeilingSlider.value);
+            vfxCeilingVal.textContent = `${h.toFixed(1)}m`;
+            activeVfxEngine?.setRoomCeiling(h);
+        });
+
+        vfxCinematicCamToggle.addEventListener("change", () => {
+            activeVfxEngine?.setCinematicCamera(vfxCinematicCamToggle.checked);
         });
 
         startRecBtn.addEventListener("click", () => {
