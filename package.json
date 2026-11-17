@@ -8,6 +8,7 @@
     "build": "npm run build:vendor && npm run build:viewer && tsc",
     "makeM1asBig3r": "node dist/server/m1asServer.js"
   },
+  "exports": { ".": "./dist/client/index.js", "./client-textures": "./dist/client/textures/resolveM1ASTexture.js" },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/multer": "^2.0.0",

@@ -156,27 +156,27 @@ export class VfxRecorderController {
     }
 
     private runProceduralVfxClip(canvas: HTMLCanvasElement, preset: string, onComplete?: () => void): void {
-        const ctx = canvas.getContext("2d", { alpha: true });
+        const ctx = canvas.getContext('2d', { alpha: true });
         if (!ctx) return;
 
         const W = canvas.width;
         const H = canvas.height;
         const CX = W / 2;
         const CY = H / 2;
-        const durationMs = preset === "collapse" ? 1800 : 1500;
+        const durationMs = preset === 'collapse' ? 1800 : 1500;
         const particles: VfxParticle[] = [];
 
         for (let i = 0; i < 75; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 8;
             particles.push({
-                x: CX + (preset === "growth" ? Math.cos(angle) * (20 + Math.random() * 90) : 0),
-                y: CY + (preset === "growth" ? 60 : 0),
-                vx: preset === "growth" ? (Math.random() - 0.5) * 1.5 : Math.cos(angle) * speed,
-                vy: preset === "growth" ? -3 - Math.random() * 4 : Math.sin(angle) * speed,
-                size: preset === "collapse" ? 10 + Math.random() * 18 : 5 + Math.random() * 10,
-                hue: preset === "fireball" ? 15 + Math.random() * 35 : 148 + Math.random() * 30,
-                maxLife: 0.65 + Math.random() * 0.35
+                x: CX + (preset === 'growth' ? Math.cos(angle) * (20 + Math.random() * 90) : 0),
+                y: CY + (preset === 'growth' ? 60 : 0),
+                vx: preset === 'growth' ? (Math.random() - 0.5) * 1.5 : Math.cos(angle) * speed,
+                vy: preset === 'growth' ? -3 - Math.random() * 4 : Math.sin(angle) * speed,
+                size: preset === 'collapse' ? 10 + Math.random() * 18 : 5 + Math.random() * 10,
+                hue: preset === 'fireball' ? 15 + Math.random() * 35 : 148 + Math.random() * 30,
+                maxLife: 0.65 + Math.random() * 0.35,
             });
         }
 
@@ -191,11 +191,11 @@ export class VfxRecorderController {
                     ctx.beginPath();
                     ctx.arc(CX, CY, 25 + lp * 200, 0, Math.PI * 2);
                     ctx.strokeStyle =
-                        preset === "fireball"
+                        preset === 'fireball'
                             ? `rgba(251, 146, 60, ${(1 - lp) * 0.85})`
-                            : preset === "collapse"
-                              ? `rgba(148, 163, 184, ${(1 - lp) * 0.85})`
-                              : `rgba(16, 185, 129, ${(1 - lp) * 0.85})`;
+                            : preset === 'collapse'
+                                ? `rgba(148, 163, 184, ${(1 - lp) * 0.85})`
+                                : `rgba(16, 185, 129, ${(1 - lp) * 0.85})`;
                     ctx.lineWidth = 8 * (1 - lp);
                     ctx.stroke();
                 }
@@ -209,7 +209,7 @@ export class VfxRecorderController {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size * (1 - progress * 0.35), 0, Math.PI * 2);
                 ctx.fillStyle =
-                    preset === "collapse"
+                    preset === 'collapse'
                         ? `rgba(203, 213, 225, ${alpha})`
                         : `hsla(${p.hue}, 95%, 62%, ${alpha})`;
                 ctx.fill();
@@ -225,4 +225,5 @@ export class VfxRecorderController {
 
         requestAnimationFrame(tick);
     }
+
 }
