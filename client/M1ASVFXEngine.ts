@@ -291,6 +291,14 @@ export class M1ASVFXEngine {
         return this.canvas;
     }
 
+    public getScene(): THREE.Scene { return this.scene; }
+    public getCamera(): THREE.PerspectiveCamera { return this.camera; }
+    public getRenderer(): THREE.WebGLRenderer { return this.renderer; }
+    public getControls(): OrbitControls { return this.controls; }
+    public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
+    public getCurrentVisualScale(): number { return this.growthQueue.currentVisualScale; }
+
+
     public setTransparentBackground(transparent: boolean): void {
         if (transparent) {
             this.scene.background = null;

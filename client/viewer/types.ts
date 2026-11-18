@@ -1,3 +1,5 @@
+import type { FaceAssetType } from "../M1ASFaceSurfaceResolver.js";
+
 export interface AssetCapabilities {
     canPreview?: boolean;
     canStream?: boolean;
@@ -59,6 +61,59 @@ export interface VfxEngineOptions {
     onRoomCollapse: (newBoxTier: number, newCeiling: number) => void;
 }
 
+export type FaceSlotKey = "bg" | number;
+
+export type PropClickActionType =
+    | "growth"
+    | "audio"
+    | "vfx-burst"
+    | "box-transition"
+    | "injector-drain";
+
+export interface PropClickTrigger {
+    action: PropClickActionType;
+    signedUrl?: string;
+    growthAmount?: number;
+    stimulus?: StimulusType;
+}
+
+export interface PropVfxLayerOptions {
+    webmUrl: string;
+    scaleMultiplier?: number;
+    emissiveColor?: string;
+    emissiveIntensity?: number;
+    isInjectorDrain?: boolean;
+    drainGrowthAmount?: number;
+}
+
+export interface Big3rRoomSlotPreset {
+    slot: FaceSlotKey;
+    assetType: FaceAssetType;
+    value: string;
+    label?: string;
+}
+
+export interface Big3rPropPreset {
+    id: string;
+    glbUrl: string;
+    name: string;
+    role: PropRole;
+    targetHeight: number;
+    x: number;
+    z: number;
+    overlay?: PropVfxLayerOptions;
+    clickTrigger?: PropClickTrigger;
+}
+
+export interface Big3rStagePreset {
+    version: 1;
+    boxTier: number;
+    roomCeilingHeight: number;
+    doubleSidedRoom: boolean;
+    roomSlots: Big3rRoomSlotPreset[];
+    props: Big3rPropPreset[];
+}
+
 export interface IVfxEngine {
     setMode(mode: GrowthMode): void;
     enqueueGrowth(amount: number, stimulus: StimulusType): void;
@@ -68,7 +123,7 @@ export interface IVfxEngine {
     resetGrowth(): void;
     setRoomCeiling(meters: number): void;
     setCinematicCamera(enabled: boolean): void;
-    addSpatialProp(url: string, options: SpatialPropOptions): Promise<void>;
+    addSpatialProp(url: string, options: SpatialPropOptions): Promise<string | void>;
     updatePropHeight(id: string, height: number): void;
     removeProp(id: string): void;
     resetAllProps(): void;
@@ -78,13 +133,12 @@ export interface IVfxEngine {
     destroy(): void;
 }
 
+
 export type VfxEngineFactory = (
     canvas: HTMLCanvasElement,
     glbBlobUrl: string,
     options: VfxEngineOptions
 ) => IVfxEngine | Promise<IVfxEngine>;
-
-export type FaceSlotKey = "bg" | number;
 
 export interface IFaceLayerEngine {
     updateBackground(assetType: string, value: string, label?: string): Promise<void> | void;
@@ -99,3 +153,4 @@ export type FaceLayerEngineFactory = (
     canvas: HTMLCanvasElement,
     glbBlobUrl: string
 ) => IFaceLayerEngine | Promise<IFaceLayerEngine>;
+

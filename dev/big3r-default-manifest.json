@@ -1,0 +1,120 @@
+{
+  "manifestId": "big3r-default-7-tier-progression",
+  "version": "1.0.0",
+  "maxActiveVideoDecoders": 4,
+  "initialTierId": "tier-1-broken-jar",
+  "tiers": [
+    {
+      "tierId": "tier-1-broken-jar",
+      "tierIndex": 1,
+      "displayName": "Broken Jar",
+      "metricHeight": 1.6,
+      "rebasingThreshold": 2.0,
+      "nextTierId": "tier-2-sewer-pipes",
+      "roomWidth": 6.0,
+      "roomHeight": 1.6,
+      "roomDepth": 6.0,
+      "slots": [
+        { "slotId": "jar-wall-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "jar-portal-front", "kind": "m1as_window_portal", "faceIndex": 4, "portalUvRect": [0.25, 0.2, 0.75, 0.85] }
+      ],
+      "props": []
+    },
+    {
+      "tierId": "tier-2-sewer-pipes",
+      "tierIndex": 2,
+      "displayName": "Sewer Pipes",
+      "metricHeight": 2.4,
+      "rebasingThreshold": 2.0,
+      "nextTierId": "tier-3-lab-sink",
+      "roomWidth": 8.0,
+      "roomHeight": 2.4,
+      "roomDepth": 8.0,
+      "slots": [
+        { "slotId": "sewer-wall-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "sewer-grate-portal", "kind": "m1as_window_portal", "faceIndex": 0, "portalUvRect": [0.3, 0.25, 0.7, 0.8] }
+      ],
+      "props": []
+    },
+    {
+      "tierId": "tier-3-lab-sink",
+      "tierIndex": 3,
+      "displayName": "Lab Sink",
+      "metricHeight": 2.8,
+      "rebasingThreshold": 2.0,
+      "nextTierId": "tier-4-lab-growth-tank",
+      "roomWidth": 10.0,
+      "roomHeight": 2.8,
+      "roomDepth": 10.0,
+      "slots": [
+        { "slotId": "sink-wall-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "sink-window-portal", "kind": "m1as_window_portal", "faceIndex": 1, "portalUvRect": [0.2, 0.2, 0.8, 0.85] }
+      ],
+      "props": []
+    },
+    {
+      "tierId": "tier-4-lab-growth-tank",
+      "tierIndex": 4,
+      "displayName": "Lab Growth Tank",
+      "metricHeight": 3.2,
+      "rebasingThreshold": 2.0,
+      "nextTierId": "tier-5-lab-viewing-room",
+      "roomWidth": 12.0,
+      "roomHeight": 3.2,
+      "roomDepth": 12.0,
+      "slots": [
+        { "slotId": "tank-wall-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "tank-glass-portal", "kind": "m1as_window_portal", "faceIndex": 4, "portalUvRect": [0.15, 0.15, 0.85, 0.9] }
+      ],
+      "props": []
+    },
+    {
+      "tierId": "tier-5-lab-viewing-room",
+      "tierIndex": 5,
+      "displayName": "Lab Viewing Room",
+      "metricHeight": 5.0,
+      "rebasingThreshold": 2.0,
+      "nextTierId": "tier-6-ceiling-vent-escape",
+      "roomWidth": 16.0,
+      "roomHeight": 5.0,
+      "roomDepth": 16.0,
+      "slots": [
+        { "slotId": "viewing-wall-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "viewing-obs-portal", "kind": "m1as_window_portal", "faceIndex": 0, "portalUvRect": [0.2, 0.25, 0.8, 0.8] }
+      ],
+      "props": []
+    },
+    {
+      "tierId": "tier-6-ceiling-vent-escape",
+      "tierIndex": 6,
+      "displayName": "Ceiling Vent Escape",
+      "metricHeight": 6.8,
+      "rebasingThreshold": 2.0,
+      "nextTierId": "tier-7-street-world",
+      "roomWidth": 20.0,
+      "roomHeight": 6.8,
+      "roomDepth": 20.0,
+      "slots": [
+        { "slotId": "vent-duct-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "vent-sky-portal", "kind": "m1as_window_portal", "faceIndex": 2, "portalUvRect": [0.25, 0.25, 0.75, 0.75] }
+      ],
+      "props": []
+    },
+    {
+      "tierId": "tier-7-street-world",
+      "tierIndex": 7,
+      "displayName": "Street World (Cars & Houses)",
+      "metricHeight": 9.5,
+      "rebasingThreshold": 2.0,
+      "nextTierId": null,
+      "roomWidth": 30.0,
+      "roomHeight": 9.5,
+      "roomDepth": 30.0,
+      "slots": [
+        { "slotId": "street-horizon-back", "kind": "m1as_wall_interior", "faceIndex": 5 },
+        { "slotId": "street-skyline-portal", "kind": "m1as_window_portal", "faceIndex": 4, "portalUvRect": [0.1, 0.15, 0.9, 0.9] }
+      ],
+      "props": []
+    }
+  ]
+}

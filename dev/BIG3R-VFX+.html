@@ -1,0 +1,3363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>BIG3R Transparent .webm VFX Asset Generator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      background: #1e293b;
+      padding: 14px 20px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+
+    select,
+    button {
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    select {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    button.primary {
+      background: #10b981;
+      color: #052e16;
+      border-color: #10b981;
+    }
+
+    button.secondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .stage {
+      position: relative;
+      width: 512px;
+      height: 512px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #334155;
+      background-color: #1e1e1e;
+      background-image:
+        linear-gradient(45deg, #2b2b2b 25%, transparent 25%),
+        linear-gradient(-45deg, #2b2b2b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #2b2b2b 75%),
+        linear-gradient(-45deg, transparent 75%, #2b2b2b 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+    }
+
+    canvas {
+      display: block;
+      width: 512px;
+      height: 512px;
+      background: transparent;
+    }
+
+    #status {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>BIG3R Transparent .webm VFX Generator</h2>
+
+  <div class="controls">
+    <select id="preset"></select>
+    <button id="previewBtn" class="secondary">Preview Effect</button>
+    <button id="recordBtn" class="primary">Record &amp; Download .webm</button>
+  </div>
+
+  <div class="stage">
+    <canvas id="vfxCanvas" width="512" height="512"></canvas>
+  </div>
+
+  <div id="status">Ready. Checkerboard pattern indicates true alpha transparency.</div>
+
+  <script>
+    const canvas = document.getElementById("vfxCanvas");
+    const ctx = canvas.getContext("2d", { alpha: true });
+    const presetSelect = document.getElementById("preset");
+    const previewBtn = document.getElementById("previewBtn");
+    const recordBtn = document.getElementById("recordBtn");
+    const statusEl = document.getElementById("status");
+
+    const WIDTH = 512;
+    const HEIGHT = 512;
+    const CX = WIDTH / 2;
+    const CY = HEIGHT / 2;
+
+    const VFX_REGISTRY = {};
+    let animFrameId = null;
+
+    window.registerVFXProp = function (propConfig) {
+      VFX_REGISTRY[propConfig.id] = propConfig;
+      const opt = document.createElement("option");
+      opt.value = propConfig.id;
+      opt.textContent = `${propConfig.label} (${(propConfig.durationMs / 1000).toFixed(1)}s)`;
+      presetSelect.appendChild(opt);
+      presetSelect.value = propConfig.id;
+    };
+
+    function playAnimation(onComplete) {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      const prop = VFX_REGISTRY[presetSelect.value];
+      if (!prop) return;
+
+      const state = prop.spawn ? prop.spawn(WIDTH, HEIGHT, CX, CY) : {};
+      const start = performance.now();
+
+      function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(1, elapsed / prop.durationMs);
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        prop.render(ctx, progress, state, WIDTH, HEIGHT, CX, CY);
+
+        if (progress < 1) {
+          animFrameId = requestAnimationFrame(tick);
+        } else {
+          ctx.clearRect(0, 0, WIDTH, HEIGHT);
+          if (onComplete) onComplete();
+        }
+      }
+      animFrameId = requestAnimationFrame(tick);
+    }
+
+    previewBtn.addEventListener("click", () => {
+      statusEl.textContent = "Previewing transparent VFX animation...";
+      playAnimation(() => {
+        statusEl.textContent = "Preview complete.";
+      });
+    });
+
+    recordBtn.addEventListener("click", () => {
+      const preset = presetSelect.value;
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+        ? "video/webm;codecs=vp9"
+        : "video/webm";
+
+      const stream = canvas.captureStream(60);
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 4000000
+      });
+
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `m1as-vfx-${preset}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        previewBtn.disabled = false;
+        recordBtn.disabled = false;
+        statusEl.textContent = `Downloaded m1as-vfx-${preset}.webm (${(blob.size / 1024).toFixed(1)} KB) with alpha channel.`;
+      };
+
+      previewBtn.disabled = true;
+      recordBtn.disabled = true;
+      statusEl.textContent = `Recording ${mimeType} at 60 FPS...`;
+
+      recorder.start();
+      playAnimation(() => {
+        setTimeout(() => recorder.stop(), 80);
+      });
+    });
+  </script>
+
+  <!-- === SWAP OUT INJECTABLE PROP SCRIPT BELOW === -->
+  <!-- purple smoke -->
+  <script>
+    const purpleMagicSmoke = function spawnMagicSmoke() {
+      window.registerVFXProp({
+        id: "purple-magic-smoke",
+        label: "VFX: Purple Magic Smoke",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const puffs = [];
+          const motes = [];
+
+          for (let i = 0; i < 42; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 65;
+            puffs.push({
+              x: CX + Math.cos(angle) * dist,
+              y: CY + 40 + Math.sin(angle) * (dist * 0.6),
+              vx: (Math.random() - 0.5) * 1.4,
+              vy: -0.8 - Math.random() * 1.8,
+              radius: 36 + Math.random() * 44,
+              grow: 24 + Math.random() * 28,
+              hue: 268 + (Math.random() - 0.5) * 28,
+              delay: Math.random() * 0.25,
+              life: 0.65 + Math.random() * 0.35
+            });
+          }
+
+          for (let i = 0; i < 30; i++) {
+            motes.push({
+              x: CX + (Math.random() - 0.5) * 180,
+              y: CY + 60 + (Math.random() - 0.5) * 90,
+              vx: (Math.random() - 0.5) * 0.9,
+              vy: -1.5 - Math.random() * 2.5,
+              size: 2 + Math.random() * 3.5,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+
+          return { puffs, motes };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const glowEnv = Math.sin(Math.min(1, progress * 1.15) * Math.PI);
+          if (glowEnv > 0) {
+            const coreGrad = ctx.createRadialGradient(CX, CY + 20, 10, CX, CY + 20, 175);
+            coreGrad.addColorStop(0, `rgba(192, 132, 252, ${glowEnv * 0.45})`);
+            coreGrad.addColorStop(0.55, `rgba(126, 34, 206, ${glowEnv * 0.25})`);
+            coreGrad.addColorStop(1, "rgba(88, 28, 135, 0)");
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(CX, CY + 20, 175, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          for (const p of state.puffs) {
+            const localP = (progress - p.delay) / p.life;
+            if (localP <= 0 || localP >= 1) continue;
+
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.985;
+
+            const alpha = Math.sin(localP * Math.PI) * 0.42;
+            const r = p.radius + localP * p.grow;
+
+            const grad = ctx.createRadialGradient(p.x, p.y, r * 0.1, p.x, p.y, r);
+            grad.addColorStop(0, `hsla(${p.hue}, 82%, 58%, ${alpha})`);
+            grad.addColorStop(0.55, `hsla(${p.hue - 10}, 75%, 36%, ${alpha * 0.65})`);
+            grad.addColorStop(1, `hsla(${p.hue - 15}, 70%, 20%, 0)`);
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          for (const m of state.motes) {
+            m.x += m.vx + Math.sin(progress * 10 + m.phase) * 0.6;
+            m.y += m.vy;
+            const mAlpha = Math.sin(progress * Math.PI) * 0.9;
+            if (mAlpha <= 0) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(243, 232, 255, ${mAlpha})`;
+            ctx.shadowColor = "#c084fc";
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    purpleMagicSmoke();
+  </script>
+
+  <!-- midnightlightning -->
+  <script>
+    const midpointLightning = function spawnMidpointLightning() {
+      function generateBolt(x1, y1, x2, y2, displace, minDisplace) {
+        if (displace < minDisplace) {
+          return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+        }
+        const midX = (x1 + x2) / 2 + (Math.random() - 0.5) * displace;
+        const midY = (y1 + y2) / 2 + (Math.random() - 0.5) * displace;
+        const left = generateBolt(x1, y1, midX, midY, displace * 0.55, minDisplace);
+        const right = generateBolt(midX, midY, x2, y2, displace * 0.55, minDisplace);
+        return left.slice(0, -1).concat(right);
+      }
+
+      function drawBoltPath(ctx, points, width, color, blur, alpha) {
+        if (points.length < 2) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.globalAlpha = alpha;
+        ctx.shadowColor = "#38bdf8";
+        ctx.shadowBlur = blur;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      window.registerVFXProp({
+        id: "midpoint-lightning",
+        label: "VFX: Midpoint Lightning",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const sparks = [];
+          for (let i = 0; i < 45; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 5.5;
+            sparks.push({
+              x: CX + (Math.random() - 0.5) * 60,
+              y: CY + (Math.random() - 0.5) * 140,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              size: 1.5 + Math.random() * 2.5,
+              life: 0.4 + Math.random() * 0.6
+            });
+          }
+          return {
+            sparks,
+            lastStrikeStep: -1,
+            activeBolts: [],
+            flashAlpha: 0
+          };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // Envelope fades in fast and tapers off smoothly at the end
+          const envelope = progress < 0.1
+            ? progress / 0.1
+            : progress > 0.8
+              ? (1 - progress) / 0.2
+              : 1;
+
+          // Regenerate midpoint bolts ~24 times per second for crisp electric jitter
+          const step = Math.floor(progress * 48);
+          if (step !== state.lastStrikeStep) {
+            state.lastStrikeStep = step;
+            state.activeBolts = [];
+            state.flashAlpha = 0.35 + Math.random() * 0.45;
+
+            const strikeCount = Math.random() > 0.35 ? 2 : 1;
+            for (let b = 0; b < strikeCount; b++) {
+              const startX = CX + (Math.random() - 0.5) * 160;
+              const startY = 48 + Math.random() * 40;
+              const endX = CX + (Math.random() - 0.5) * 160;
+              const endY = H - 48 - Math.random() * 40;
+
+              const mainBolt = generateBolt(startX, startY, endX, endY, 110, 6);
+              state.activeBolts.push({ points: mainBolt, isBranch: false });
+
+              // Add 1-2 smaller offshoot branches from mid-points
+              const branchCount = 1 + Math.floor(Math.random() * 2);
+              for (let br = 0; br < branchCount; br++) {
+                const idx = Math.floor(mainBolt.length * (0.25 + Math.random() * 0.5));
+                const origin = mainBolt[idx];
+                if (origin) {
+                  const bEndX = origin.x + (Math.random() - 0.5) * 150;
+                  const bEndY = origin.y + 40 + Math.random() * 110;
+                  const branchBolt = generateBolt(origin.x, origin.y, bEndX, bEndY, 55, 6);
+                  state.activeBolts.push({ points: branchBolt, isBranch: true });
+                }
+              }
+            }
+          }
+
+          // 1. Ambient electric discharge glow
+          const glowAlpha = state.flashAlpha * envelope * 0.45;
+          const bgGrad = ctx.createRadialGradient(CX, CY, 15, CX, CY, 210);
+          bgGrad.addColorStop(0, `rgba(125, 211, 252, ${glowAlpha})`);
+          bgGrad.addColorStop(0.55, `rgba(14, 165, 233, ${glowAlpha * 0.45})`);
+          bgGrad.addColorStop(1, "rgba(2, 132, 199, 0)");
+          ctx.fillStyle = bgGrad;
+          ctx.beginPath();
+          ctx.arc(CX, CY, 210, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Render outer plasma aura + inner white-hot core for each midpoint bolt
+          for (const bolt of state.activeBolts) {
+            const outerW = bolt.isBranch ? 4.5 : 8.5;
+            const innerW = bolt.isBranch ? 1.5 : 3.0;
+            const alpha = (bolt.isBranch ? 0.75 : 1.0) * envelope;
+
+            drawBoltPath(ctx, bolt.points, outerW, "#0ea5e9", 22, alpha * 0.75);
+            drawBoltPath(ctx, bolt.points, innerW, "#f0f9ff", 10, alpha);
+          }
+
+          // 3. Electric spark particles
+          for (const s of state.sparks) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.vx *= 0.96;
+            s.vy *= 0.96;
+
+            // Respawn spark near center if it fades early
+            if (Math.random() < 0.04 && progress < 0.75) {
+              s.x = CX + (Math.random() - 0.5) * 90;
+              s.y = CY + (Math.random() - 0.5) * 180;
+              const a = Math.random() * Math.PI * 2;
+              const spd = 2 + Math.random() * 5;
+              s.vx = Math.cos(a) * spd;
+              s.vy = Math.sin(a) * spd;
+            }
+
+            const sAlpha = envelope * 0.9;
+            if (sAlpha <= 0) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(224, 242, 254, ${sAlpha})`;
+            ctx.shadowColor = "#38bdf8";
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    midpointLightning();
+  </script>
+
+  <!-- meat ball fluid -->
+  <script>
+    const metaballFluid2D = function spawnMetaballFluid2D() {
+      const GRID = 128;
+      const offCanvas = document.createElement("canvas");
+      offCanvas.width = GRID;
+      offCanvas.height = GRID;
+      const offCtx = offCanvas.getContext("2d");
+      const imgData = offCtx.createImageData(GRID, GRID);
+
+      window.registerVFXProp({
+        id: "metaball-fluid-2d",
+        label: "VFX: 2D Metaball Fluid",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const blobs = [];
+          const count = 11;
+          for (let i = 0; i < count; i++) {
+            const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+            blobs.push({
+              baseAngle: angle,
+              orbitRadius: i === 0 ? 0 : 12 + Math.random() * 26,
+              speed: (i % 2 === 0 ? 1 : -1) * (1.8 + Math.random() * 1.6),
+              radius: i === 0 ? 22 : 11 + Math.random() * 9,
+              phase: Math.random() * Math.PI * 2,
+              x: GRID / 2,
+              y: GRID / 2,
+              r: 14
+            });
+          }
+          return { blobs };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // Envelope scales blobs from 0 -> full organic motion -> 0 for clean start/end
+          const envelope = Math.sin(progress * Math.PI);
+          const scaleEnv = Math.pow(envelope, 0.55);
+          const spreadEnv = Math.sin(progress * Math.PI * 0.85);
+
+          const gCenter = GRID / 2;
+          const activeBlobs = [];
+
+          for (let i = 0; i < state.blobs.length; i++) {
+            const b = state.blobs[i];
+            const theta = b.baseAngle + progress * Math.PI * 2 * b.speed;
+            const pulse = 1 + Math.sin(progress * Math.PI * 4 + b.phase) * 0.18;
+            const dist = b.orbitRadius * spreadEnv * (1 + Math.sin(progress * Math.PI * 3 + i) * 0.25);
+
+            const bx = gCenter + Math.cos(theta) * dist;
+            const by = gCenter + Math.sin(theta) * dist;
+            const br = b.radius * scaleEnv * pulse;
+
+            if (br > 0.5) {
+              activeBlobs.push({ x: bx, y: by, r2: br * br });
+            }
+          }
+
+          const data = imgData.data;
+          data.fill(0);
+
+          if (activeBlobs.length > 0) {
+            for (let y = 0; y < GRID; y++) {
+              for (let x = 0; x < GRID; x++) {
+                let sum = 0;
+                for (let k = 0; k < activeBlobs.length; k++) {
+                  const bl = activeBlobs[k];
+                  const dx = x - bl.x;
+                  const dy = y - bl.y;
+                  const d2 = dx * dx + dy * dy + 0.001;
+                  sum += bl.r2 / d2;
+                }
+
+                // Threshold at 1.0 creates crisp liquid surface tension & merging bridges
+                if (sum >= 1.0) {
+                  const idx = (y * GRID + x) * 4;
+                  // Core shading transitions from deep cyan-teal edge to bright aqua-white center
+                  const intensity = Math.min(1, (sum - 1.0) / 1.6);
+
+                  const r = Math.round(14 + intensity * 195);
+                  const g = Math.round(165 + intensity * 88);
+                  const b = Math.round(233 + intensity * 22);
+
+                  // Anti-aliased edge feathering right near threshold 1.0 - 1.18
+                  const edgeAlpha = Math.min(1, (sum - 1.0) / 0.18);
+                  const alpha = Math.round(edgeAlpha * Math.min(1, envelope * 1.4) * 245);
+
+                  data[idx] = r;
+                  data[idx + 1] = g;
+                  data[idx + 2] = b;
+                  data[idx + 3] = alpha;
+                }
+              }
+            }
+          }
+
+          offCtx.putImageData(imgData, 0, 0);
+
+          // Draw scaled smoothed metaball layer onto main 512x512 alpha canvas
+          ctx.save();
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.shadowColor = "rgba(56, 189, 248, 0.55)";
+          ctx.shadowBlur = 16;
+          ctx.drawImage(offCanvas, 0, 0, W, H);
+          ctx.restore();
+        }
+      });
+    };
+    metaballFluid2D();
+  </script>
+
+  <!-- Grey Goo  -->
+  <script>
+    const greyGooJellyPour = function spawngreyGooJellyPour() {
+      window.registerVFXProp({
+        id: "grey-goo-jelly-pour",
+        label: "VFX: Grey Goo / Jelly Pour",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const droplets = [];
+          const bubbles = [];
+          const streamBubbles = [];
+
+          for (let i = 0; i < 18; i++) {
+            droplets.push({
+              offsetX: (Math.random() - 0.5) * 38,
+              delay: 0.08 + Math.random() * 0.45,
+              speed: 0.75 + Math.random() * 0.55,
+              radius: 5 + Math.random() * 9,
+              stretch: 1.6 + Math.random() * 1.4
+            });
+          }
+
+          for (let i = 0; i < 14; i++) {
+            bubbles.push({
+              x: CX + (Math.random() - 0.5) * 180,
+              y: CY + 115 + (Math.random() - 0.5) * 32,
+              r: 9.5 + Math.random() * 6,
+              phase: Math.random() * Math.PI * 2,
+              appearAt: 0.25 + Math.random() * 0.35
+            });
+          }
+
+          const totalStreamBubbles = 140;
+          for (let i = 0; i < totalStreamBubbles; i++) {
+            streamBubbles.push({
+              t: (i + Math.random() * 0.5) / totalStreamBubbles,
+              offsetRatio: (Math.random() - 0.5) * 1.45,
+              r: 1.5 + Math.random() * 4.5,
+              flowSpeed: 0.5 + Math.random() * 0.5,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+
+          return { droplets, bubbles, streamBubbles };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // Overall fade-out at the very end so the clip finishes cleanly
+          const endFade = progress > 0.82 ? Math.max(0, (1 - progress) / 0.18) : 1;
+          if (endFade <= 0) return;
+
+          ctx.save();
+          ctx.globalAlpha = endFade;
+
+          const puddleY = CY + 125;
+
+          // Pour stream starts immediately, peaks mid-clip, and pinches off around 0.68
+          const pourStart = Math.min(1, progress / 0.22);
+          const pourPinch = progress > 0.48 ? Math.max(0, 1 - (progress - 0.48) / 0.24) : 1;
+          const streamTopY = progress > 0.48 ? ((progress - 0.48) / 0.24) * puddleY : 0;
+          const streamBotY = pourStart * puddleY;
+
+          // 1. Main viscous pouring column with organic wave wobble
+          if (pourPinch > 0 && streamBotY > streamTopY) {
+            const segments = 24;
+            const leftPts = [];
+            const rightPts = [];
+
+            for (let i = 0; i <= segments; i++) {
+              const t = i / segments;
+              const y = streamTopY + (streamBotY - streamTopY) * t;
+              const pinchTaper = Math.sin(t * Math.PI);
+              const baseHalfW = (14 + pinchTaper * 12) * pourPinch;
+              const wobble =
+                Math.sin(t * 10 - progress * 22) * 5 * pourPinch +
+                Math.cos(t * 6 + progress * 14) * 3;
+
+              leftPts.push({ x: CX - baseHalfW + wobble, y });
+              rightPts.push({ x: CX + baseHalfW + wobble, y });
+            }
+
+            const streamGrad = ctx.createLinearGradient(CX - 25, 0, CX + 25, 0);
+            streamGrad.addColorStop(0, "rgba(160, 160, 160, 0.25)");   // Sheer grey edge
+            streamGrad.addColorStop(0.35, "rgba(220, 220, 220, 0.45)"); // Translucent light grey
+            streamGrad.addColorStop(0.65, "rgba(255, 255, 255, 0.65)"); // Translucent milky white
+            streamGrad.addColorStop(1, "rgba(130, 130, 130, 0.20)");    // Faint dissipating tail
+
+            ctx.beginPath();
+            ctx.moveTo(leftPts[0].x, leftPts[0].y);
+            for (let i = 1; i < leftPts.length; i++) {
+              ctx.lineTo(leftPts[i].x, leftPts[i].y);
+            }
+            // Rounded bulbous tip at bottom of stream
+            ctx.quadraticCurveTo(CX, streamBotY + 18 * pourPinch, rightPts[rightPts.length - 1].x, rightPts[rightPts.length - 1].y);
+            for (let i = rightPts.length - 2; i >= 0; i--) {
+              ctx.lineTo(rightPts[i].x, rightPts[i].y);
+            }
+            ctx.closePath();
+
+            ctx.fillStyle = streamGrad;
+            ctx.shadowColor = "rgba(180, 180, 180, 0.35)";
+            ctx.shadowBlur = 14;
+            ctx.fill();
+
+            // Glossy specular highlight strip along the stream
+            ctx.beginPath();
+            for (let i = 0; i < leftPts.length; i++) {
+              const hx = leftPts[i].x + (rightPts[i].x - leftPts[i].x) * 0.32;
+              if (i === 0) ctx.moveTo(hx, leftPts[i].y);
+              else ctx.lineTo(hx, leftPts[i].y);
+            }
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+            ctx.lineWidth = 4 * pourPinch;
+            ctx.lineCap = "round";
+            ctx.stroke();
+
+            // Dense stream bubbles along full vertical length of stream line
+            for (const sb of state.streamBubbles) {
+              const flowT = (sb.t + progress * sb.flowSpeed) % 1;
+              const by = streamTopY + (streamBotY - streamTopY) * flowT;
+              const pinchTaper = Math.sin(flowT * Math.PI);
+              const baseHalfW = (14 + pinchTaper * 12) * pourPinch;
+              const wobble =
+                Math.sin(flowT * 10 - progress * 22) * 5 * pourPinch +
+                Math.cos(flowT * 6 + progress * 14) * 3;
+              const bx = CX + wobble + sb.offsetRatio * (baseHalfW * 0.68);
+              const pulse = 0.85 + Math.sin(progress * 16 + sb.phase) * 0.15;
+              const br = sb.r * pourPinch * pulse;
+
+              if (br <= 0.4) continue;
+
+              ctx.save();
+              ctx.shadowBlur = 0;
+              ctx.beginPath();
+              ctx.arc(bx, by, br, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
+              ctx.lineWidth = 1;
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          // 2. Stretching goo droplets falling alongside the pour
+          for (const d of state.droplets) {
+            const localP = (progress - d.delay) * d.speed;
+            if (localP <= 0 || localP >= 0.65) continue;
+
+            const dy = localP * (puddleY + 40);
+            const dx = CX + d.offsetX * (0.6 + localP * 0.8);
+            const r = d.radius * (1 - localP * 0.45);
+
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.scale(0.75, d.stretch);
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = "#f2f2f2cc";
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(-r * 0.25, -r * 0.25, r * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(242, 242, 242, 0.8)";
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 3. Expanding, wobbling jelly puddle at the base
+          const puddleGrow = Math.max(0, Math.min(1, (progress - 0.14) / 0.55));
+          if (puddleGrow > 0) {
+            const easeOut = 1 - Math.pow(1 - puddleGrow, 3);
+            const rx = 28 + easeOut * 115;
+            const ry = 10 + easeOut * 34;
+            const jiggle = Math.sin(progress * 26) * (1 - progress) * 10;
+
+            ctx.save();
+            ctx.beginPath();
+            const pts = 48;
+            for (let i = 0; i <= pts; i++) {
+              const a = (i / pts) * Math.PI * 2;
+              const wave = Math.sin(a * 5 + progress * 18) * 4 * (1 - progress * 0.6);
+              const px = CX + Math.cos(a) * (rx + jiggle + wave);
+              const py = puddleY + Math.sin(a) * (ry - jiggle * 0.35);
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+
+            const puddleGrad = ctx.createRadialGradient(CX, puddleY - 6, 8, CX, puddleY, rx);
+            puddleGrad.addColorStop(0, "rgba(255, 255, 255, 0.65)");   // Bright milky center
+            puddleGrad.addColorStop(0.6, "rgba(220, 220, 220, 0.45)"); // Translucent light grey
+            puddleGrad.addColorStop(1, "rgba(130, 130, 130, 0.20)");   // Sheer dissipating edge
+
+            ctx.fillStyle = puddleGrad;
+            ctx.shadowColor = "rgba(180, 180, 180, 0.35)";
+            ctx.shadowBlur = 16;
+            ctx.fill();
+
+            // Rim specular sheen on jelly puddle
+            ctx.beginPath();
+            ctx.ellipse(CX - rx * 0.22, puddleY - ry * 0.35, rx * 0.45, ry * 0.24, -0.08, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(250, 250, 250, 0.40)";
+            ctx.fill();
+            ctx.restore();
+
+            // 4. Translucent jelly bubbles popping in the puddle
+            for (const b of state.bubbles) {
+              if (progress < b.appearAt) continue;
+              const bAge = (progress - b.appearAt) / 0.45;
+              if (bAge >= 1) continue;
+
+              const popScale = Math.sin(bAge * Math.PI);
+              const bx = CX + (b.x - CX) * easeOut;
+              const by = puddleY + (b.y - (CY + 115)) * easeOut;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(bx, by, b.r * popScale, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(180, 180, 180, 0.35)";
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.70)";
+              ctx.lineWidth = 1.2;
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          ctx.restore();
+        }
+      });
+    };
+    greyGooJellyPour();
+  </script>
+
+  <!-- green goo -->
+  <script>
+    const thickGooJellyPour = function spawnThickGooJellyPour() {
+      window.registerVFXProp({
+        id: "thick-goo-jelly-pour",
+        label: "VFX: Thick Goo / Jelly Pour",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const droplets = [];
+          const bubbles = [];
+
+          for (let i = 0; i < 18; i++) {
+            droplets.push({
+              offsetX: (Math.random() - 0.5) * 38,
+              delay: 0.08 + Math.random() * 0.45,
+              speed: 0.75 + Math.random() * 0.55,
+              radius: 5 + Math.random() * 9,
+              stretch: 1.6 + Math.random() * 1.4
+            });
+          }
+
+          for (let i = 0; i < 14; i++) {
+            bubbles.push({
+              x: CX + (Math.random() - 0.5) * 180,
+              y: CY + 115 + (Math.random() - 0.5) * 32,
+              r: 3 + Math.random() * 6,
+              phase: Math.random() * Math.PI * 2,
+              appearAt: 0.25 + Math.random() * 0.35
+            });
+          }
+
+          return { droplets, bubbles };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // Overall fade-out at the very end so the clip finishes cleanly
+          const endFade = progress > 0.82 ? Math.max(0, (1 - progress) / 0.18) : 1;
+          if (endFade <= 0) return;
+
+          ctx.save();
+          ctx.globalAlpha = endFade;
+
+          const puddleY = CY + 125;
+
+          // Pour stream starts immediately, peaks mid-clip, and pinches off around 0.68
+          const pourStart = Math.min(1, progress / 0.22);
+          const pourPinch = progress > 0.48 ? Math.max(0, 1 - (progress - 0.48) / 0.24) : 1;
+          const streamTopY = progress > 0.48 ? ((progress - 0.48) / 0.24) * puddleY : 0;
+          const streamBotY = pourStart * puddleY;
+
+          // 1. Main viscous pouring column with organic wave wobble
+          if (pourPinch > 0 && streamBotY > streamTopY) {
+            const segments = 24;
+            const leftPts = [];
+            const rightPts = [];
+
+            for (let i = 0; i <= segments; i++) {
+              const t = i / segments;
+              const y = streamTopY + (streamBotY - streamTopY) * t;
+              const pinchTaper = Math.sin(t * Math.PI);
+              const baseHalfW = (14 + pinchTaper * 12) * pourPinch;
+              const wobble =
+                Math.sin(t * 10 - progress * 22) * 5 * pourPinch +
+                Math.cos(t * 6 + progress * 14) * 3;
+
+              leftPts.push({ x: CX - baseHalfW + wobble, y });
+              rightPts.push({ x: CX + baseHalfW + wobble, y });
+            }
+
+            const streamGrad = ctx.createLinearGradient(CX - 25, 0, CX + 25, 0);
+            streamGrad.addColorStop(0, "#4d7c0f");
+            streamGrad.addColorStop(0.35, "#84cc16");
+            streamGrad.addColorStop(0.65, "#bef264");
+            streamGrad.addColorStop(1, "#3f6212");
+
+            ctx.beginPath();
+            ctx.moveTo(leftPts[0].x, leftPts[0].y);
+            for (let i = 1; i < leftPts.length; i++) {
+              ctx.lineTo(leftPts[i].x, leftPts[i].y);
+            }
+            // Rounded bulbous tip at bottom of stream
+            ctx.quadraticCurveTo(CX, streamBotY + 18 * pourPinch, rightPts[rightPts.length - 1].x, rightPts[rightPts.length - 1].y);
+            for (let i = rightPts.length - 2; i >= 0; i--) {
+              ctx.lineTo(rightPts[i].x, rightPts[i].y);
+            }
+            ctx.closePath();
+
+            ctx.fillStyle = streamGrad;
+            ctx.shadowColor = "rgba(132, 204, 22, 0.45)";
+            ctx.shadowBlur = 14;
+            ctx.fill();
+
+            // Glossy specular highlight strip along the stream
+            ctx.beginPath();
+            for (let i = 0; i < leftPts.length; i++) {
+              const hx = leftPts[i].x + (rightPts[i].x - leftPts[i].x) * 0.32;
+              if (i === 0) ctx.moveTo(hx, leftPts[i].y);
+              else ctx.lineTo(hx, leftPts[i].y);
+            }
+            ctx.strokeStyle = "rgba(247, 254, 231, 0.72)";
+            ctx.lineWidth = 4 * pourPinch;
+            ctx.lineCap = "round";
+            ctx.stroke();
+          }
+
+          // 2. Stretching goo droplets falling alongside the pour
+          for (const d of state.droplets) {
+            const localP = (progress - d.delay) * d.speed;
+            if (localP <= 0 || localP >= 0.65) continue;
+
+            const dy = localP * (puddleY + 40);
+            const dx = CX + d.offsetX * (0.6 + localP * 0.8);
+            const r = d.radius * (1 - localP * 0.45);
+
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.scale(0.75, d.stretch);
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = "#84cc16";
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(-r * 0.25, -r * 0.25, r * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(236, 252, 203, 0.8)";
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 3. Expanding, wobbling jelly puddle at the base
+          const puddleGrow = Math.max(0, Math.min(1, (progress - 0.14) / 0.55));
+          if (puddleGrow > 0) {
+            const easeOut = 1 - Math.pow(1 - puddleGrow, 3);
+            const rx = 28 + easeOut * 115;
+            const ry = 10 + easeOut * 34;
+            const jiggle = Math.sin(progress * 26) * (1 - progress) * 10;
+
+            ctx.save();
+            ctx.beginPath();
+            const pts = 48;
+            for (let i = 0; i <= pts; i++) {
+              const a = (i / pts) * Math.PI * 2;
+              const wave = Math.sin(a * 5 + progress * 18) * 4 * (1 - progress * 0.6);
+              const px = CX + Math.cos(a) * (rx + jiggle + wave);
+              const py = puddleY + Math.sin(a) * (ry - jiggle * 0.35);
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+
+            const puddleGrad = ctx.createRadialGradient(CX, puddleY - 6, 8, CX, puddleY, rx);
+            puddleGrad.addColorStop(0, "#bef264");
+            puddleGrad.addColorStop(0.6, "#84cc16");
+            puddleGrad.addColorStop(1, "#3f6212");
+
+            ctx.fillStyle = puddleGrad;
+            ctx.shadowColor = "rgba(101, 163, 13, 0.5)";
+            ctx.shadowBlur = 16;
+            ctx.fill();
+
+            // Rim specular sheen on jelly puddle
+            ctx.beginPath();
+            ctx.ellipse(CX - rx * 0.22, puddleY - ry * 0.35, rx * 0.45, ry * 0.24, -0.08, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(247, 254, 231, 0.55)";
+            ctx.fill();
+            ctx.restore();
+
+            // 4. Translucent jelly bubbles popping in the puddle
+            for (const b of state.bubbles) {
+              if (progress < b.appearAt) continue;
+              const bAge = (progress - b.appearAt) / 0.45;
+              if (bAge >= 1) continue;
+
+              const popScale = Math.sin(bAge * Math.PI);
+              const bx = CX + (b.x - CX) * easeOut;
+              const by = puddleY + (b.y - (CY + 115)) * easeOut;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(bx, by, b.r * popScale, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(236, 252, 203, 0.45)";
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+              ctx.lineWidth = 1.2;
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          ctx.restore();
+        }
+      });
+    };
+    thickGooJellyPour();
+  </script>
+
+  <!-- spinning coin -->
+  <script>
+    const spinningM1Coin = function spawnSpinningM1Coin() {
+      window.registerVFXProp({
+        id: "spinning-m1-coin",
+        label: "VFX: Spinning M1 Coin",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const sparkles = [];
+          for (let i = 0; i < 16; i++) {
+            sparkles.push({
+              angle: (i / 16) * Math.PI * 2,
+              dist: 118 + Math.random() * 38,
+              size: 3 + Math.random() * 5,
+              phase: Math.random() * Math.PI * 2,
+              speed: 0.8 + Math.random() * 0.8
+            });
+          }
+          return { sparkles };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // Smooth pop-in and pop-out envelope with slight upward bob
+          const scaleEnv =
+            progress < 0.12
+              ? 1 - Math.pow(1 - progress / 0.12, 3)
+              : progress > 0.88
+                ? Math.max(0, (1 - progress) / 0.12)
+                : 1;
+
+          if (scaleEnv <= 0.001) return;
+
+          const bobY = Math.sin(progress * Math.PI * 2) * 10;
+          // 3 full 360-degree spins over 2.0 seconds
+          const angle = progress * Math.PI * 6;
+          const cosA = Math.cos(angle);
+          const sinA = Math.sin(angle);
+
+          const R = 104 * scaleEnv;
+          const thickness = 18 * scaleEnv;
+          const halfThick = (thickness * Math.abs(sinA)) / 2;
+          const faceScaleX = Math.max(0.02, Math.abs(cosA));
+          const offsetDirection = sinA >= 0 ? 1 : -1;
+
+          ctx.save();
+          ctx.translate(CX, CY + bobY);
+
+          // 1. Soft golden aura behind coin
+          const auraGrad = ctx.createRadialGradient(0, 0, R * 0.2, 0, 0, R * 1.55);
+          auraGrad.addColorStop(0, `rgba(253, 224, 71, ${0.35 * scaleEnv})`);
+          auraGrad.addColorStop(0.6, `rgba(245, 158, 11, ${0.15 * scaleEnv})`);
+          auraGrad.addColorStop(1, "rgba(217, 119, 6, 0)");
+          ctx.fillStyle = auraGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, R * 1.55, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Extruded 3D metallic coin rim / cylinder edge
+          const edgeSteps = 14;
+          for (let s = -edgeSteps / 2; s <= edgeSteps / 2; s++) {
+            const t = s / (edgeSteps / 2);
+            const shiftX = t * halfThick * offsetDirection;
+
+            ctx.save();
+            ctx.translate(shiftX, 0);
+            ctx.scale(faceScaleX, 1);
+            ctx.beginPath();
+            ctx.arc(0, 0, R, 0, Math.PI * 2);
+            ctx.fillStyle = s % 2 === 0 ? "#b45309" : "#d97706";
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 3. Front-facing coin disc
+          const frontX = halfThick * offsetDirection;
+          ctx.save();
+          ctx.translate(frontX, 0);
+          ctx.scale(faceScaleX, 1);
+
+          // Outer gold rim gradient
+          const rimGrad = ctx.createLinearGradient(-R, -R, R, R);
+          rimGrad.addColorStop(0, "#fef08a");
+          rimGrad.addColorStop(0.35, "#f59e0b");
+          rimGrad.addColorStop(0.7, "#b45309");
+          rimGrad.addColorStop(1, "#fde047");
+
+          ctx.beginPath();
+          ctx.arc(0, 0, R, 0, Math.PI * 2);
+          ctx.fillStyle = rimGrad;
+          ctx.fill();
+
+          // Recessed inner coin face
+          const innerR = R * 0.84;
+          const faceGrad = ctx.createLinearGradient(-innerR, -innerR, innerR, innerR);
+          const sheenShift = (sinA + 1) * 0.5;
+          const coinText = "BIG3R"
+          faceGrad.addColorStop(0, "#d97706");
+          faceGrad.addColorStop(Math.max(0.05, Math.min(0.95, sheenShift)), "#fef9c3");
+          faceGrad.addColorStop(1, "#b45309");
+
+          ctx.beginPath();
+          ctx.arc(0, 0, innerR, 0, Math.PI * 2);
+          ctx.fillStyle = faceGrad;
+          ctx.fill();
+
+          // Inner bevel ring
+          ctx.lineWidth = 3 * scaleEnv;
+          ctx.strokeStyle = "#78350f";
+          ctx.stroke();
+
+          // Dashed milled inner border detail
+          ctx.save();
+          ctx.setLineDash([5 * scaleEnv, 5 * scaleEnv]);
+          ctx.lineWidth = 2.5 * scaleEnv;
+          ctx.strokeStyle = "rgba(254, 240, 138, 0.75)";
+          ctx.beginPath();
+          ctx.arc(0, 0, innerR * 0.9, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+
+          // Embossed "M1" emblem centered on face
+          ctx.font = `900 ${Math.round(74 * scaleEnv)}px system-ui, -apple-system, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          // Dark recessed shadow
+          ctx.fillStyle = "#78350f";
+          ctx.fillText(`${coinText}`, 3 * scaleEnv, 5 * scaleEnv);
+
+          // Bright raised gold highlight
+          ctx.fillStyle = "#fef9c3";
+          ctx.fillText(`${coinText}`, -1 * scaleEnv, 1 * scaleEnv);
+
+          // Main gold fill
+          ctx.fillStyle = "#f59e0b";
+          ctx.fillText(`${coinText}`, 1 * scaleEnv, 3 * scaleEnv);
+
+          ctx.restore();
+
+          // 4. Orbiting 4-point star glints
+          for (const sp of state.sparkles) {
+            const twinkle = Math.max(0, Math.sin(progress * Math.PI * 6 * sp.speed + sp.phase));
+            if (twinkle <= 0.1) continue;
+
+            const a = sp.angle + progress * 1.4;
+            const sx = Math.cos(a) * sp.dist * scaleEnv;
+            const sy = Math.sin(a) * sp.dist * scaleEnv;
+            const sr = sp.size * twinkle * scaleEnv;
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.fillStyle = `rgba(254, 249, 195, ${twinkle})`;
+            ctx.shadowColor = "#facc15";
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.moveTo(0, -sr * 1.8);
+            ctx.quadraticCurveTo(0, 0, sr * 1.8, 0);
+            ctx.quadraticCurveTo(0, 0, 0, sr * 1.8);
+            ctx.quadraticCurveTo(0, 0, -sr * 1.8, 0);
+            ctx.quadraticCurveTo(0, 0, 0, -sr * 1.8);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+      });
+    };
+    spinningM1Coin();
+  </script>
+
+  <!-- Skull -->
+  <script>
+    const spinningSkull = function spawnSpinningSkull() {
+      function drawSkullSilhouette(ctx, s, isBackLayer) {
+        // Wider Goonies-style cranium dome + bold cheekbones + rugged jawline
+        ctx.beginPath();
+        ctx.moveTo(-48 * s, 26 * s);
+        ctx.bezierCurveTo(-64 * s, 16 * s, -74 * s, -6 * s, -68 * s, -38 * s);
+        ctx.bezierCurveTo(-62 * s, -82 * s, -34 * s, -100 * s, 0, -100 * s);
+        ctx.bezierCurveTo(34 * s, -100 * s, 62 * s, -82 * s, 68 * s, -38 * s);
+        ctx.bezierCurveTo(74 * s, -6 * s, 64 * s, 16 * s, 48 * s, 26 * s);
+        // Rugged pirate jaw drop
+        ctx.lineTo(38 * s, 68 * s);
+        ctx.quadraticCurveTo(35 * s, 84 * s, 18 * s, 86 * s);
+        ctx.lineTo(-18 * s, 86 * s);
+        ctx.quadraticCurveTo(-35 * s, 84 * s, -38 * s, 68 * s);
+        ctx.closePath();
+
+        if (isBackLayer) {
+          ctx.fillStyle = "#854d0e"; // Deep aged yellow-ochre edge thickness
+          ctx.fill();
+          return;
+        }
+
+        // Weathered yellow / aged pirate bone gradient
+        const boneGrad = ctx.createLinearGradient(0, -100 * s, 0, 86 * s);
+        boneGrad.addColorStop(0, "#fef08a");    // Sun-bleached pale yellow crown
+        boneGrad.addColorStop(0.5, "#eab308");  // Rich aged yellow cranium
+        boneGrad.addColorStop(1, "#a16207");    // Deep amber-ochre jaw shadow
+        ctx.fillStyle = boneGrad;
+        ctx.fill();
+
+        ctx.lineWidth = 3.5 * s;
+        ctx.strokeStyle = "#422006";
+        ctx.stroke();
+
+        // Weathered cranium crack
+        ctx.beginPath();
+        ctx.moveTo(-22 * s, -96 * s);
+        ctx.lineTo(-16 * s, -78 * s);
+        ctx.lineTo(-24 * s, -66 * s);
+        ctx.lineTo(-18 * s, -54 * s);
+        ctx.strokeStyle = "#422006";
+        ctx.lineWidth = 2.5 * s;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+
+        // Heavy furrowed pirate brow ridge
+        ctx.beginPath();
+        ctx.moveTo(-54 * s, -24 * s);
+        ctx.quadraticCurveTo(0, -6 * s, 54 * s, -24 * s);
+        ctx.strokeStyle = "#422006";
+        ctx.lineWidth = 5 * s;
+        ctx.stroke();
+
+        // Solid black eye sockets
+        const drawEye = (dir) => {
+          ctx.save();
+          ctx.translate(dir * 27 * s, -2 * s);
+          ctx.rotate(dir * 0.18);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 18 * s, 21 * s, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "#09090b";
+          ctx.fill();
+          ctx.lineWidth = 2.5 * s;
+          ctx.strokeStyle = "#422006";
+          ctx.stroke();
+          ctx.restore();
+        };
+        drawEye(-1);
+        drawEye(1);
+
+        // Solid black inverted heart nasal cavity
+        ctx.beginPath();
+        ctx.moveTo(0, 12 * s);
+        ctx.lineTo(-11 * s, 34 * s);
+        ctx.quadraticCurveTo(-4 * s, 38 * s, 0, 32 * s);
+        ctx.quadraticCurveTo(4 * s, 38 * s, 11 * s, 34 * s);
+        ctx.closePath();
+        ctx.fillStyle = "#09090b";
+        ctx.fill();
+
+        // Crooked, gapped pirate grin with one gold tooth
+        ctx.strokeStyle = "#422006";
+        ctx.lineWidth = 2.2 * s;
+        const teeth = [
+          { x: -25, w: 9, h: 17, missing: false, gold: false },
+          { x: -15, w: 9, h: 19, missing: true, gold: false },
+          { x: -5, w: 10, h: 20, missing: false, gold: false },
+          { x: 6, w: 9, h: 19, missing: false, gold: true },
+          { x: 16, w: 9, h: 16, missing: false, gold: false }
+        ];
+
+        // Dark mouth gap behind teeth
+        ctx.fillStyle = "#09090b";
+        ctx.beginPath();
+        ctx.roundRect(-26 * s, 48 * s, 52 * s, 22 * s, 4 * s);
+        ctx.fill();
+
+        for (const t of teeth) {
+          if (t.missing) continue;
+          ctx.fillStyle = t.gold ? "#facc15" : "#fef9c3";
+          ctx.beginPath();
+          ctx.roundRect(t.x * s, 49 * s, t.w * s, t.h * s, 2 * s);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      window.registerVFXProp({
+        id: "spinning-skull",
+        label: "VFX: Spinning Skull",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const wisps = [];
+          for (let i = 0; i < 24; i++) {
+            wisps.push({
+              angle: Math.random() * Math.PI * 2,
+              radius: 75 + Math.random() * 65,
+              speed: (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.8),
+              size: 10 + Math.random() * 18,
+              yOffset: (Math.random() - 0.5) * 110
+            });
+          }
+          return { wisps };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const scaleEnv =
+            progress < 0.12
+              ? 1 - Math.pow(1 - progress / 0.12, 3)
+              : progress > 0.88
+                ? Math.max(0, (1 - progress) / 0.12)
+                : 1;
+
+          if (scaleEnv <= 0.001) return;
+
+          const bobY = Math.sin(progress * Math.PI * 2) * 8;
+          // 2 full 360-degree rotations over 2.0 seconds
+          const angle = progress * Math.PI * 4;
+          const cosA = Math.cos(angle);
+          const sinA = Math.sin(angle);
+          const faceScaleX = Math.max(0.05, Math.abs(cosA));
+          const depthShift = sinA * 14 * scaleEnv;
+
+          ctx.save();
+          ctx.translate(CX, CY + bobY);
+
+          // 1. Warm golden-amber treasure aura
+          const auraGrad = ctx.createRadialGradient(0, 0, 15, 0, 0, 165 * scaleEnv);
+          auraGrad.addColorStop(0, `rgba(250, 204, 21, ${0.28 * scaleEnv})`);
+          auraGrad.addColorStop(0.55, `rgba(161, 98, 7, ${0.22 * scaleEnv})`);
+          auraGrad.addColorStop(1, "rgba(15, 23, 42, 0)");
+          ctx.fillStyle = auraGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, 165 * scaleEnv, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Swirling golden treasure-dust wisps behind skull
+          for (const w of state.wisps) {
+            const a = w.angle + progress * Math.PI * 2 * w.speed;
+            const wx = Math.cos(a) * w.radius * scaleEnv;
+            const wy = w.yOffset * scaleEnv + Math.sin(a * 2) * 14;
+            const r = w.size * scaleEnv;
+
+            const wGrad = ctx.createRadialGradient(wx, wy, 1, wx, wy, r);
+            wGrad.addColorStop(0, `rgba(253, 224, 71, ${0.35 * scaleEnv})`);
+            wGrad.addColorStop(1, "rgba(161, 98, 7, 0)");
+            ctx.fillStyle = wGrad;
+            ctx.beginPath();
+            ctx.arc(wx, wy, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 3. Extruded coin edge thickness layer for 3D volume during spin
+          const layers = 8;
+          for (let i = layers; i >= 1; i--) {
+            const t = i / layers;
+            ctx.save();
+            ctx.translate(-depthShift * t, 0);
+            ctx.scale(faceScaleX, 1);
+            drawSkullSilhouette(ctx, 1.18 * scaleEnv, true);
+            ctx.restore();
+          }
+
+          // 4. Skull face rendered on both sides like a coin
+          ctx.save();
+          ctx.translate(depthShift * 0.35, 0);
+          ctx.scale(faceScaleX, 1);
+          drawSkullSilhouette(ctx, 1.18 * scaleEnv, false);
+          ctx.restore();
+
+          ctx.restore();
+        }
+      });
+    };
+    spinningSkull();
+  </script>
+
+  <!-- magic portal -->
+  <script>
+    const arcanePortal = function spawnArcanePortal() {
+      window.registerVFXProp({
+        id: "arcane-portal",
+        label: "VFX: Magic / Arcane Portal",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const motes = [];
+          for (let i = 0; i < 48; i++) {
+            motes.push({
+              angle: Math.random() * Math.PI * 2,
+              startDist: 130 + Math.random() * 95,
+              speed: 0.8 + Math.random() * 0.9,
+              spin: 2.2 + Math.random() * 2.0,
+              size: 2 + Math.random() * 3.5,
+              hue: Math.random() > 0.45 ? 275 : 190,
+              phase: Math.random()
+            });
+          }
+
+          const rings = [];
+          for (let i = 0; i < 6; i++) {
+            rings.push({
+              baseRadius: 34 + i * 24,
+              speed: (i % 2 === 0 ? 1 : -1) * (1.8 + i * 0.45),
+              segments: 3 + (i % 3),
+              hue: i % 2 === 0 ? 272 : 192,
+              width: 5.5 - i * 0.55
+            });
+          }
+
+          return { motes, rings };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // Smooth portal open and collapse envelope
+          const openEnv =
+            progress < 0.16
+              ? 1 - Math.pow(1 - progress / 0.16, 3)
+              : progress > 0.82
+                ? Math.max(0, (1 - progress) / 0.18)
+                : 1;
+
+          if (openEnv <= 0.001) return;
+
+          ctx.save();
+          ctx.translate(CX, CY);
+
+          // 1. Deep dimensional vortex glow
+          const maxR = 195 * openEnv;
+          const vortexGrad = ctx.createRadialGradient(0, 0, 6 * openEnv, 0, 0, maxR);
+          vortexGrad.addColorStop(0, `rgba(245, 243, 255, ${0.9 * openEnv})`);
+          vortexGrad.addColorStop(0.22, `rgba(192, 132, 252, ${0.72 * openEnv})`);
+          vortexGrad.addColorStop(0.55, `rgba(56, 189, 248, ${0.38 * openEnv})`);
+          vortexGrad.addColorStop(0.85, `rgba(109, 40, 217, ${0.18 * openEnv})`);
+          vortexGrad.addColorStop(1, "rgba(76, 29, 149, 0)");
+
+          ctx.fillStyle = vortexGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, maxR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Counter-rotating segmented arcane energy rings
+          for (const ring of state.rings) {
+            const r = ring.baseRadius * openEnv;
+            const rot = progress * Math.PI * 2 * ring.speed;
+            const arcSpan = (Math.PI * 2) / ring.segments;
+
+            ctx.save();
+            ctx.rotate(rot);
+            ctx.strokeStyle = `hsla(${ring.hue}, 92%, 68%, ${0.82 * openEnv})`;
+            ctx.shadowColor = `hsla(${ring.hue}, 95%, 60%, 0.9)`;
+            ctx.shadowBlur = 14;
+            ctx.lineWidth = Math.max(1.5, ring.width * openEnv);
+            ctx.lineCap = "round";
+
+            for (let s = 0; s < ring.segments; s++) {
+              const startA = s * arcSpan + 0.18;
+              const endA = (s + 1) * arcSpan - 0.18;
+              ctx.beginPath();
+              ctx.arc(0, 0, r, startA, endA);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+          // 3. Orbiting geometric rune ticks along outer perimeter
+          const runeCount = 12;
+          const runeOrbitR = 148 * openEnv;
+          ctx.save();
+          ctx.rotate(progress * Math.PI * 1.5);
+          for (let i = 0; i < runeCount; i++) {
+            const a = (i / runeCount) * Math.PI * 2;
+            const rx = Math.cos(a) * runeOrbitR;
+            const ry = Math.sin(a) * runeOrbitR;
+
+            ctx.save();
+            ctx.translate(rx, ry);
+            ctx.rotate(a + Math.PI / 2);
+            ctx.strokeStyle = `rgba(224, 242, 254, ${0.75 * openEnv})`;
+            ctx.lineWidth = 2 * openEnv;
+            ctx.strokeRect(-4 * openEnv, -6 * openEnv, 8 * openEnv, 12 * openEnv);
+            ctx.restore();
+          }
+          ctx.restore();
+
+          // 4. Inward-pulling energy motes spiraling into the portal core
+          for (const m of state.motes) {
+            const cycle = (progress * m.speed + m.phase) % 1;
+            const dist = m.startDist * (1 - cycle) * openEnv;
+            const theta = m.angle + cycle * Math.PI * m.spin;
+            const mx = Math.cos(theta) * dist;
+            const my = Math.sin(theta) * dist;
+            const mAlpha = Math.sin(cycle * Math.PI) * openEnv;
+
+            if (mAlpha <= 0.02) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(mx, my, m.size * (1 - cycle * 0.4) * openEnv, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${m.hue}, 95%, 75%, ${mAlpha})`;
+            ctx.shadowColor = `hsla(${m.hue}, 95%, 65%, ${mAlpha})`;
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 5. Crisp white-violet singularity core
+          const pulse = 1 + Math.sin(progress * Math.PI * 10) * 0.12;
+          const coreR = 24 * openEnv * pulse;
+          const coreGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, coreR);
+          coreGrad.addColorStop(0, `rgba(255, 255, 255, ${openEnv})`);
+          coreGrad.addColorStop(0.55, `rgba(216, 180, 254, ${0.85 * openEnv})`);
+          coreGrad.addColorStop(1, "rgba(147, 51, 234, 0)");
+
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      });
+    };
+    arcanePortal();
+  </script>
+
+  <!-- emp shock wave -->
+  <script>
+    const empShockwave = function spawnEmpShockwave() {
+      function generateArcPoints(x1, y1, x2, y2, displace, minDisplace) {
+        if (displace < minDisplace) {
+          return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+        }
+        const midX = (x1 + x2) / 2 + (Math.random() - 0.5) * displace;
+        const midY = (y1 + y2) / 2 + (Math.random() - 0.5) * displace;
+        const left = generateArcPoints(x1, y1, midX, midY, displace * 0.55, minDisplace);
+        const right = generateArcPoints(midX, midY, x2, y2, displace * 0.55, minDisplace);
+        return left.slice(0, -1).concat(right);
+      }
+
+      window.registerVFXProp({
+        id: "emp-shockwave",
+        label: "VFX: Electric / EMP Shockwave",
+        durationMs: 1800,
+
+        spawn(W, H, CX, CY) {
+          const sparks = [];
+          for (let i = 0; i < 65; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 4 + Math.random() * 11;
+            sparks.push({
+              x: CX,
+              y: CY,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              size: 1.8 + Math.random() * 2.8,
+              life: 0.45 + Math.random() * 0.55
+            });
+          }
+          return {
+            sparks,
+            lastArcStep: -1,
+            radialArcs: []
+          };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // 1. Sharp initial EMP flash
+          const flashP = Math.min(1, progress / 0.28);
+          if (flashP < 1) {
+            const flashAlpha = Math.pow(1 - flashP, 2);
+            const flashR = 30 + flashP * 210;
+            const flashGrad = ctx.createRadialGradient(CX, CY, 4, CX, CY, flashR);
+            flashGrad.addColorStop(0, `rgba(255, 255, 255, ${flashAlpha})`);
+            flashGrad.addColorStop(0.35, `rgba(103, 232, 249, ${flashAlpha * 0.85})`);
+            flashGrad.addColorStop(0.75, `rgba(6, 182, 212, ${flashAlpha * 0.35})`);
+            flashGrad.addColorStop(1, "rgba(8, 145, 178, 0)");
+
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath();
+            ctx.arc(CX, CY, flashR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 2. Expanding concentric EMP pressure waves
+          const ringConfigs = [
+            { delay: 0.0, duration: 0.72, maxR: 230, width: 12, hue: 188 },
+            { delay: 0.12, duration: 0.78, maxR: 215, width: 7, hue: 202 },
+            { delay: 0.24, duration: 0.76, maxR: 185, width: 4, hue: 180 }
+          ];
+
+          for (const rc of ringConfigs) {
+            const localP = (progress - rc.delay) / rc.duration;
+            if (localP <= 0 || localP >= 1) continue;
+
+            const ease = 1 - Math.pow(1 - localP, 3);
+            const r = 16 + ease * rc.maxR;
+            const alpha = (1 - localP) * 0.9;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(CX, CY, r, 0, Math.PI * 2);
+            ctx.strokeStyle = `hsla(${rc.hue}, 95%, 68%, ${alpha})`;
+            ctx.lineWidth = Math.max(1, rc.width * (1 - localP));
+            ctx.shadowColor = "#22d3ee";
+            ctx.shadowBlur = 18;
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // 3. Jagged radial lightning arcs snapping outward with the primary wave
+          const waveP = Math.min(1, progress / 0.75);
+          const waveRadius = 25 + (1 - Math.pow(1 - waveP, 2.6)) * 205;
+          const arcAlpha = progress < 0.75 ? 1 - progress * 0.5 : Math.max(0, (1 - progress) / 0.25);
+
+          const step = Math.floor(progress * 36);
+          if (step !== state.lastArcStep && arcAlpha > 0) {
+            state.lastArcStep = step;
+            state.radialArcs = [];
+            const boltCount = 8;
+            for (let i = 0; i < boltCount; i++) {
+              const a = (i / boltCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+              const innerR = Math.max(8, waveRadius * 0.22);
+              const outerR = waveRadius * (0.85 + Math.random() * 0.25);
+              const x1 = CX + Math.cos(a) * innerR;
+              const y1 = CY + Math.sin(a) * innerR;
+              const x2 = CX + Math.cos(a) * outerR;
+              const y2 = CY + Math.sin(a) * outerR;
+              state.radialArcs.push(generateArcPoints(x1, y1, x2, y2, 36, 5));
+            }
+          }
+
+          if (arcAlpha > 0) {
+            for (const pts of state.radialArcs) {
+              if (pts.length < 2) continue;
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(pts.x, pts.y);
+              for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+              }
+              ctx.strokeStyle = `rgba(34, 211, 238, ${arcAlpha * 0.75})`;
+              ctx.lineWidth = 4.5;
+              ctx.lineCap = "round";
+              ctx.lineJoin = "round";
+              ctx.shadowColor = "#06b6d4";
+              ctx.shadowBlur = 14;
+              ctx.stroke();
+
+              ctx.strokeStyle = `rgba(240, 253, 255, ${arcAlpha})`;
+              ctx.lineWidth = 1.6;
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          // 4. High-velocity electric sparks
+          for (const s of state.sparks) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.vx *= 0.93;
+            s.vy *= 0.93;
+
+            const sAlpha = Math.max(0, 1 - progress / s.life);
+            if (sAlpha <= 0) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(207, 250, 254, ${sAlpha})`;
+            ctx.shadowColor = "#22d3ee";
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    empShockwave();
+  </script>
+
+  <!-- buff aura -->
+  <script>
+    const healingBuffAura = function spawnHealingBuffAura() {
+      function drawPlusSign(ctx, x, y, size, color, glowColor, alpha) {
+        const arm = size;
+        const thick = Math.max(2, size * 0.34);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 10;
+
+        ctx.beginPath();
+        ctx.roundRect(-thick / 2, -arm, thick, arm * 2, thick * 0.4);
+        ctx.roundRect(-arm, -thick / 2, arm * 2, thick, thick * 0.4);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      window.registerVFXProp({
+        id: "healing-buff-aura",
+        label: "VFX: Healing / Buff Aura",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const items = [];
+          for (let i = 0; i < 36; i++) {
+            const isPlus = i % 3 === 0;
+            items.push({
+              x: CX + (Math.random() - 0.5) * 210,
+              startY: CY + 130 + (Math.random() - 0.5) * 45,
+              vy: -1.4 - Math.random() * 2.2,
+              swayAmp: 6 + Math.random() * 14,
+              swaySpeed: 2.5 + Math.random() * 2.5,
+              phase: Math.random() * Math.PI * 2,
+              size: isPlus ? 6 + Math.random() * 5 : 2.5 + Math.random() * 3.5,
+              isPlus,
+              isGold: Math.random() > 0.42,
+              delay: Math.random() * 0.45,
+              life: 0.55 + Math.random() * 0.4
+            });
+          }
+
+          const pillars = [];
+          for (let i = 0; i < 9; i++) {
+            pillars.push({
+              offsetX: (Math.random() - 0.5) * 180,
+              width: 10 + Math.random() * 18,
+              height: 150 + Math.random() * 110,
+              isGold: i % 2 === 0,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+
+          return { items, pillars };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const envelope =
+            progress < 0.14
+              ? progress / 0.14
+              : progress > 0.82
+                ? Math.max(0, (1 - progress) / 0.18)
+                : 1;
+
+          if (envelope <= 0.001) return;
+
+          const baseY = CY + 125;
+
+          // 1. Soft upward ambient radiance column
+          const colGrad = ctx.createLinearGradient(CX, baseY + 20, CX, CY - 150);
+          colGrad.addColorStop(0, `rgba(52, 211, 153, ${0.32 * envelope})`);
+          colGrad.addColorStop(0.55, `rgba(250, 204, 21, ${0.16 * envelope})`);
+          colGrad.addColorStop(1, "rgba(16, 185, 129, 0)");
+
+          ctx.fillStyle = colGrad;
+          ctx.beginPath();
+          ctx.ellipse(CX, CY + 10, 125, 175, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Gentle vertical light shafts rising from aura base
+          for (const p of state.pillars) {
+            const pulse = 0.45 + 0.55 * Math.sin(progress * Math.PI * 4 + p.phase);
+            const pAlpha = envelope * pulse * 0.28;
+            const px = CX + p.offsetX;
+
+            const pGrad = ctx.createLinearGradient(px, baseY, px, baseY - p.height);
+            if (p.isGold) {
+              pGrad.addColorStop(0, `rgba(254, 240, 138, ${pAlpha})`);
+              pGrad.addColorStop(1, "rgba(250, 204, 21, 0)");
+            } else {
+              pGrad.addColorStop(0, `rgba(110, 231, 183, ${pAlpha})`);
+              pGrad.addColorStop(1, "rgba(16, 185, 129, 0)");
+            }
+
+            ctx.fillStyle = pGrad;
+            ctx.fillRect(px - p.width / 2, baseY - p.height, p.width, p.height);
+          }
+
+          // 3. Pulsing perspective ground rings at base
+          for (let r = 0; r < 3; r++) {
+            const cycle = (progress * 1.6 + r * 0.33) % 1;
+            const rx = 55 + cycle * 95;
+            const ry = 18 + cycle * 30;
+            const ringAlpha = Math.sin(cycle * Math.PI) * envelope * 0.78;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(CX, baseY, rx, ry, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = r % 2 === 0
+              ? `rgba(110, 231, 183, ${ringAlpha})`
+              : `rgba(253, 224, 71, ${ringAlpha})`;
+            ctx.lineWidth = 4 * (1 - cycle * 0.5);
+            ctx.shadowColor = r % 2 === 0 ? "#10b981" : "#facc15";
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // 4. Floating golden-green plus signs & sparkles
+          for (const it of state.items) {
+            const localP = (progress - it.delay) / it.life;
+            if (localP <= 0 || localP >= 1) continue;
+
+            const y = it.startY + it.vy * localP * 115;
+            const x = it.x + Math.sin(localP * Math.PI * it.swaySpeed + it.phase) * it.swayAmp;
+            const alpha = Math.sin(localP * Math.PI) * envelope;
+
+            const fillCol = it.isGold ? "#fef08a" : "#a7f3d0";
+            const glowCol = it.isGold ? "#facc15" : "#10b981";
+
+            if (it.isPlus) {
+              drawPlusSign(ctx, x, y, it.size, fillCol, glowCol, alpha);
+            } else {
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(x, y, it.size, 0, Math.PI * 2);
+              ctx.fillStyle = fillCol;
+              ctx.globalAlpha = alpha;
+              ctx.shadowColor = glowCol;
+              ctx.shadowBlur = 9;
+              ctx.fill();
+              ctx.restore();
+            }
+          }
+        }
+      });
+    };
+    healingBuffAura();
+  </script>
+
+  <!-- ice blast -->
+  <script>
+    const waterFrostSplash = function spawnWaterFrostSplash() {
+      function drawIceShard(ctx, size, alpha) {
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 1.45);
+        ctx.lineTo(size * 0.55, -size * 0.15);
+        ctx.lineTo(size * 0.3, size * 1.15);
+        ctx.lineTo(-size * 0.35, size * 1.15);
+        ctx.lineTo(-size * 0.6, -size * 0.2);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(-size * 0.5, -size * 1.2, size * 0.5, size);
+        grad.addColorStop(0, `rgba(240, 249, 255, ${alpha})`);
+        grad.addColorStop(0.45, `rgba(125, 211, 252, ${alpha * 0.9})`);
+        grad.addColorStop(1, `rgba(2, 132, 199, ${alpha * 0.85})`);
+
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.95})`;
+        ctx.stroke();
+
+        // Inner crystal facet line
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 1.45);
+        ctx.lineTo(0, size * 1.15);
+        ctx.strokeStyle = `rgba(224, 242, 254, ${alpha * 0.65})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      window.registerVFXProp({
+        id: "water-frost-splash",
+        label: "VFX: Water / Frost Splash",
+        durationMs: 1800,
+
+        spawn(W, H, CX, CY) {
+          const shards = [];
+          const mist = [];
+          const droplets = [];
+
+          for (let i = 0; i < 28; i++) {
+            const angle = (i / 28) * Math.PI * 2 + (Math.random() - 0.5) * 0.22;
+            const speed = 3.2 + Math.random() * 6.8;
+            shards.push({
+              x: CX + Math.cos(angle) * 14,
+              y: CY + Math.sin(angle) * 14,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 0.8,
+              size: 8 + Math.random() * 11,
+              rot: angle + Math.PI / 2,
+              vRot: (Math.random() - 0.5) * 0.16,
+              life: 0.62 + Math.random() * 0.35
+            });
+          }
+
+          for (let i = 0; i < 26; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.2 + Math.random() * 3.8;
+            mist.push({
+              x: CX + (Math.random() - 0.5) * 40,
+              y: CY + (Math.random() - 0.5) * 40,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              radius: 26 + Math.random() * 36,
+              grow: 32 + Math.random() * 30,
+              life: 0.7 + Math.random() * 0.3
+            });
+          }
+
+          for (let i = 0; i < 45; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2.5 + Math.random() * 8.5;
+            droplets.push({
+              x: CX,
+              y: CY,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              size: 2 + Math.random() * 3.8,
+              life: 0.5 + Math.random() * 0.45
+            });
+          }
+
+          return { shards, mist, droplets };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // 1. Crisp glacial burst flash at impact
+          const flashP = Math.min(1, progress / 0.35);
+          if (flashP < 1) {
+            const flashAlpha = (1 - flashP) * 0.8;
+            const flashR = 25 + flashP * 185;
+            const flashGrad = ctx.createRadialGradient(CX, CY, 5, CX, CY, flashR);
+            flashGrad.addColorStop(0, `rgba(240, 249, 255, ${flashAlpha})`);
+            flashGrad.addColorStop(0.45, `rgba(56, 189, 248, ${flashAlpha * 0.65})`);
+            flashGrad.addColorStop(1, "rgba(3, 105, 161, 0)");
+
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath();
+            ctx.arc(CX, CY, flashR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 2. Expanding frost shock rings
+          for (let r = 0; r < 2; r++) {
+            const localP = (progress - r * 0.12) / 0.72;
+            if (localP <= 0 || localP >= 1) continue;
+
+            const ease = 1 - Math.pow(1 - localP, 2.5);
+            const radius = 22 + ease * 195;
+            const alpha = (1 - localP) * 0.78;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(CX, CY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(186, 230, 253, ${alpha})`;
+            ctx.lineWidth = (7 - r * 2.5) * (1 - localP);
+            ctx.shadowColor = "#38bdf8";
+            ctx.shadowBlur = 14;
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // 3. Swirling cold glacial mist
+          for (const m of state.mist) {
+            m.x += m.vx;
+            m.y += m.vy;
+            m.vx *= 0.95;
+            m.vy *= 0.95;
+
+            const localP = progress / m.life;
+            if (localP >= 1) continue;
+
+            const alpha = Math.sin(localP * Math.PI) * 0.32;
+            const rad = m.radius + localP * m.grow;
+
+            const mGrad = ctx.createRadialGradient(m.x, m.y, rad * 0.1, m.x, m.y, rad);
+            mGrad.addColorStop(0, `rgba(224, 242, 254, ${alpha})`);
+            mGrad.addColorStop(0.6, `rgba(56, 189, 248, ${alpha * 0.55})`);
+            mGrad.addColorStop(1, "rgba(14, 165, 233, 0)");
+
+            ctx.fillStyle = mGrad;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, rad, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 4. Faceted flying ice crystals
+          for (const s of state.shards) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.vy += 0.11; // subtle gravity arc
+            s.vx *= 0.96;
+            s.rot += s.vRot;
+
+            const alpha = Math.max(0, 1 - progress / s.life);
+            if (alpha <= 0) continue;
+
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(s.rot);
+            ctx.shadowColor = "rgba(56, 189, 248, 0.7)";
+            ctx.shadowBlur = 10;
+            drawIceShard(ctx, s.size, alpha);
+            ctx.restore();
+          }
+
+          // 5. Fine water & frost spray droplets
+          for (const d of state.droplets) {
+            d.x += d.vx;
+            d.y += d.vy;
+            d.vy += 0.14;
+            d.vx *= 0.95;
+
+            const alpha = Math.max(0, 1 - progress / d.life);
+            if (alpha <= 0) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(240, 249, 255, ${alpha})`;
+            ctx.shadowColor = "#7dd3fc";
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    waterFrostSplash();
+  </script>
+
+  <!--smoke again  -->
+  <script>
+    const smokePuffPoof = function spawnSmokePuffPoof() {
+      window.registerVFXProp({
+        id: "smoke-puff-poof",
+        label: "VFX: Smoke Puff / Poof",
+        durationMs: 1500,
+
+        spawn(W, H, CX, CY) {
+          const clouds = [];
+          const count = 22;
+
+          for (let i = 0; i < count; i++) {
+            const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+            const ringFactor = i < 8 ? 0.35 : 0.85 + Math.random() * 0.35;
+            const speed = (2.2 + Math.random() * 4.2) * ringFactor;
+
+            clouds.push({
+              x: CX + Math.cos(angle) * 14,
+              y: CY + Math.sin(angle) * 14,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 0.45,
+              baseRadius: 24 + Math.random() * 26,
+              maxGrow: 22 + Math.random() * 24,
+              shade: 225 + Math.floor(Math.random() * 28), // soft off-white to light slate
+              delay: Math.random() * 0.08,
+              life: 0.78 + Math.random() * 0.22
+            });
+          }
+
+          const wisps = [];
+          for (let i = 0; i < 14; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 3.5 + Math.random() * 5.5;
+            wisps.push({
+              x: CX,
+              y: CY,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              size: 5 + Math.random() * 7,
+              life: 0.55 + Math.random() * 0.35
+            });
+          }
+
+          return { clouds, wisps };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // 1. Subtle pop ring at the start of the poof
+          const ringP = Math.min(1, progress / 0.38);
+          if (ringP < 1) {
+            const easeRing = 1 - Math.pow(1 - ringP, 3);
+            const r = 20 + easeRing * 145;
+            const alpha = (1 - ringP) * 0.55;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(CX, CY, r, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(241, 245, 249, ${alpha})`;
+            ctx.lineWidth = 6 * (1 - ringP);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // 2. Layered stylized cloud puffs (back shadow pass then bright highlight pass)
+          for (const c of state.clouds) {
+            const localP = (progress - c.delay) / c.life;
+            if (localP <= 0 || localP >= 1) continue;
+
+            c.x += c.vx;
+            c.y += c.vy;
+            c.vx *= 0.93;
+            c.vy *= 0.93;
+
+            // Fast pop-in, smooth dissipation shrink at the end
+            const popIn = Math.min(1, localP / 0.16);
+            const fadeOut = localP > 0.55 ? Math.max(0, 1 - (localP - 0.55) / 0.45) : 1;
+            const scale = (0.35 + 0.65 * (1 - Math.pow(1 - popIn, 3))) * (0.65 + 0.35 * fadeOut);
+            const r = (c.baseRadius + localP * c.maxGrow) * scale;
+            const alpha = fadeOut * 0.92;
+
+            ctx.save();
+            // Soft cool-gray underside shading for volume
+            const puffGrad = ctx.createRadialGradient(
+              c.x - r * 0.22,
+              c.y - r * 0.25,
+              r * 0.12,
+              c.x,
+              c.y,
+              r
+            );
+            puffGrad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+            puffGrad.addColorStop(0.65, `rgba(${c.shade}, ${c.shade + 3}, ${Math.min(255, c.shade + 8)}, ${alpha})`);
+            puffGrad.addColorStop(1, `rgba(148, 163, 184, ${alpha * 0.85})`);
+
+            ctx.fillStyle = puffGrad;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 3. Outer tiny cartoon smoke puffs
+          for (const w of state.wisps) {
+            w.x += w.vx;
+            w.y += w.vy;
+            w.vx *= 0.91;
+            w.vy *= 0.91;
+
+            const localP = progress / w.life;
+            if (localP >= 1) continue;
+
+            const alpha = (1 - localP) * 0.85;
+            const r = w.size * (1 - localP * 0.5);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(248, 250, 252, ${alpha})`;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    smokePuffPoof();
+  </script>
+
+  <!-- confetti -->
+  <script>
+    const confettiCelebrationBurst = function spawnConfettiCelebrationBurst() {
+      const PALETTE = [
+        "#f43f5e", // Rose
+        "#38bdf8", // Sky Blue
+        "#facc15", // Gold
+        "#34d399", // Emerald
+        "#c084fc", // Purple
+        "#fb923c"  // Orange
+      ];
+
+      window.registerVFXProp({
+        id: "confetti-celebration-burst",
+        label: "VFX: Confetti / Celebration Burst",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const pieces = [];
+          for (let i = 0; i < 85; i++) {
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.1;
+            const speed = 5 + Math.random() * 11;
+            const isRibbon = i % 5 === 0;
+
+            pieces.push({
+              x: CX + (Math.random() - 0.5) * 30,
+              y: CY + 40 + (Math.random() - 0.5) * 20,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 2.5,
+              w: isRibbon ? 5 : 8 + Math.random() * 7,
+              h: isRibbon ? 18 + Math.random() * 10 : 5 + Math.random() * 5,
+              color: PALETTE[i % PALETTE.length],
+              rot: Math.random() * Math.PI * 2,
+              vRot: (Math.random() - 0.5) * 0.25,
+              flipPhase: Math.random() * Math.PI * 2,
+              flipSpeed: 8 + Math.random() * 10,
+              swayPhase: Math.random() * Math.PI * 2,
+              swayFreq: 3 + Math.random() * 3,
+              isRibbon
+            });
+          }
+
+          const glints = [];
+          for (let i = 0; i < 24; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2.5 + Math.random() * 7.5;
+            glints.push({
+              x: CX,
+              y: CY + 20,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 1.5,
+              size: 2.5 + Math.random() * 3.5,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+
+          return { pieces, glints };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // 1. Warm celebratory pop flash at launch
+          const flashP = Math.min(1, progress / 0.25);
+          if (flashP < 1) {
+            const alpha = (1 - flashP) * 0.65;
+            const r = 20 + flashP * 155;
+            const grad = ctx.createRadialGradient(CX, CY + 30, 5, CX, CY + 30, r);
+            grad.addColorStop(0, `rgba(254, 249, 195, ${alpha})`);
+            grad.addColorStop(0.55, `rgba(250, 204, 21, ${alpha * 0.45})`);
+            grad.addColorStop(1, "rgba(250, 204, 21, 0)");
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(CX, CY + 30, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Smooth fade out in final 25% so clip ends cleanly
+          const endAlpha = progress > 0.75 ? Math.max(0, (1 - progress) / 0.25) : 1;
+          if (endAlpha <= 0) return;
+
+          // 2. Tumbling 3D-flipping confetti & ribbons
+          for (const p of state.pieces) {
+            p.x += p.vx + Math.sin(progress * Math.PI * p.swayFreq + p.swayPhase) * 1.4;
+            p.y += p.vy;
+
+            // Air resistance + gentle gravity
+            p.vx *= 0.94;
+            p.vy = p.vy * 0.94 + 0.24;
+            p.rot += p.vRot;
+
+            const flipScaleY = Math.cos(progress * Math.PI * p.flipSpeed + p.flipPhase);
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.scale(1, Math.max(0.15, Math.abs(flipScaleY)));
+            ctx.globalAlpha = endAlpha;
+            ctx.fillStyle = p.color;
+
+            if (p.isRibbon) {
+              ctx.beginPath();
+              ctx.roundRect(-p.w / 2, -p.h / 2, p.w, p.h, 2);
+              ctx.fill();
+            } else {
+              ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            }
+
+            // Subtle specular sheen when facing camera
+            if (flipScaleY > 0.6) {
+              ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+              ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * 0.4);
+            }
+
+            ctx.restore();
+          }
+
+          // 3. Golden celebration sparkles
+          for (const g of state.glints) {
+            g.x += g.vx;
+            g.y += g.vy;
+            g.vx *= 0.93;
+            g.vy = g.vy * 0.93 + 0.12;
+
+            const twinkle = 0.5 + 0.5 * Math.sin(progress * Math.PI * 12 + g.phase);
+            const alpha = endAlpha * twinkle;
+            if (alpha <= 0.05) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(g.x, g.y, g.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(254, 240, 138, ${alpha})`;
+            ctx.shadowColor = "#facc15";
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    confettiCelebrationBurst();
+  </script>
+
+  <!-- Shattering Glass -->
+  <script>
+    const shatteringGlass = function spawnShatteringGlass() {
+      window.registerVFXProp({
+        id: "shattering-glass",
+        label: "VFX: Shattering Glass",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const shards = [];
+          const dust = [];
+          const crackRays = [];
+
+          const rings = [18, 42, 72, 105];
+          const slices = 14;
+
+          // Build jittered polar grid vertices so shards interlock cleanly before breaking
+          const grid = [];
+          for (let rIdx = 0; rIdx < rings.length; rIdx++) {
+            const row = [];
+            const baseR = rings[rIdx];
+            for (let sIdx = 0; sIdx < slices; sIdx++) {
+              const baseAngle = (sIdx / slices) * Math.PI * 2;
+              const angleJitter = rIdx === 0 ? 0 : (Math.random() - 0.5) * (Math.PI / slices) * 0.75;
+              const radiusJitter = rIdx === 0 ? 0 : (Math.random() - 0.5) * 14;
+              const r = Math.max(0, baseR + radiusJitter);
+              const a = baseAngle + angleJitter;
+              row.push({
+                x: Math.cos(a) * r,
+                y: Math.sin(a) * r,
+                a,
+                r
+              });
+            }
+            grid.push(row);
+          }
+
+          // Store radial crack lines for initial impact frame
+          for (let sIdx = 0; sIdx < slices; sIdx++) {
+            const pts = [{ x: 0, y: 0 }];
+            for (let rIdx = 1; rIdx < rings.length; rIdx++) {
+              pts.push({ x: grid[rIdx][sIdx].x, y: grid[rIdx][sIdx].y });
+            }
+            crackRays.push(pts);
+          }
+
+          // Split each ring sector into two jagged triangular glass shards
+          for (let rIdx = 0; rIdx < rings.length - 1; rIdx++) {
+            for (let sIdx = 0; sIdx < slices; sIdx++) {
+              const nextS = (sIdx + 1) % slices;
+              const p00 = grid[rIdx][sIdx];
+              const p01 = grid[rIdx][nextS];
+              const p10 = grid[rIdx + 1][sIdx];
+              const p11 = grid[rIdx + 1][nextS];
+
+              const tris =
+                rIdx === 0
+                  ? [[p00, p10, p11]]
+                  : [
+                    [p00, p10, p11],
+                    [p00, p11, p01]
+                  ];
+
+              for (const tri of tris) {
+                const cx = (tri[0].x + tri[1].x + tri[2].x) / 3;
+                const cy = (tri[0].y + tri[1].y + tri[2].y) / 3;
+                const localPts = tri.map((p) => ({ x: p.x - cx, y: p.y - cy }));
+
+                const dist = Math.hypot(cx, cy) || 1;
+                const dirX = cx / dist;
+                const dirY = cy / dist;
+
+                // Inner shards burst faster; outer shards peel and drop slightly later
+                const speed = 135 + (1 - rIdx / rings.length) * 165 + Math.random() * 85;
+                const releaseDelay = (rIdx / rings.length) * 0.08 + Math.random() * 0.03;
+
+                shards.push({
+                  x: cx,
+                  y: cy,
+                  pts: localPts,
+                  vx: dirX * speed + (Math.random() - 0.5) * 45,
+                  vy: dirY * speed - (40 + Math.random() * 75),
+                  gravity: 480 + Math.random() * 180,
+                  rotZ: 0,
+                  vRotZ: (Math.random() - 0.5) * 11,
+                  tumblePhase: Math.random() * Math.PI * 2,
+                  tumbleSpeed: 4 + Math.random() * 7,
+                  tint: Math.random(),
+                  releaseDelay
+                });
+              }
+            }
+          }
+
+          // Fine sparkling glass micro-splinters
+          for (let i = 0; i < 42; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const speed = 90 + Math.random() * 280;
+            dust.push({
+              x: Math.cos(a) * (Math.random() * 24),
+              y: Math.sin(a) * (Math.random() * 24),
+              vx: Math.cos(a) * speed,
+              vy: Math.sin(a) * speed - 50,
+              size: 1.5 + Math.random() * 3,
+              rot: Math.random() * Math.PI * 2,
+              vRot: (Math.random() - 0.5) * 16,
+              glintOffset: Math.random() * Math.PI * 2
+            });
+          }
+
+          return { shards, dust, crackRays };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const endFade = progress > 0.78 ? Math.max(0, (1 - progress) / 0.22) : 1;
+          if (endFade <= 0.001) return;
+
+          ctx.save();
+          ctx.translate(CX, CY);
+          ctx.globalAlpha = endFade;
+
+          // 1. Brief impact flash & spiderweb crack lines (0.00 to 0.18)
+          if (progress < 0.18) {
+            const flashAlpha = Math.max(0, 1 - progress / 0.12);
+            if (flashAlpha > 0) {
+              const flashGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 95 * (1 + progress * 4));
+              flashGrad.addColorStop(0, `rgba(255, 255, 255, ${0.85 * flashAlpha})`);
+              flashGrad.addColorStop(0.45, `rgba(224, 242, 254, ${0.45 * flashAlpha})`);
+              flashGrad.addColorStop(1, "rgba(186, 230, 253, 0)");
+              ctx.fillStyle = flashGrad;
+              ctx.beginPath();
+              ctx.arc(0, 0, 140, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            const crackAlpha = Math.max(0, 1 - progress / 0.18);
+            ctx.save();
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 * crackAlpha})`;
+            ctx.lineWidth = 1.6;
+            for (const ray of state.crackRays) {
+              ctx.beginPath();
+              ctx.moveTo(ray[0].x, ray[0].y);
+              for (let i = 1; i < ray.length; i++) {
+                ctx.lineTo(ray[i].x, ray[i].y);
+              }
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+          // 2. Flying, tumbling 3D glass shards
+          for (const sh of state.shards) {
+            const t = Math.max(0, progress - sh.releaseDelay);
+            const sx = sh.x + sh.vx * t;
+            const sy = sh.y + sh.vy * t + 0.5 * sh.gravity * t * t;
+
+            // Simulated 3D flip scale + specular reflection flash
+            const tumble = Math.cos(sh.tumblePhase + t * sh.tumbleSpeed);
+            const flipScaleY = Math.max(0.14, Math.abs(tumble));
+            const glint = Math.pow(Math.max(0, Math.sin(sh.tumblePhase + t * sh.tumbleSpeed)), 6);
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(sh.rotZ + sh.vRotZ * t);
+            ctx.scale(1, flipScaleY);
+
+            ctx.beginPath();
+            ctx.moveTo(sh.pts[0].x, sh.pts[0].y);
+            for (let i = 1; i < sh.pts.length; i++) {
+              ctx.lineTo(sh.pts[i].x, sh.pts[i].y);
+            }
+            ctx.closePath();
+
+            // Translucent icy-clear glass fill with dynamic light catch
+            const baseAlpha = 0.24 + sh.tint * 0.16 + glint * 0.45;
+            ctx.fillStyle = `rgba(224, 242, 254, ${Math.min(0.9, baseAlpha)})`;
+            ctx.fill();
+
+            // Crisp beveled glass edge
+            ctx.lineWidth = 1.25;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.55 + glint * 0.4})`;
+            ctx.stroke();
+
+            // Secondary inner refraction edge on larger shards
+            ctx.lineWidth = 0.7;
+            ctx.strokeStyle = "rgba(186, 230, 253, 0.45)";
+            ctx.stroke();
+
+            ctx.restore();
+          }
+
+          // 3. Sparkling micro-splinters & glass dust
+          for (const d of state.dust) {
+            const dx = d.x + d.vx * progress;
+            const dy = d.y + d.vy * progress + 0.5 * 360 * progress * progress;
+            const sparkle = 0.35 + 0.65 * Math.abs(Math.sin(progress * 18 + d.glintOffset));
+
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.rotate(d.rot + d.vRot * progress);
+            ctx.fillStyle = `rgba(255, 255, 255, ${sparkle})`;
+            ctx.beginPath();
+            ctx.moveTo(0, -d.size);
+            ctx.lineTo(d.size * 0.65, d.size * 0.7);
+            ctx.lineTo(-d.size * 0.65, d.size * 0.7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+      });
+    };
+    shatteringGlass();
+  </script>
+
+  <!-- smash glass 2 -->
+  <script>
+    const smashGlass = function spawnSmashGlass() {
+      window.registerVFXProp({
+        id: "smashGlass",
+        label: "VFX: Shattering Glass 2",
+        durationMs: 1800,
+
+        spawn(W, H, CX, CY) {
+          const shards = [];
+          const dust = [];
+          const cracks = [];
+
+          // 1. Radial spiderweb crack lines for the initial impact frame
+          const spokeCount = 14;
+          for (let i = 0; i < spokeCount; i++) {
+            const baseAngle = (i / spokeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.18;
+            const maxLen = 95 + Math.random() * 85;
+            const segments = [];
+            let curR = 0;
+            let curA = baseAngle;
+
+            while (curR < maxLen) {
+              curR += 18 + Math.random() * 22;
+              curA += (Math.random() - 0.5) * 0.22;
+              segments.push({
+                x: CX + Math.cos(curA) * Math.min(curR, maxLen),
+                y: CY + Math.sin(curA) * Math.min(curR, maxLen)
+              });
+            }
+            cracks.push(segments);
+          }
+
+          // 2. Jagged polygonal glass shards arranged in concentric rings around impact
+          const rings = [
+            { count: 10, minR: 8, maxR: 48, speedMult: 1.25 },
+            { count: 16, minR: 45, maxR: 98, speedMult: 1.0 },
+            { count: 18, minR: 92, maxR: 155, speedMult: 0.78 }
+          ];
+
+          for (const ring of rings) {
+            for (let i = 0; i < ring.count; i++) {
+              const a1 = (i / ring.count) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
+              const a2 = ((i + 1) / ring.count) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
+              const midA = (a1 + a2) * 0.5;
+              const midR = (ring.minR + ring.maxR) * 0.5;
+
+              const originX = CX + Math.cos(midA) * midR;
+              const originY = CY + Math.sin(midA) * midR;
+
+              // Build local polygon vertices relative to shard center
+              const rawPts = [
+                {
+                  x: CX + Math.cos(a1) * (ring.minR + Math.random() * 10) - originX,
+                  y: CY + Math.sin(a1) * (ring.minR + Math.random() * 10) - originY
+                },
+                {
+                  x: CX + Math.cos(a2) * (ring.minR + Math.random() * 10) - originX,
+                  y: CY + Math.sin(a2) * (ring.minR + Math.random() * 10) - originY
+                },
+                {
+                  x: CX + Math.cos(a2) * (ring.maxR + (Math.random() - 0.5) * 18) - originX,
+                  y: CY + Math.sin(a2) * (ring.maxR + (Math.random() - 0.5) * 18) - originY
+                },
+                {
+                  x: CX + Math.cos(a1) * (ring.maxR + (Math.random() - 0.5) * 18) - originX,
+                  y: CY + Math.sin(a1) * (ring.maxR + (Math.random() - 0.5) * 18) - originY
+                }
+              ];
+
+              const burstSpeed = (3.5 + Math.random() * 6.5) * ring.speedMult;
+              shards.push({
+                x: originX,
+                y: originY,
+                vx: Math.cos(midA) * burstSpeed + (Math.random() - 0.5) * 1.5,
+                vy: Math.sin(midA) * burstSpeed - 1.2 + (Math.random() - 0.5) * 1.5,
+                pts: rawPts,
+                rot: 0,
+                vRot: (Math.random() - 0.5) * 0.24,
+                tumblePhase: Math.random() * Math.PI * 2,
+                tumbleSpeed: 6 + Math.random() * 8,
+                tint: Math.random() > 0.45 ? "rgba(224, 242, 254, " : "rgba(186, 230, 253, ",
+                life: 0.68 + Math.random() * 0.32
+              });
+            }
+          }
+
+          // 3. Tiny glittering glass micro-splinters
+          for (let i = 0; i < 55; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2.5 + Math.random() * 9.5;
+            dust.push({
+              x: CX + (Math.random() - 0.5) * 35,
+              y: CY + (Math.random() - 0.5) * 35,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 1.5,
+              size: 1.5 + Math.random() * 2.8,
+              rot: Math.random() * Math.PI * 2,
+              vRot: (Math.random() - 0.5) * 0.35,
+              life: 0.5 + Math.random() * 0.48
+            });
+          }
+
+          return { shards, dust, cracks };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          // 1. Sharp white-cyan impact flash
+          const flashP = Math.min(1, progress / 0.18);
+          if (flashP < 1) {
+            const alpha = Math.pow(1 - flashP, 2) * 0.92;
+            const r = 18 + flashP * 165;
+            const grad = ctx.createRadialGradient(CX, CY, 2, CX, CY, r);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+            grad.addColorStop(0.45, `rgba(186, 230, 253, ${alpha * 0.7})`);
+            grad.addColorStop(1, "rgba(56, 189, 248, 0)");
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(CX, CY, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 2. Brief spiderweb fracture lines right as the glass breaks
+          if (progress < 0.22) {
+            const crackAlpha = (1 - progress / 0.22) * 0.85;
+            ctx.save();
+            ctx.strokeStyle = `rgba(240, 249, 255, ${crackAlpha})`;
+            ctx.lineWidth = 1.6;
+            ctx.shadowColor = "#7dd3fc";
+            ctx.shadowBlur = 8;
+
+            for (const spoke of state.cracks) {
+              ctx.beginPath();
+              ctx.moveTo(CX, CY);
+              for (const pt of spoke) {
+                ctx.lineTo(pt.x, pt.y);
+              }
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+          // 3. Flying, 3D-tumbling glass shards with specular reflections
+          for (const s of state.shards) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.vx *= 0.96;
+            s.vy = s.vy * 0.96 + 0.28; // realistic gravity pull
+            s.rot += s.vRot;
+
+            const alpha = Math.max(0, 1 - Math.pow(progress / s.life, 1.6));
+            if (alpha <= 0.01) continue;
+
+            const tumble = Math.cos(progress * Math.PI * s.tumbleSpeed + s.tumblePhase);
+            const scaleX = Math.max(0.18, Math.abs(tumble));
+            const glintBoost = tumble > 0.72 ? (tumble - 0.72) / 0.28 : 0;
+
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(s.rot);
+            ctx.scale(scaleX, 1);
+
+            ctx.beginPath();
+            ctx.moveTo(s.pts.x, s.pts.y);
+            for (let i = 1; i < s.pts.length; i++) {
+              ctx.lineTo(s.pts[i].x, s.pts[i].y);
+            }
+            ctx.closePath();
+
+            // Translucent glass body + bright specular glint when angled toward light
+            const fillAlpha = (0.34 + glintBoost * 0.55) * alpha;
+            ctx.fillStyle = glintBoost > 0.2
+              ? `rgba(255, 255, 255, ${fillAlpha})`
+              : `${s.tint}${fillAlpha})`;
+            ctx.fill();
+
+            // Crisp beveled glass edge highlight
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.88 * alpha})`;
+            ctx.shadowColor = "rgba(125, 211, 252, 0.65)";
+            ctx.shadowBlur = 6;
+            ctx.stroke();
+
+            ctx.restore();
+          }
+
+          // 4. Glittering micro-splinters & glass dust
+          for (const d of state.dust) {
+            d.x += d.vx;
+            d.y += d.vy;
+            d.vx *= 0.95;
+            d.vy = d.vy * 0.95 + 0.22;
+            d.rot += d.vRot;
+
+            const alpha = Math.max(0, 1 - progress / d.life);
+            if (alpha <= 0.01) continue;
+
+            ctx.save();
+            ctx.translate(d.x, d.y);
+            ctx.rotate(d.rot);
+            ctx.fillStyle = `rgba(240, 249, 255, ${alpha * 0.95})`;
+            ctx.beginPath();
+            ctx.moveTo(0, -d.size);
+            ctx.lineTo(d.size * 0.7, d.size * 0.8);
+            ctx.lineTo(-d.size * 0.7, d.size * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    smashGlass();
+  </script>
+
+  <!-- BIG3R -->
+  <script>
+    const big3rExpand3D = function spawnBig3rExpand3D() {
+      function rotate3D(p, rx, ry, rz) {
+        let y1 = p.y * Math.cos(rx) - p.z * Math.sin(rx);
+        let z1 = p.y * Math.sin(rx) + p.z * Math.cos(rx);
+        let x1 = p.x;
+
+        let x2 = x1 * Math.cos(ry) + z1 * Math.sin(ry);
+        let z2 = -x1 * Math.sin(ry) + z1 * Math.cos(ry);
+        let y2 = y1;
+
+        let x3 = x2 * Math.cos(rz) - y2 * Math.sin(rz);
+        let y3 = x2 * Math.sin(rz) + y2 * Math.cos(rz);
+
+        return { x: x3, y: y3, z: z2 };
+      }
+
+      function project3D(p, CX, CY, fov, cameraZ) {
+        const zDepth = cameraZ - p.z;
+        const scale = fov / Math.max(40, zDepth);
+        return {
+          x: CX + p.x * scale,
+          y: CY + p.y * scale,
+          z: p.z,
+          scale
+        };
+      }
+
+      function createSubdividedCube(divisions) {
+        const verts = [];
+        const edges = [];
+        const faces = [];
+        const map = new Map();
+
+        function getVertIndex(x, y, z) {
+          const key = `${x.toFixed(3)},${y.toFixed(3)},${z.toFixed(3)}`;
+          if (map.has(key)) return map.get(key);
+          const idx = verts.length;
+          const len = Math.hypot(x, y, z) || 1;
+          verts.push({
+            bx: x,
+            by: y,
+            bz: z,
+            nx: x / len,
+            ny: y / len,
+            nz: z / len
+          });
+          map.set(key, idx);
+          return idx;
+        }
+
+        const step = 2 / divisions;
+        const edgeSet = new Set();
+        function addEdge(a, b) {
+          const k = a < b ? `${a}-${b}` : `${b}-${a}`;
+          if (!edgeSet.has(k)) {
+            edgeSet.add(k);
+            edges.push([a, b]);
+          }
+        }
+
+        const faceConfigs = [
+          { axis: "z", dir: 1, u: "x", v: "y" },
+          { axis: "z", dir: -1, u: "y", v: "x" },
+          { axis: "x", dir: 1, u: "y", v: "z" },
+          { axis: "x", dir: -1, u: "z", v: "y" },
+          { axis: "y", dir: 1, u: "z", v: "x" },
+          { axis: "y", dir: -1, u: "x", v: "z" }
+        ];
+
+        for (const fc of faceConfigs) {
+          for (let i = 0; i < divisions; i++) {
+            for (let j = 0; j < divisions; j++) {
+              const u0 = -1 + i * step;
+              const u1 = u0 + step;
+              const v0 = -1 + j * step;
+              const v1 = v0 + step;
+
+              const corners = [
+                [u0, v0],
+                [u1, v0],
+                [u1, v1],
+                [u0, v1]
+              ].map(([uVal, vVal]) => {
+                const pt = { x: 0, y: 0, z: 0 };
+                pt[fc.axis] = fc.dir;
+                pt[fc.u] = uVal;
+                pt[fc.v] = vVal;
+                return getVertIndex(pt.x, pt.y, pt.z);
+              });
+
+              faces.push(corners);
+              addEdge(corners[0], corners[1]);
+              addEdge(corners[1], corners[2]);
+              addEdge(corners[2], corners[3]);
+              addEdge(corners[3], corners[0]);
+            }
+          }
+        }
+
+        return { verts, edges, faces };
+      }
+
+      window.registerVFXProp({
+        id: "big3rExpand3D",
+        label: "BIG3R: 3D Volumetric Surge & Bulge",
+        durationMs: 2200,
+
+        spawn(W, H, CX, CY) {
+          const mesh = createSubdividedCube(3);
+          const orbitParticles = [];
+          for (let i = 0; i < 55; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            orbitParticles.push({
+              theta,
+              phi,
+              radius: 1.2 + Math.random() * 0.9,
+              speed: (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.8),
+              size: 2.2 + Math.random() * 3.2,
+              hue: Math.random() > 0.35 ? 152 : 188
+            });
+          }
+          return { mesh, orbitParticles };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const fadeOut = progress > 0.84 ? Math.max(0, (1 - progress) / 0.16) : 1;
+          const popIn = Math.max(0.05, Math.min(1, progress / 0.12));
+          if (fadeOut <= 0.001) return;
+
+          const surge =
+            progress < 0.2
+              ? 0.45 * (progress / 0.2)
+              : 0.45 + 0.72 * Math.sin(Math.min(1, (progress - 0.2) / 0.65) * (Math.PI * 0.68));
+
+          const baseRadius = Math.max(8, (52 + surge * 88) * popIn);
+          const bulgeAmount = Math.sin(Math.min(1, progress * 1.25) * Math.PI) * 0.48;
+
+          const rx = progress * Math.PI * 1.6 + 0.45;
+          const ry = progress * Math.PI * 2.4;
+          const rz = Math.sin(progress * Math.PI * 2) * 0.35;
+
+          const fov = 420;
+          const cameraZ = 360;
+
+          // 1. Transform and project all 3D mesh vertices
+          const worldVerts = [];
+          const projVerts = [];
+          for (const v of state.mesh.verts) {
+            const distFromCenter = Math.hypot(v.bx, v.by, v.bz);
+            const inflate = 1 + bulgeAmount * (1.75 - distFromCenter);
+
+            const raw = {
+              x: v.bx * baseRadius * inflate,
+              y: v.by * baseRadius * inflate,
+              z: v.bz * baseRadius * inflate
+            };
+            const rot = rotate3D(raw, rx, ry, rz);
+            worldVerts.push(rot);
+            projVerts.push(project3D(rot, CX, CY, fov, cameraZ));
+          }
+
+          // 2. Central glowing 3D energy core (clamped so outerR > innerR)
+          const outerR = Math.max(10, baseRadius * 0.68 * 1.45);
+          const coreGrad = ctx.createRadialGradient(CX, CY, 2, CX, CY, outerR);
+          coreGrad.addColorStop(0, `rgba(236, 253, 245, ${0.95 * fadeOut * popIn})`);
+          coreGrad.addColorStop(0.35, `rgba(16, 185, 129, ${0.72 * fadeOut * popIn})`);
+          coreGrad.addColorStop(0.7, `rgba(6, 182, 212, ${0.28 * fadeOut * popIn})`);
+          coreGrad.addColorStop(1, "rgba(16, 185, 129, 0)");
+
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(CX, CY, outerR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 3. Sort 3D quad faces back-to-front (Painter's Algorithm) with directional shading
+          const sortedFaces = state.mesh.faces
+            .map((quad) => {
+              const avgZ =
+                (worldVerts[quad[0]].z +
+                  worldVerts[quad[1]].z +
+                  worldVerts[quad[2]].z +
+                  worldVerts[quad[3]].z) *
+                0.25;
+
+              const p0 = worldVerts[quad[0]];
+              const p1 = worldVerts[quad[1]];
+              const p2 = worldVerts[quad[2]];
+              const ux = p1.x - p0.x, uy = p1.y - p0.y, uz = p1.z - p0.z;
+              const vx = p2.x - p0.x, vy = p2.y - p0.y, vz = p2.z - p0.z;
+              const nx = uy * vz - uz * vy;
+              const ny = uz * vx - ux * vz;
+              const nz = ux * vy - uy * vx;
+              const nLen = Math.hypot(nx, ny, nz) || 1;
+
+              const lightDot = Math.max(
+                0,
+                (-0.4 * nx - 0.5 * ny + 0.76 * nz) / nLen
+              );
+
+              return { quad, avgZ, lightDot, isFront: nz > 0 };
+            })
+            .sort((a, b) => a.avgZ - b.avgZ);
+
+          for (const f of sortedFaces) {
+            const pts = f.quad.map((idx) => projVerts[idx]);
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            ctx.lineTo(pts[1].x, pts[1].y);
+            ctx.lineTo(pts[2].x, pts[2].y);
+            ctx.lineTo(pts[3].x, pts[3].y);
+            ctx.closePath();
+
+            const baseAlpha = f.isFront ? 0.24 : 0.08;
+            const lightBoost = f.lightDot * 0.28;
+            ctx.fillStyle = `rgba(16, 185, 129, ${(baseAlpha + lightBoost) * fadeOut})`;
+            ctx.fill();
+          }
+
+          // 4. Draw crisp 3D depth-sorted wireframe edges & glowing vertex nodes
+          ctx.save();
+          ctx.lineCap = "round";
+          for (const [iA, iB] of state.mesh.edges) {
+            const a = projVerts[iA];
+            const b = projVerts[iB];
+            const avgZ = (a.z + b.z) * 0.5;
+            const depthFactor = Math.max(0.25, Math.min(1, (avgZ + baseRadius) / (baseRadius * 2)));
+
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(110, 231, 183, ${(0.25 + depthFactor * 0.72) * fadeOut})`;
+            ctx.lineWidth = (1.1 + depthFactor * 2.2) * popIn;
+            ctx.shadowColor = "#10b981";
+            ctx.shadowBlur = depthFactor > 0.65 ? 10 : 0;
+            ctx.stroke();
+          }
+
+          for (const p of projVerts) {
+            const depthFactor = Math.max(0.2, Math.min(1, (p.z + baseRadius) / (baseRadius * 2)));
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, Math.max(0.5, (1.8 + depthFactor * 2.4) * popIn), 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(236, 253, 245, ${(0.35 + depthFactor * 0.65) * fadeOut})`;
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // 5. True 3D orbiting energy particles around the expanding mesh
+          for (const op of state.orbitParticles) {
+            const theta = op.theta + progress * Math.PI * 2.5 * op.speed;
+            const r3d = baseRadius * op.radius;
+            const rawP = {
+              x: r3d * Math.sin(op.phi) * Math.cos(theta),
+              y: r3d * Math.cos(op.phi),
+              z: r3d * Math.sin(op.phi) * Math.sin(theta)
+            };
+            const rotP = rotate3D(rawP, rx * 0.6, ry * 0.8, 0);
+            const projP = project3D(rotP, CX, CY, fov, cameraZ);
+
+            const depthAlpha = Math.max(0.2, Math.min(1, (rotP.z + r3d) / (r3d * 2)));
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(projP.x, projP.y, Math.max(0.5, op.size * projP.scale * fadeOut), 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${op.hue}, 95%, 70%, ${depthAlpha * fadeOut})`;
+            ctx.shadowColor = `hsla(${op.hue}, 95%, 60%, ${fadeOut})`;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    big3rExpand3D();
+  </script>
+
+  <!-- exp growth  -->
+  <script>
+    const big3rHulk3D = function spawnBig3rHulk3D() {
+      function rotate3D(p, rx, ry, rz) {
+        let y1 = p.y * Math.cos(rx) - p.z * Math.sin(rx);
+        let z1 = p.y * Math.sin(rx) + p.z * Math.cos(rx);
+        let x1 = p.x;
+
+        let x2 = x1 * Math.cos(ry) + z1 * Math.sin(ry);
+        let z2 = -x1 * Math.sin(ry) + z1 * Math.cos(ry);
+        let y2 = y1;
+
+        let x3 = x2 * Math.cos(rz) - y2 * Math.sin(rz);
+        let y3 = x2 * Math.sin(rz) + y2 * Math.cos(rz);
+
+        return { x: x3, y: y3, z: z2 };
+      }
+
+      function project3D(p, CX, CY, fov, cameraZ) {
+        const zDepth = cameraZ - p.z;
+        const scale = fov / Math.max(70, zDepth);
+        return {
+          x: CX + p.x * scale,
+          y: CY + p.y * scale,
+          z: p.z,
+          scale
+        };
+      }
+
+      function createLimbPart(pStart, pEnd, rStart, rMid, rEnd, rings, sides, bulgeWeight, flareX = 1.0, flareZ = 1.0) {
+        const verts = [];
+        const edges = [];
+        const faces = [];
+
+        const dx = pEnd.x - pStart.x;
+        const dy = pEnd.y - pStart.y;
+        const dz = pEnd.z - pStart.z;
+        const len = Math.hypot(dx, dy, dz) || 1;
+        const tx = dx / len, ty = dy / len, tz = dz / len;
+
+        let upX = 0, upY = 0, upZ = 1;
+        if (Math.abs(tz) > 0.9) { upX = 1; upZ = 0; }
+        let bx = ty * upZ - tz * upY;
+        let by = tz * upX - tx * upZ;
+        let bz = tx * upY - ty * upX;
+        const bLen = Math.hypot(bx, by, bz) || 1;
+        bx /= bLen; by /= bLen; bz /= bLen;
+
+        const nx = by * tz - bz * ty;
+        const ny = bz * tx - bx * tz;
+        const nz = bx * ty - by * tx;
+
+        for (let r = 0; r <= rings; r++) {
+          const t = r / rings;
+          const cx = pStart.x + dx * t;
+          const cy = pStart.y + dy * t;
+          const cz = pStart.z + dz * t;
+
+          const baseR = rStart * (1 - t) + rEnd * t + Math.sin(t * Math.PI) * (rMid - (rStart + rEnd) * 0.5);
+          const localBulge = bulgeWeight * (0.38 + 0.62 * Math.sin(t * Math.PI));
+
+          for (let s = 0; s < sides; s++) {
+            const a = (s / sides) * Math.PI * 2;
+            const cosA = Math.cos(a) * flareX;
+            const sinA = Math.sin(a) * flareZ;
+
+            const dirX = bx * cosA + nx * sinA;
+            const dirY = by * cosA + ny * sinA;
+            const dirZ = bz * cosA + nz * sinA;
+
+            verts.push({
+              cx, cy, cz,
+              dirX, dirY, dirZ,
+              baseR,
+              bulgeWeight: localBulge
+            });
+          }
+        }
+
+        for (let r = 0; r < rings; r++) {
+          for (let s = 0; s < sides; s++) {
+            const sNext = (s + 1) % sides;
+            const i0 = r * sides + s;
+            const i1 = r * sides + sNext;
+            const i2 = (r + 1) * sides + sNext;
+            const i3 = (r + 1) * sides + s;
+
+            faces.push([i0, i1, i2, i3]);
+            edges.push([i0, i1]);
+            edges.push([i0, i3]);
+          }
+        }
+
+        for (let s = 0; s < sides; s++) {
+          const sNext = (s + 1) % sides;
+          const lastOffset = rings * sides;
+          edges.push([lastOffset + s, lastOffset + sNext]);
+        }
+
+        return { verts, edges, faces };
+      }
+
+      function createHumanoidMesh() {
+        const parts = [];
+
+        // 1. Head
+        parts.push(createLimbPart({ x: 0, y: -96, z: 2 }, { x: 0, y: -68, z: 4 }, 9, 15, 11, 3, 8, 0.14, 0.95, 1.05));
+
+        // 2. Upper Torso / Pecs & Lats
+        parts.push(createLimbPart({ x: 0, y: -64, z: 0 }, { x: 0, y: -12, z: 0 }, 17, 32, 21, 4, 10, 1.55, 1.42, 0.95));
+
+        // 3. Lower Torso / Core & Pelvis
+        parts.push(createLimbPart({ x: 0, y: -12, z: 0 }, { x: 0, y: 24, z: 0 }, 20, 22, 21, 3, 10, 0.85, 1.24, 0.92));
+
+        // Left & Right Symmetrical Limbs (Wide Power Stance)
+        for (const side of [-1, 1]) {
+          parts.push(createLimbPart(
+            { x: side * 25, y: -58, z: 0 },
+            { x: side * 43, y: -44, z: 2 },
+            10, 16, 12, 3, 8, 1.65, 1.08, 1.08
+          ));
+
+          parts.push(createLimbPart(
+            { x: side * 43, y: -44, z: 2 },
+            { x: side * 61, y: -12, z: 10 },
+            11, 15, 10, 3, 8, 1.55, 1.02, 1.12
+          ));
+
+          parts.push(createLimbPart(
+            { x: side * 61, y: -12, z: 10 },
+            { x: side * 71, y: 24, z: 24 },
+            10, 13, 9, 3, 8, 1.25, 1.0, 1.0
+          ));
+
+          parts.push(createLimbPart(
+            { x: side * 16, y: 22, z: 0 },
+            { x: side * 34, y: 66, z: 8 },
+            14, 19, 13, 3, 8, 1.42, 1.06, 1.14
+          ));
+
+          parts.push(createLimbPart(
+            { x: side * 34, y: 66, z: 8 },
+            { x: side * 44, y: 112, z: 2 },
+            11, 14, 10, 3, 8, 1.15, 1.0, 1.08
+          ));
+        }
+
+        const allVerts = [];
+        const allEdges = [];
+        const allFaces = [];
+
+        for (const p of parts) {
+          const offset = allVerts.length;
+          for (const v of p.verts) allVerts.push(v);
+          for (const [a, b] of p.edges) allEdges.push([a + offset, b + offset]);
+          for (const q of p.faces) allFaces.push(q.map((idx) => idx + offset));
+        }
+
+        return { verts: allVerts, edges: allEdges, faces: allFaces };
+      }
+
+      function computeGrowthCurve(p) {
+        let baseGrowth = 0;
+
+        if (p < 0.20) {
+          // Stage 1 (0 - 3.6s): "Is he growing?"
+          const t = p / 0.20;
+          baseGrowth = 0.08 * (t * t);
+        } else if (p < 0.38) {
+          // Stage 2 (3.6s - 6.8s): "He got bigger, I think?"
+          const t = (p - 0.20) / 0.18;
+          baseGrowth = 0.08 + 0.22 * (t * t * (3 - 2 * t));
+        } else if (p < 0.60) {
+          // Stage 3 (6.8s - 10.8s): "He is bigger > He is still growing"
+          const t = (p - 0.38) / 0.22;
+          baseGrowth = 0.30 + 0.48 * Math.pow(t, 1.15);
+        } else if (p < 0.82) {
+          // Stage 4 (10.8s - 14.8s): "Getting too big > Too big"
+          const t = (p - 0.60) / 0.22;
+          baseGrowth = 0.78 + 0.68 * Math.pow(t, 1.2);
+        } else {
+          // Stage 5 (14.8s - 18.0s): "Huge and still growing"
+          const t = (p - 0.82) / 0.18;
+          baseGrowth = 1.46 + 0.64 * t;
+        }
+
+        const pulseAmp = 0.015 + baseGrowth * 0.055;
+        const surgePulse = Math.max(0, Math.sin(p * Math.PI * 16)) * pulseAmp;
+
+        return baseGrowth + surgePulse;
+      }
+
+      window.registerVFXProp({
+        id: "big3rHulk3D",
+        label: "BIG3R: 3D Slow-Burn Hulking Surge",
+        durationMs: 18000,
+
+        spawn(W, H, CX, CY) {
+          const mesh = createHumanoidMesh();
+          const energySparks = [];
+
+          for (let i = 0; i < 65; i++) {
+            energySparks.push({
+              x: (Math.random() - 0.5) * 190,
+              y: 125 - Math.random() * 240,
+              z: (Math.random() - 0.5) * 130,
+              vy: -0.9 - Math.random() * 1.9,
+              size: 1.8 + Math.random() * 3.0,
+              phase: Math.random() * Math.PI * 2,
+              hue: Math.random() > 0.3 ? 150 : 48
+            });
+          }
+
+          return { mesh, energySparks };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const fadeOut = progress > 0.94 ? Math.max(0, (1 - progress) / 0.06) : 1;
+          const popIn = Math.max(0.08, Math.min(1, progress / 0.03));
+          if (fadeOut <= 0.001) return;
+
+          const hulkFactor = computeGrowthCurve(progress);
+
+          const ry = Math.sin(progress * Math.PI * 4) * 0.58;
+          const rx = 0.06 + Math.min(0.14, hulkFactor * 0.06);
+          const rz = 0;
+
+          const frameScale = (0.92 + hulkFactor * 0.32) * popIn;
+          const fov = 450;
+          const cameraZ = 390;
+
+          const worldVerts = [];
+          const projVerts = [];
+
+          for (const v of state.mesh.verts) {
+            const radiusBoost = 1 + hulkFactor * v.bulgeWeight * 0.88;
+            const stanceWidenX = 1 + hulkFactor * 0.24;
+            const stanceDropY = Math.min(16, hulkFactor * 5.5);
+
+            const raw = {
+              x: (v.cx * stanceWidenX + v.dirX * v.baseR * radiusBoost) * frameScale,
+              y: (v.cy + stanceDropY + v.dirY * v.baseR * radiusBoost) * frameScale,
+              z: (v.cz + v.dirZ * v.baseR * radiusBoost) * frameScale
+            };
+
+            const rot = rotate3D(raw, rx, ry, rz);
+            worldVerts.push(rot);
+            projVerts.push(project3D(rot, CX, CY + 12, fov, cameraZ));
+          }
+
+          const groundY = Math.min(H - 18, CY + 132 * frameScale);
+          const auraR = Math.max(20, (65 + hulkFactor * 85) * popIn);
+          const auraIntensity = Math.min(0.85, 0.22 + hulkFactor * 0.32);
+
+          const auraGrad = ctx.createRadialGradient(CX, groundY, 4, CX, groundY, auraR);
+          auraGrad.addColorStop(0, "rgba(52, 211, 153, " + (auraIntensity * fadeOut) + ")");
+          auraGrad.addColorStop(0.55, "rgba(16, 185, 129, " + (auraIntensity * 0.45 * fadeOut) + ")");
+          auraGrad.addColorStop(1, "rgba(16, 185, 129, 0)");
+
+          ctx.save();
+          ctx.translate(CX, groundY);
+          ctx.scale(1.5, 0.36);
+          ctx.fillStyle = auraGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (hulkFactor > 0.25) {
+            const waveSpeed = 1.8 + hulkFactor * 1.4;
+            for (let w = 0; w < 3; w++) {
+              const localP = (progress * waveSpeed + w * 0.33) % 1;
+              const ringRx = (40 + localP * (95 + hulkFactor * 65)) * popIn;
+              const ringRy = ringRx * 0.26;
+              const rAlpha = (1 - localP) * Math.min(0.75, hulkFactor * 0.42) * fadeOut;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.ellipse(CX, groundY, ringRx, ringRy, 0, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(110, 231, 183, " + rAlpha + ")";
+              ctx.lineWidth = (1.8 + hulkFactor * 1.4) * (1 - localP);
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+          // Painter's Z-sorted 3D shaded muscle polygons (with explicit quad[0..3] indexing)
+          const sortedFaces = state.mesh.faces
+            .map((quad) => {
+              const p0 = worldVerts[quad[0]];
+              const p1 = worldVerts[quad[1]];
+              const p2 = worldVerts[quad[2]];
+              const p3 = worldVerts[quad[3]];
+              const avgZ = (p0.z + p1.z + p2.z + p3.z) * 0.25;
+              const ux = p1.x - p0.x, uy = p1.y - p0.y, uz = p1.z - p0.z;
+              const vx = p2.x - p0.x, vy = p2.y - p0.y, vz = p2.z - p0.z;
+              const nx = uy * vz - uz * vy;
+              const ny = uz * vx - ux * vz;
+              const nz = ux * vy - uy * vx;
+              const nLen = Math.hypot(nx, ny, nz) || 1;
+              const keyLight = Math.max(0, (-0.35 * nx - 0.55 * ny + 0.75 * nz) / nLen);
+              const rimLight = Math.max(0, (0.65 * nx - 0.2 * ny - 0.3 * nz) / nLen);
+              return { quad, avgZ, keyLight, rimLight, isFront: nz > 0 };
+            })
+            .sort((a, b) => a.avgZ - b.avgZ);
+          for (const f of sortedFaces) {
+            if (!f.isFront) continue;
+            const pts = f.quad.map((idx) => projVerts[idx]);
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            ctx.lineTo(pts[1].x, pts[1].y);
+            ctx.lineTo(pts[2].x, pts[2].y);
+            ctx.lineTo(pts[3].x, pts[3].y);
+            ctx.closePath();
+            const energyShift = Math.min(1, hulkFactor / 1.8);
+            const r = Math.min(255, Math.round(14 + f.keyLight * 75 + f.rimLight * 55 + energyShift * 45));
+            const g = Math.min(255, Math.round(115 + f.keyLight * 125 + f.rimLight * 40 + energyShift * 20));
+            const b = Math.min(255, Math.round(88 + f.keyLight * 95 + f.rimLight * 85 - energyShift * 25));
+            ctx.fillStyle = "rgba(" + r + ", " + g + ", " + b + ", " + (0.9 * fadeOut) + ")";
+            ctx.fill();
+            ctx.lineWidth = 0.85;
+            ctx.strokeStyle = "rgba(167, 243, 208, " + ((0.2 + f.keyLight * 0.35 + energyShift * 0.15) * fadeOut) + ")";
+            ctx.stroke();
+          }
+          const activeSparkCount = Math.min(state.energySparks.length, Math.floor(10 + hulkFactor * 32));
+          for (let i = 0; i < activeSparkCount; i++) {
+            const sp = state.energySparks[i];
+            sp.y += sp.vy * (0.7 + hulkFactor * 0.5);
+            if (sp.y < -150) sp.y = 125;
+            const rawS = {
+              x: sp.x * (0.85 + hulkFactor * 0.28) + Math.sin(progress * 24 + sp.phase) * 9,
+              y: sp.y,
+              z: sp.z * (0.85 + hulkFactor * 0.28)
+            };
+            const rotS = rotate3D(rawS, rx, ry, rz);
+            const projS = project3D(rotS, CX, CY + 12, fov, cameraZ);
+            const sparkAlpha = Math.min(0.95, 0.35 + hulkFactor * 0.4) * fadeOut;
+            const sparkColor = "hsla(" + sp.hue + ", 95%, 68%, " + sparkAlpha + ")";
+            const glowColor = "hsla(" + sp.hue + ", 95%, 60%, " + sparkAlpha + ")";
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(projS.x, projS.y, Math.max(0.6, sp.size * projS.scale * fadeOut), 0, Math.PI * 2);
+            ctx.fillStyle = sparkColor;
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    big3rHulk3D();
+  </script>
+</body>
+
+</html>

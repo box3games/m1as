@@ -8,6 +8,14 @@ import {
     VfxGrowthState
 } from "../viewer/types.js";
 
+import type { M1ASVFXEngine } from "../M1ASVFXEngine.js";
+import { Big3rStageCoordinator } from "../big3r/Big3rStageCoordinator.js";
+import type { FaceAssetType } from "../M1ASFaceSurfaceResolver.js";
+import type { JSONLevelManifest } from "../big3r/streaming/manifest-types.js";
+import type { CameraRigMode } from "../big3r/camera/CameraRig5Mode.js";
+import type { Big3rStagePreset, FaceSlotKey } from "./types.js";
+
+
 const BOX_TIER_NAMES = [
     "Broken Jar",
     "Sewer Pipes",
@@ -35,6 +43,26 @@ export class Big3rSandboxController {
     private readonly userId: string;
     private readonly engineFactory: VfxEngineFactory;
     private activeEngine: IVfxEngine | null = null;
+
+    private coordinator: Big3rStageCoordinator | null = null;
+    private currentBoxTier = 1;
+
+    private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
+    private readonly heightReticle = document.getElementById("vfxHeightReticle") as HTMLElement | null;
+
+    private readonly roomSlotSelect = document.getElementById("vfxRoomSlotSelect") as HTMLSelectElement | null;
+    private readonly roomAssetTypeSelect = document.getElementById("vfxRoomAssetType") as HTMLSelectElement | null;
+    private readonly roomValueInput = document.getElementById("vfxRoomValueInput") as HTMLInputElement | null;
+    private readonly paintRoomBtn = document.getElementById("vfxPaintRoomBtn") as HTMLButtonElement | null;
+    private readonly doubleSidedToggle = document.getElementById("vfxDoubleSidedRoomToggle") as HTMLInputElement | null;
+    private readonly exportPresetBtn = document.getElementById("vfxExportPresetBtn") as HTMLButtonElement | null;
+    private readonly importPresetBtn = document.getElementById("vfxImportPresetBtn") as HTMLButtonElement | null;
+    private readonly presetFileInput = document.getElementById("vfxPresetFileInput") as HTMLInputElement | null;
+
+    private readonly camRigSelect = document.getElementById("vfxCamRigSelect") as HTMLSelectElement | null;
+    private readonly mountTvBtn = document.getElementById("vfxMountTvBtn") as HTMLButtonElement | null;
+    private readonly loadManifestBtn = document.getElementById("vfxLoadManifestBtn") as HTMLButtonElement | null;
+    private readonly manifestFileInput = document.getElementById("vfxManifestFileInput") as HTMLInputElement | null;
 
     private readonly glbUrlInput = document.getElementById("vfxGlbUrlInput") as HTMLInputElement;
     private readonly overlayUrlInput = document.getElementById("vfxOverlayUrlInput") as HTMLInputElement;
@@ -115,6 +143,11 @@ export class Big3rSandboxController {
 
         this.glbUrlInput.value = glbSignedUrl;
 
+        if (this.coordinator) {
+            this.coordinator.destroy();
+            this.coordinator = null;
+        }
+
         if (this.activeEngine) {
             this.activeEngine.destroy();
             this.activeEngine = null;
@@ -143,12 +176,25 @@ export class Big3rSandboxController {
                 initialRoomCeiling: initialCeiling,
                 cinematicCamera: this.cinematicCamToggle.checked,
                 onPropsChanged: (props) => this.renderActivePropsUI(props),
-                onStateChange: (state) => this.updateTelemetry(state),
+                onStateChange: (state) => {
+                    this.currentBoxTier = state.boxTier;
+                    this.updateTelemetry(state)
+
+                },
                 onRoomCollapse: (_newBoxTier, newCeiling) => {
                     this.ceilingSlider.value = Math.min(12, newCeiling).toFixed(1);
                     this.ceilingVal.textContent = `${newCeiling.toFixed(1)}m`;
                 }
             });
+
+            this.coordinator = new Big3rStageCoordinator(
+                this.activeEngine as unknown as M1ASVFXEngine,
+                this.userId,
+                initialCeiling
+            );
+            if (this.streamingHud) this.coordinator.attachTelemetryHud(this.streamingHud);
+            if (this.heightReticle) this.coordinator.attachHeightReticle(this.heightReticle);
+
 
             this.activeEngine.setMode(this.growthModeSelect.value as GrowthMode);
 
@@ -248,7 +294,74 @@ export class Big3rSandboxController {
         this.respawnPropsBtn.addEventListener("click", () => {
             this.activeEngine?.resetAllProps();
         });
+
+                this.paintRoomBtn?.addEventListener("click", async () => {
+            if (!this.coordinator || !this.roomSlotSelect || !this.roomAssetTypeSelect || !this.roomValueInput) return;
+            const rawSlot = this.roomSlotSelect.value;
+            const slot: FaceSlotKey = rawSlot === "bg" ? "bg" : Number(rawSlot);
+            const assetType = this.roomAssetTypeSelect.value as FaceAssetType;
+            const value = this.roomValueInput.value.trim();
+            await this.coordinator.paintRoomFace(slot, assetType, value);
+        });
+
+        this.doubleSidedToggle?.addEventListener("change", () => {
+            this.coordinator?.setRoomDoubleSided(this.doubleSidedToggle!.checked);
+        });
+
+        this.exportPresetBtn?.addEventListener("click", () => {
+            if (!this.coordinator) return;
+            const ceiling = parseFloat(this.ceilingSlider.value) || 3.2;
+            const preset = this.coordinator.exportStagePreset(this.currentBoxTier, ceiling);
+            const blob = new Blob([JSON.stringify(preset, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `big3r-stage-preset-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        this.importPresetBtn?.addEventListener("click", () => this.presetFileInput?.click());
+        this.presetFileInput?.addEventListener("change", async () => {
+            const file = this.presetFileInput?.files?.item(0);
+            if (!file || !this.coordinator) return;
+            const parsed = JSON.parse(await file.text()) as Big3rStagePreset;
+            await this.coordinator.importStagePreset(parsed);
+            this.presetFileInput!.value = "";
+        });
+
+        this.camRigSelect?.addEventListener("change", () => {
+            if (!this.coordinator || !this.activeEngine) return;
+            const mode = Number(this.camRigSelect!.value) as CameraRigMode;
+            this.activeEngine.setCinematicCamera(mode === 1 ? this.cinematicCamToggle.checked : false);
+            this.coordinator.setCameraRigMode(mode);
+        });
+
+        this.mountTvBtn?.addEventListener("click", () => {
+            if (!this.coordinator) return;
+            const overlayUrl = this.overlayUrlInput.value.trim();
+            const screens = overlayUrl ? { 0: overlayUrl, 1: overlayUrl, 2: overlayUrl, 3: overlayUrl } : {};
+            this.coordinator.mountFourFaceTvProp(1.8, -1.6, screens);
+            if (this.camRigSelect) {
+                this.camRigSelect.value = "3";
+                this.activeEngine?.setCinematicCamera(false);
+                this.coordinator.setCameraRigMode(3);
+            }
+        });
+
+        this.loadManifestBtn?.addEventListener("click", () => this.manifestFileInput?.click());
+        this.manifestFileInput?.addEventListener("change", async () => {
+            const file = this.manifestFileInput?.files?.item(0);
+            if (!file || !this.coordinator) return;
+            const manifest = JSON.parse(await file.text()) as JSONLevelManifest;
+            this.activeEngine?.setCinematicCamera(false);
+            await this.coordinator.loadLevelManifest(manifest);
+            this.manifestFileInput!.value = "";
+        });
+
     }
+
+    
 
     private updateTelemetry(state: VfxGrowthState): void {
         const tierLabel = BOX_TIER_NAMES[Math.min(state.boxTier - 1, BOX_TIER_NAMES.length - 1)];
@@ -257,8 +370,8 @@ export class Big3rSandboxController {
             state.posture === "crawl"
                 ? "posture-crawl"
                 : state.posture === "hunch"
-                  ? "posture-hunch"
-                  : "posture-stand";
+                    ? "posture-hunch"
+                    : "posture-stand";
 
         this.telemetryBadge.innerHTML = `Box ${state.boxTier}: <strong>${tierLabel}</strong> | Scale: <strong>${state.currentScale.toFixed(2)}x</strong> | Posture: <strong class="${postureClass}">${state.posture.toUpperCase()}</strong> (${Math.round(state.occupancyRatio * 100)}%) | Golden Buf: ${state.storedGoldenBuffer.toFixed(2)} | ${rigTag}`;
     }

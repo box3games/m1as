@@ -46,7 +46,19 @@
                 <option value="procedural-growth">✨ Procedural Alpha VFX: Growth Surge (1.5s)</option>
                 <option value="procedural-fireball">🔥 Procedural Alpha VFX: Colossal Burst (1.5s)</option>
                 <option value="procedural-collapse">💥 Procedural Alpha VFX: Gate Shatter &amp; Dust (1.8s)</option>
+                <option value="procedural-magic-smoke">🔮 Procedural Alpha VFX: Purple Magic Smoke (2.0s)</option>
+                <option value="procedural-lightning">⚡ Procedural Alpha VFX: Midpoint Lightning (2.0s)</option>
+                <option value="procedural-metaball-fluid">💧 Procedural Alpha VFX: 2D Metaball Fluid (2.0s)</option>
+                <option value="procedural-goo-pour">🧪 Procedural Alpha VFX: Thick Goo / Jelly Pour (2.0s)</option>
+                <option value="procedural-spinning-coin">🪙 Procedural Alpha VFX: Spinning M1 Coin (2.0s)</option>
+                <option value="procedural-spinning-skull">💀 Procedural Alpha VFX: Spinning Skull (2.0s)</option>
             </select>
+
+            <label class="control-inline-label">
+                Fluid Viscosity:
+                <input type="range" id="recViscositySlider" min="0" max="1" step="0.05" value="0.9" />
+                <span id="recViscosityVal">0.90</span>
+            </label>
 
             <label class="control-checkbox-label">
                 <input type="checkbox" id="recAlphaBg" />
@@ -140,6 +152,55 @@
                     🎥 Cinematic Low-Angle &amp; FOV Kick
                 </label>
             </div>
+            <div class="vfx-control-row vfx-control-row--divided-tight">
+                <label class="control-group-label control-group-label--sky">CCSA Room Slot:</label>
+                <select id="vfxRoomSlotSelect" class="m1as-select">
+                    <option value="bg">Slot: bg (Backdrop)</option>
+                    <option value="0">Face 0 (+X Right Wall)</option>
+                    <option value="1">Face 1 (-X Left Wall)</option>
+                    <option value="2">Face 2 (+Y Ceiling)</option>
+                    <option value="3">Face 3 (-Y Floor)</option>
+                    <option value="4">Face 4 (+Z Front Wall)</option>
+                    <option value="5">Face 5 (-Z Back Wall)</option>
+                </select>
+
+                <select id="vfxRoomAssetType" class="m1as-select">
+                    <option value="color">Type: Color Hex</option>
+                    <option value="image">Type: Image (.png/.webp/.jpg)</option>
+                    <option value="video">Type: Video (.webm/.mp4)</option>
+                    <option value="audio">Type: Audio Visualizer (.mp3)</option>
+                    <option value="svg-preview">Type: SVG</option>
+                    <option value="text">Type: JSON / Text</option>
+                </select>
+
+                <input type="text" id="vfxRoomValueInput" class="m1as-input-txt m1as-input-txt--wide"
+                    placeholder="#0f172a or signed URL..." />
+                <button id="vfxPaintRoomBtn" class="playground-btn btn--purple">🎨 Paint Slot</button>
+
+                <label class="control-checkbox-label control-checkbox-label--sm">
+                    <input type="checkbox" id="vfxDoubleSidedRoomToggle" />
+                    Double-Sided Room
+                </label>
+
+                <button id="vfxExportPresetBtn" class="playground-btn btn--slate-dark">⬇ Export Preset</button>
+                <button id="vfxImportPresetBtn" class="playground-btn btn--slate-dark">⬆ Import Preset</button>
+                <input type="file" id="vfxPresetFileInput" accept=".json,application/json" class="is-hidden" />
+            </div>
+
+            <div class="vfx-control-row vfx-control-row--divided-tight">
+                <label class="control-group-label control-group-label--sky">Camera Rig:</label>
+                <select id="vfxCamRigSelect" class="m1as-select">
+                    <option value="1">1: FreeExplore + HeightReticle</option>
+                    <option value="2">2: Obs1 (Scale Observer)</option>
+                    <option value="3">3: Obs2 (4-Face TV Inspect)</option>
+                    <option value="4">4: FirstPerson (Eye Creep + Shake)</option>
+                    <option value="5">5: Worms / BirdsEye + DynamicNearClip</option>
+                </select>
+
+                <button id="vfxMountTvBtn" class="playground-btn btn--violet">📺 Spawn 4-Face TV</button>
+                <button id="vfxLoadManifestBtn" class="playground-btn btn--emerald">📂 Load Level Manifest (.json)</button>
+                <input type="file" id="vfxManifestFileInput" accept=".json,application/json" class="is-hidden" />
+            </div>
 
             <div class="vfx-control-row vfx-control-row--divided-tight">
                 <label class="control-group-label control-group-label--sky">Add Scene .glb:</label>
@@ -165,6 +226,14 @@
             <div id="vfxPropListContainer" class="vfx-prop-list"></div>
         </div>
 
+        <div id="vfxStreamingHud" class="rec-status">
+            Telemetry HUD: Awaiting active stage...
+        </div>
+
+        <div id="vfxHeightReticle" class="vfx-telemetry-badge is-hidden">
+            ⊕ Height Reticle: 1.00x (1.60m)
+        </div>
+
         <div id="vfxStageContainer" class="vfx-stage-container">
             <div class="stage-placeholder stage-placeholder--vfx">
                 VFX Stage idle. Provide a signed .glb URL above or click "🍄 VFX Stage" on an asset card...
@@ -177,7 +246,7 @@
     <div id="ttlStatus" class="ttl-status"></div>
     <div id="viewer"></div>
     <div id="assetList"></div>
-    <script type="module" src="./dist/viewer.js"></script>
+    <!-- <script type="module" src="./dist/viewer.js"></script> -->
 </body>
 
 </html>

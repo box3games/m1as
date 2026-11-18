@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>BIG3R Transparent .webm VFX Asset Generator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      background: #1e293b;
+      padding: 14px 20px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+
+    select,
+    button {
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    select {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    button.primary {
+      background: #10b981;
+      color: #052e16;
+      border-color: #10b981;
+    }
+
+    button.secondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .stage {
+      position: relative;
+      width: 512px;
+      height: 512px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #334155;
+      background-color: #1e1e1e;
+      background-image:
+        linear-gradient(45deg, #2b2b2b 25%, transparent 25%),
+        linear-gradient(-45deg, #2b2b2b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #2b2b2b 75%),
+        linear-gradient(-45deg, transparent 75%, #2b2b2b 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+    }
+
+    canvas {
+      display: block;
+      width: 512px;
+      height: 512px;
+      background: transparent;
+    }
+
+    #status {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>BIG3R Transparent .webm VFX Generator</h2>
+
+  <div class="controls">
+    <select id="preset"></select>
+    <button id="previewBtn" class="secondary">Preview Effect</button>
+    <button id="recordBtn" class="primary">Record &amp; Download .webm</button>
+  </div>
+
+  <div class="stage">
+    <canvas id="vfxCanvas" width="512" height="512"></canvas>
+  </div>
+
+  <div id="status">Ready. Checkerboard pattern indicates true alpha transparency.</div>
+
+  <script>
+    const canvas = document.getElementById("vfxCanvas");
+    const ctx = canvas.getContext("2d", { alpha: true });
+    const presetSelect = document.getElementById("preset");
+    const previewBtn = document.getElementById("previewBtn");
+    const recordBtn = document.getElementById("recordBtn");
+    const statusEl = document.getElementById("status");
+
+    const WIDTH = 512;
+    const HEIGHT = 512;
+    const CX = WIDTH / 2;
+    const CY = HEIGHT / 2;
+
+    const VFX_REGISTRY = {};
+    let animFrameId = null;
+
+    window.registerVFXProp = function (propConfig) {
+      VFX_REGISTRY[propConfig.id] = propConfig;
+      const opt = document.createElement("option");
+      opt.value = propConfig.id;
+      opt.textContent = `${propConfig.label} (${(propConfig.durationMs / 1000).toFixed(1)}s)`;
+      presetSelect.appendChild(opt);
+      presetSelect.value = propConfig.id;
+    };
+
+    function playAnimation(onComplete) {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      const prop = VFX_REGISTRY[presetSelect.value];
+      if (!prop) return;
+
+      const state = prop.spawn ? prop.spawn(WIDTH, HEIGHT, CX, CY) : {};
+      const start = performance.now();
+
+      function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(1, elapsed / prop.durationMs);
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        prop.render(ctx, progress, state, WIDTH, HEIGHT, CX, CY);
+
+        if (progress < 1) {
+          animFrameId = requestAnimationFrame(tick);
+        } else {
+          ctx.clearRect(0, 0, WIDTH, HEIGHT);
+          if (onComplete) onComplete();
+        }
+      }
+      animFrameId = requestAnimationFrame(tick);
+    }
+
+    previewBtn.addEventListener("click", () => {
+      statusEl.textContent = "Previewing transparent VFX animation...";
+      playAnimation(() => {
+        statusEl.textContent = "Preview complete.";
+      });
+    });
+
+    recordBtn.addEventListener("click", () => {
+      const preset = presetSelect.value;
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+        ? "video/webm;codecs=vp9"
+        : "video/webm";
+
+      const stream = canvas.captureStream(60);
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 4000000
+      });
+
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `m1as-vfx-${preset}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        previewBtn.disabled = false;
+        recordBtn.disabled = false;
+        statusEl.textContent = `Downloaded m1as-vfx-${preset}.webm (${(blob.size / 1024).toFixed(1)} KB) with alpha channel.`;
+      };
+
+      previewBtn.disabled = true;
+      recordBtn.disabled = true;
+      statusEl.textContent = `Recording ${mimeType} at 60 FPS...`;
+
+      recorder.start();
+      playAnimation(() => {
+        setTimeout(() => recorder.stop(), 80);
+      });
+    });
+  </script>
+
+  <!-- === SWAP OUT INJECTABLE PROP SCRIPT BELOW === -->
+  <!-- purple smoke -->
+  <script>
+    const purpleMagicSmoke = function spawnMagicSmoke() {
+      window.registerVFXProp({
+        id: "purple-magic-smoke",
+        label: "VFX: Purple Magic Smoke",
+        durationMs: 2000,
+
+        spawn(W, H, CX, CY) {
+          const puffs = [];
+          const motes = [];
+
+          for (let i = 0; i < 42; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 65;
+            puffs.push({
+              x: CX + Math.cos(angle) * dist,
+              y: CY + 40 + Math.sin(angle) * (dist * 0.6),
+              vx: (Math.random() - 0.5) * 1.4,
+              vy: -0.8 - Math.random() * 1.8,
+              radius: 36 + Math.random() * 44,
+              grow: 24 + Math.random() * 28,
+              hue: 268 + (Math.random() - 0.5) * 28,
+              delay: Math.random() * 0.25,
+              life: 0.65 + Math.random() * 0.35
+            });
+          }
+
+          for (let i = 0; i < 30; i++) {
+            motes.push({
+              x: CX + (Math.random() - 0.5) * 180,
+              y: CY + 60 + (Math.random() - 0.5) * 90,
+              vx: (Math.random() - 0.5) * 0.9,
+              vy: -1.5 - Math.random() * 2.5,
+              size: 2 + Math.random() * 3.5,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+
+          return { puffs, motes };
+        },
+
+        render(ctx, progress, state, W, H, CX, CY) {
+          const glowEnv = Math.sin(Math.min(1, progress * 1.15) * Math.PI);
+          if (glowEnv > 0) {
+            const coreGrad = ctx.createRadialGradient(CX, CY + 20, 10, CX, CY + 20, 175);
+            coreGrad.addColorStop(0, `rgba(192, 132, 252, ${glowEnv * 0.45})`);
+            coreGrad.addColorStop(0.55, `rgba(126, 34, 206, ${glowEnv * 0.25})`);
+            coreGrad.addColorStop(1, "rgba(88, 28, 135, 0)");
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(CX, CY + 20, 175, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          for (const p of state.puffs) {
+            const localP = (progress - p.delay) / p.life;
+            if (localP <= 0 || localP >= 1) continue;
+
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.985;
+
+            const alpha = Math.sin(localP * Math.PI) * 0.42;
+            const r = p.radius + localP * p.grow;
+
+            const grad = ctx.createRadialGradient(p.x, p.y, r * 0.1, p.x, p.y, r);
+            grad.addColorStop(0, `hsla(${p.hue}, 82%, 58%, ${alpha})`);
+            grad.addColorStop(0.55, `hsla(${p.hue - 10}, 75%, 36%, ${alpha * 0.65})`);
+            grad.addColorStop(1, `hsla(${p.hue - 15}, 70%, 20%, 0)`);
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          for (const m of state.motes) {
+            m.x += m.vx + Math.sin(progress * 10 + m.phase) * 0.6;
+            m.y += m.vy;
+            const mAlpha = Math.sin(progress * Math.PI) * 0.9;
+            if (mAlpha <= 0) continue;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(243, 232, 255, ${mAlpha})`;
+            ctx.shadowColor = "#c084fc";
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      });
+    };
+    purpleMagicSmoke();
+  </script>
+  
+  <!-- camera helper -->
+   
+  <script>
+    // === SHARED 3D SOFT-ROBOTICS / ORGANIC SURGE HELPER ===
+    window.BIG3R_STUDIO = (function () {
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function smoothstep(edge0, edge1, x) {
+        const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+        return t * t * (3 - 2 * t);
+      }
+
+      // 3D Projection supporting Yaw (Left/Right 45), Pitch (Ceiling / Top-Down), and Pinned Root Anchor
+      function projectPoint(p, cam, anchorX, anchorY, fov) {
+        // Yaw around Y axis (rotates subject/camera left or right)
+        const cy = Math.cos(cam.yaw);
+        const sy = Math.sin(cam.yaw);
+        const x1 = p.x * cy - p.z * sy;
+        const z1 = p.x * sy + p.z * cy;
+
+        // Pitch around X axis (+pitch = looking up toward ceiling, -pitch = looking down from above)
+        const cp = Math.cos(cam.pitch);
+        const sp = Math.sin(cam.pitch);
+        const y2 = p.y * cp + z1 * sp;
+        const z2 = -p.y * sp + z1 * cp;
+
+        const depth = Math.max(45, cam.dist - z2);
+        const scale = fov / depth;
+
+        // Reference scale at root (0,0,0) so base stays pinned to exact screen pixel (anchorX, anchorY)
+        const rootScale = fov / Math.max(45, cam.dist);
+        const rx = x1 * scale;
+        const ry = y2 * scale;
+
+        return {
+          x: anchorX + rx,
+          y: anchorY + ry,
+          z: depth,
+          scale,
+          rootScale
+        };
+      }
+
+      // Smooth 36-second long-balloon inflation curve (zero spring/coil wrinkles, pure progressive turgor)
+      function computeBalloonCurve(p) {
+        let macro = 0;
+        if (p < 0.22) {
+          // Stage 1: "Is it growing?" - smooth, subtle early lengthening & turgor shift
+          const t = p / 0.22;
+          macro = 0.10 * smoothstep(0, 1, t);
+        } else if (p < 0.44) {
+          // Stage 2: "It got bigger, I think?" - clear elongation & basal widening
+          const t = (p - 0.22) / 0.22;
+          macro = lerp(0.10, 0.32, smoothstep(0, 1, t));
+        } else if (p < 0.68) {
+          // Stage 3: "It is bigger > still growing" - assertive vertical & radial surge
+          const t = (p - 0.44) / 0.24;
+          macro = lerp(0.32, 0.65, Math.pow(t, 1.05));
+        } else if (p < 0.86) {
+          // Stage 4: "Getting too big > too big"
+          const t = (p - 0.68) / 0.18;
+          macro = lerp(0.65, 0.92, Math.pow(t, 1.08));
+        } else {
+          // Stage 5: "Huge and still growing"
+          const t = (p - 0.86) / 0.14;
+          macro = lerp(0.92, 1.15, t);
+        }
+
+        // Smooth long-balloon hydraulic cycles: base widens first, then shaft elongates smoothly
+        const cycles = 10;
+        const cyclePos = p * cycles;
+        const cycleIdx = Math.floor(cyclePos);
+        const cycleFrac = cyclePos - cycleIdx;
+
+        const girthStep = smoothstep(0.0, 0.52, cycleFrac);
+        const lengthStep = smoothstep(0.32, 0.96, cycleFrac);
+
+        const stepUnit = 1 / cycles;
+        const steppedGirth = (cycleIdx + girthStep) * stepUnit * 1.15;
+        const steppedLength = (cycleIdx + lengthStep) * stepUnit * 1.15;
+
+        const radial = lerp(macro, steppedGirth, 0.28);
+        const axial = lerp(macro, steppedLength, 0.34);
+        const rootPulse = Math.sin(cycleFrac * Math.PI) * (0.012 + macro * 0.028);
+
+        return { macro, radial, axial, rootPulse };
+      }
+
+      function buildMeshes() {
+        const rings = 48;
+        const sides = 28;
+        const tubeVerts = [];
+        const tubeFaces = [];
+
+        for (let r = 0; r <= rings; r++) {
+          const v = r / rings;
+          for (let s = 0; s < sides; s++) {
+            const theta = (s / sides) * Math.PI * 2;
+            tubeVerts.push({ v, theta, cosT: Math.cos(theta), sinT: Math.sin(theta) });
+          }
+        }
+        for (let r = 0; r < rings; r++) {
+          for (let s = 0; s < sides; s++) {
+            const sNext = (s + 1) % sides;
+            tubeFaces.push([
+              r * sides + s,
+              r * sides + sNext,
+              (r + 1) * sides + sNext,
+              (r + 1) * sides + s
+            ]);
+          }
+        }
+
+        const lat = 12;
+        const lon = 16;
+        const pouchVerts = [];
+        const pouchFaces = [];
+        for (let i = 0; i <= lat; i++) {
+          const phi = (i / lat) * Math.PI;
+          for (let j = 0; j < lon; j++) {
+            const theta = (j / lon) * Math.PI * 2;
+            pouchVerts.push({
+              nx: Math.sin(phi) * Math.cos(theta),
+              ny: -Math.cos(phi),
+              nz: Math.sin(phi) * Math.sin(theta)
+            });
+          }
+        }
+        for (let i = 0; i < lat; i++) {
+          for (let j = 0; j < lon; j++) {
+            const jNext = (j + 1) % lon;
+            pouchFaces.push([
+              i * lon + j,
+              i * lon + jNext,
+              (i + 1) * lon + jNext,
+              (i + 1) * lon + j
+            ]);
+          }
+        }
+
+        return {
+          tube: { verts: tubeVerts, faces: tubeFaces },
+          pouch: { verts: pouchVerts, faces: pouchFaces }
+        };
+      }
+
+      // Camera Angle Presets for NPC Lab-Table / Viewport Testing
+      const CAMERA_PRESETS = {
+        // Angle 1: Low angle looking up toward ceiling
+        ceiling: {
+          anchorX: 256,
+          anchorY: 468,
+          baseDist: 310,
+          pullbackDist: 145,
+          basePitch: 0.34,
+          pitchGain: 0.14,
+          yaw: 0.0,
+          baseFov: 410,
+          fovZoomOut: 65
+        },
+        // Angle 2: 45 degrees left growing toward viewer
+        left45: {
+          anchorX: 165,
+          anchorY: 455,
+          baseDist: 320,
+          pullbackDist: 140,
+          basePitch: 0.14,
+          pitchGain: 0.08,
+          yaw: 0.68,
+          baseFov: 410,
+          fovZoomOut: 60
+        },
+        // Angle 3: 45 degrees right growing toward viewer
+        right45: {
+          anchorX: 347,
+          anchorY: 455,
+          baseDist: 320,
+          pullbackDist: 140,
+          basePitch: 0.14,
+          pitchGain: 0.08,
+          yaw: -0.68,
+          baseFov: 410,
+          fovZoomOut: 60
+        },
+        // Angle 4: Looking down from above as subject grows directly toward viewer/lens
+        topDown: {
+          anchorX: 256,
+          anchorY: 365,
+          baseDist: 340,
+          pullbackDist: 150,
+          basePitch: -0.78,
+          pitchGain: -0.10,
+          yaw: 0.0,
+          baseFov: 400,
+          fovZoomOut: 70
+        }
+      };
+
+      // Framing mode toggle: "hybrid" (recommended), "pullback", or "locked"
+      let framingMode = "hybrid";
+
+      function setFramingMode(mode) {
+        if (CAMERA_PRESETS || mode === "hybrid" || mode === "pullback" || mode === "locked") {
+          framingMode = mode;
+        }
+      }
+
+      function renderSurge(ctx, progress, state, W, H, CX, CY, angleKey) {
+        const preset = CAMERA_PRESETS[angleKey] || CAMERA_PRESETS.ceiling;
+        const fadeOut = progress > 0.95 ? Math.max(0, (1 - progress) / 0.05) : 1;
+        const popIn = Math.max(0.08, Math.min(1, progress / 0.025));
+        if (fadeOut <= 0.001) return;
+
+        const { macro, radial, axial, rootPulse } = computeBalloonCurve(progress);
+        const tautness = Math.min(1, macro / 0.85);
+
+        // Elongated proportions: grows ~3.4x longer while keeping sleek ~1.85x radial girth
+        const totalHeight = (78 + axial * 205) * popIn;
+        const shaftRadius = (14 + radial * 15) * popIn;
+
+        // Apply selected framing mode so peak growth never clips outside the 512x512 viewport
+        const growthNorm = Math.min(1.15, macro);
+        let camDist = preset.baseDist;
+        let camPitch = preset.basePitch;
+        let fov = preset.baseFov;
+
+        if (framingMode === "pullback") {
+          camDist = preset.baseDist + growthNorm * preset.pullbackDist;
+          camPitch = preset.basePitch + growthNorm * preset.pitchGain;
+        } else if (framingMode === "hybrid") {
+          camDist = preset.baseDist + growthNorm * (preset.pullbackDist * 0.55);
+          camPitch = preset.basePitch + growthNorm * (preset.pitchGain * 0.65);
+          fov = preset.baseFov - growthNorm * preset.fovZoomOut;
+        } else if (framingMode === "locked") {
+          camDist = preset.baseDist + 95;
+          fov = preset.baseFov - 45;
+        }
+
+        const cam = {
+          dist: camDist,
+          pitch: camPitch,
+          yaw: preset.yaw
+        };
+
+        const anchorX = preset.anchorX;
+        const anchorY = preset.anchorY;
+
+        // 1. Evaluate smooth, symmetrical 3D tube vertices (origin at root 0,0,0)
+        const worldVerts = [];
+        const projVerts = [];
+
+        for (const vt of state.meshes.tube.verts) {
+          const v = vt.v;
+          const baseToTip = Math.pow(1 - v, 0.8);
+          const localRootSwell = rootPulse * baseToTip;
+
+          let profileR = shaftRadius;
+          if (v < 0.08) {
+            const t = 1 - v / 0.08;
+            profileR = shaftRadius * (1 + 0.15 * t * t + localRootSwell);
+          } else if (v < 0.76) {
+            // Smooth parallel cylinder with subtle subsurface chamber ribs (o)
+            const chamberRow = Math.sin(v * Math.PI * 14);
+            const chamberCol = Math.cos(vt.theta * 4);
+            const chamberBump = Math.max(0, chamberRow * chamberCol) * tautness * 0.032;
+            profileR = shaftRadius * (1 + localRootSwell + chamberBump);
+          } else if (v < 0.84) {
+            // Single clean, symmetrical coronal ridge
+            const t = (v - 0.76) / 0.08;
+            const ridgeCurve = Math.sin(t * Math.PI);
+            const ridgeStrength = 0.08 + tautness * 0.19;
+            profileR = shaftRadius * (1 + ridgeCurve * ridgeStrength);
+          } else {
+            // Smooth, left-right symmetrical rounded dome crown
+            const t = (v - 0.84) / 0.16;
+            const domeProfile = Math.cos(t * Math.PI * 0.5);
+            const crownFullness = lerp(0.84, 1.02, tautness);
+            const domeExp = lerp(0.86, 0.66, tautness);
+            profileR = Math.max(0.35, shaftRadius * crownFullness * Math.pow(Math.max(0, domeProfile), domeExp));
+          }
+          const wp = {
+            x: vt.cosT * profileR,
+            y: -v * totalHeight,
+            z: vt.sinT * profileR
+          };
+          worldVerts.push(wp);
+          projVerts.push(projectPoint(wp, cam, anchorX, anchorY, fov));
+        }
+        function drawShadedQuad(p0, p1, p2, p3, s0, s1, s2, s3, vNorm, isPouch) {
+          const area2D =
+            (s1.x - s0.x) * (s2.y - s0.y) - (s1.y - s0.y) * (s2.x - s0.x) +
+            (s2.x - s0.x) * (s3.y - s0.y) - (s2.y - s0.y) * (s3.x - s0.x);
+          if (area2D >= 0) return;
+          const ux = p2.x - p0.x, uy = p2.y - p0.y, uz = p2.z - p0.z;
+          const vx = p3.x - p1.x, vy = p3.y - p1.y, vz = p3.z - p1.z;
+          let nx = uy * vz - uz * vy;
+          let ny = uz * vx - ux * vz;
+          let nz = ux * vy - uy * vx;
+          const nLen = Math.hypot(nx, ny, nz) || 1;
+          nx /= nLen; ny /= nLen; nz /= nLen;
+          if (nz < -0.25 && cam.pitch >= -0.3) {
+            nx = -nx; ny = -ny; nz = -nz;
+          }
+          // 3-Point studio lighting + dynamic wet-membrane specular highlight
+          const keyDot = Math.max(0, -0.35 * nx - 0.55 * ny + 0.75 * nz);
+          const fillDot = Math.max(0, 0.65 * nx - 0.25 * ny + 0.45 * nz);
+          const rimDot = Math.max(0, -0.35 * ny + 0.60 * (1 - Math.abs(nx)));
+          const hx = -0.22, hy = -0.28, hz = 0.93;
+          const specDot = Math.max(0, nx * hx + ny * hy + nz * hz);
+          const shininess = 8 + tautness * 36;
+          const specIntensity = Math.pow(specDot, shininess) * (0.18 + tautness * 0.75);
+          // Subsurface X-bracing & chamber warmth through translucent white/pink/peach skin
+          let chamberTint = 0;
+          if (!isPouch && vNorm > 0.1 && vNorm < 0.76) {
+            const angle = Math.atan2(nz, nx);
+            const crossBrace =
+              Math.abs(Math.sin(vNorm * Math.PI * 14 + angle * 2)) *
+              Math.abs(Math.sin(vNorm * Math.PI * 14 - angle * 2));
+            chamberTint = crossBrace * tautness * 0.20;
+          }
+          const crownBlush = vNorm > 0.76 ? 0.12 : 0;
+          const r = 238 + keyDot * 17 + fillDot * 12 + specIntensity * 45 - chamberTint * 12 + rimDot * 14;
+          const g = 190 + keyDot * 50 + fillDot * 26 + specIntensity * 56 - crownBlush * 28 - chamberTint * 30 + rimDot * 12;
+          const b = 182 + keyDot * 54 + fillDot * 22 + specIntensity * 62 - crownBlush * 18 - chamberTint * 24 + rimDot * 16;
+          ctx.beginPath();
+          ctx.moveTo(s0.x, s0.y);
+          ctx.lineTo(s1.x, s1.y);
+          ctx.lineTo(s2.x, s2.y);
+          ctx.lineTo(s3.x, s3.y);
+          ctx.closePath();
+          const fillStyle =
+            "rgb(" +
+            Math.min(255, Math.max(0, Math.round(r))) + "," +
+            Math.min(255, Math.max(0, Math.round(g))) + "," +
+            Math.min(255, Math.max(0, Math.round(b))) + ")";
+          ctx.fillStyle = fillStyle;
+          ctx.fill();
+          ctx.strokeStyle = fillStyle;
+          ctx.lineWidth = 0.85;
+          ctx.stroke();
+        }
+        ctx.save();
+        ctx.globalAlpha = fadeOut;
+        // Grounded contact shadow/glow anchored at (anchorX, anchorY)
+        const shadowRx = Math.max(22, (42 + radial * 36));
+        const shadowRy = shadowRx * 0.34;
+        const baseGrad = ctx.createRadialGradient(anchorX, anchorY + 4, 4, anchorX, anchorY + 4, shadowRx);
+        baseGrad.addColorStop(0, "rgba(244, 162, 152, 0.42)");
+        baseGrad.addColorStop(0.65, "rgba(251, 207, 196, 0.18)");
+        baseGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = baseGrad;
+        ctx.beginPath();
+        ctx.ellipse(anchorX, anchorY + 4, shadowRx, shadowRy, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const renderList = [];
+        // 2. Stationary Base Collar & Symmetrical Twin Lateral Pouches
+        const pouchSpread = shaftRadius * 1.24;
+        const pouchConfigs = [
+          { cx: 0, cy: 0, cz: 0, rx: shaftRadius * 1.25, ry: (10 + radial * 4) * popIn, rz: shaftRadius * 1.25, vTag: 0.02 },
+          { cx: -pouchSpread, cy: -2, cz: 3, rx: (13 + radial * 15) * popIn, ry: (11 + radial * 12) * popIn, rz: (13 + radial * 14) * popIn, vTag: 0.05 },
+          { cx: pouchSpread, cy: -2, cz: 3, rx: (13 + radial * 15) * popIn, ry: (11 + radial * 12) * popIn, rz: (13 + radial * 14) * popIn, vTag: 0.05 }
+        ];
+        for (const pc of pouchConfigs) {
+          const pWorld = [];
+          const pProj = [];
+          for (const pv of state.meshes.pouch.verts) {
+            const wp = {
+              x: pc.cx + pv.nx * pc.rx,
+              y: pc.cy + pv.ny * pc.ry,
+              z: pc.cz + pv.nz * pc.rz
+            };
+            pWorld.push(wp);
+            pProj.push(projectPoint(wp, cam, anchorX, anchorY, fov));
+          }
+                    for (let f = 0; f < state.meshes.pouch.faces.length; f++) {
+            const q = state.meshes.pouch.faces[f];
+            const s0 = pProj[q[0]];
+            const s1 = pProj[q[1]];
+            const s2 = pProj[q[2]];
+            const s3 = pProj[q[3]];
+            const avgZ = (s0.z + s1.z + s2.z + s3.z) * 0.25;
+            renderList.push({
+              avgZ,
+              p0: pWorld[q[0]],
+              p1: pWorld[q[1]],
+              p2: pWorld[q[2]],
+              p3: pWorld[q[3]],
+              s0,
+              s1,
+              s2,
+              s3,
+              vNorm: pc.vTag,
+              isPouch: true
+            });
+          }
+        }
+        // 3. Main Tubular Shaft, Coronal Ridge & Dome Crown Quads
+                for (let fIdx = 0; fIdx < state.meshes.tube.faces.length; fIdx++) {
+          const q = state.meshes.tube.faces[fIdx];
+          const s0 = projVerts[q[0]];
+          const s1 = projVerts[q[1]];
+          const s2 = projVerts[q[2]];
+          const s3 = projVerts[q[3]];
+          const avgZ = (s0.z + s1.z + s2.z + s3.z) * 0.25;
+          const vNorm = state.meshes.tube.verts[q[0]].v;
+
+          renderList.push({
+            avgZ,
+            p0: worldVerts[q[0]],
+            p1: worldVerts[q[1]],
+            p2: worldVerts[q[2]],
+            p3: worldVerts[q[3]],
+            s0,
+            s1,
+            s2,
+            s3,
+            vNorm,
+            isPouch: false
+          });
+        }
+
+        renderList.sort((a, b) => b.avgZ - a.avgZ);
+        for (const item of renderList) {
+          drawShadedQuad(
+            item.p0, item.p1, item.p2, item.p3,
+            item.s0, item.s1, item.s2, item.s3,
+            item.vNorm,
+            item.isPouch
+          );
+        }
+        ctx.restore();
+      }
+      return {
+        buildMeshes,
+        renderSurge,
+        setFramingMode,
+        getFramingMode: () => framingMode,
+        CAMERA_PRESETS
+      };
+    })();
+  </script>
+  <!-- studio -->
+  <script>
+    const big3rAllAngles = function spawnBig3rAllAngles() {
+      const angles = [
+        { id: "big3rTubeCeiling", label: "BIG3R: Angle 1 - Ceiling View", key: "ceiling" },
+        { id: "big3rTubeLeft45",  label: "BIG3R: Angle 2 - 45° Left Toward Viewer", key: "left45" },
+        { id: "big3rTubeRight45", label: "BIG3R: Angle 3 - 45° Right Toward Viewer", key: "right45" },
+        { id: "big3rTubeTopDown", label: "BIG3R: Angle 4 - Top-Down Toward Lens", key: "topDown" }
+      ];
+
+      for (const a of angles) {
+        window.registerVFXProp({
+          id: a.id,
+          label: a.label,
+          durationMs: 36000,
+          spawn() {
+            return { meshes: window.BIG3R_STUDIO.buildMeshes() };
+          },
+          render(ctx, progress, state, W, H, CX, CY) {
+            window.BIG3R_STUDIO.renderSurge(ctx, progress, state, W, H, CX, CY, a.key);
+          }
+        });
+      }
+
+      // Add a Framing Mode selector directly to your existing .controls bar for live testing
+      const controlsBar = document.querySelector(".controls");
+      if (controlsBar && !document.getElementById("framingSelect")) {
+        const framingSelect = document.createElement("select");
+        framingSelect.id = "framingSelect";
+        framingSelect.innerHTML = [
+          '<option value="hybrid">Framing: Hybrid (Pinned Root + Subtle Zoom)</option>',
+          '<option value="pullback">Framing: Dynamic Camera Pull-Back</option>',
+          '<option value="locked">Framing: Locked Camera Bounds</option>'
+        ].join("");
+
+        framingSelect.addEventListener("change", (e) => {
+          window.BIG3R_STUDIO.setFramingMode(e.target.value);
+        });
+
+        controlsBar.insertBefore(framingSelect, document.getElementById("previewBtn"));
+      }
+    };
+    big3rAllAngles();
+  </script>
+
+  <!-- BIG3R-TESTING_EXP -->
+  <script>
+    const big3rTubeCeiling = function spawnBig3rTubeCeiling() {
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function smoothstep(edge0, edge1, x) {
+        const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+        return t * t * (3 - 2 * t);
+      }
+
+      // Stationary Low-Angle Camera looking sharply UP toward ceiling
+      function transformAndProject(p, cam, CX, CY, fov) {
+        const x = p.x - cam.x;
+        const y = p.y - cam.y;
+        const z = p.z;
+
+        const cp = Math.cos(cam.pitch);
+        const sp = Math.sin(cam.pitch);
+        const y2 = y * cp + z * sp;
+        const z2 = -y * sp + z * cp;
+
+        const depth = Math.max(45, cam.dist - z2);
+        const scale = fov / depth;
+        return {
+          x: CX + x * scale,
+          y: CY + y2 * scale,
+          z: depth,
+          scale
+        };
+      }
+
+      // 36-second progressive long-balloon inflation curve:
+      // Each surge widens the base first, then smoothly elongates the shaft upward
+      function computeBalloonInflation(p) {
+        // Macro stage curve across 36 seconds
+        let macro = 0;
+        if (p < 0.20) {
+          const t = p / 0.20;
+          macro = 0.06 * (t * t);
+        } else if (p < 0.40) {
+          const t = (p - 0.20) / 0.20;
+          macro = lerp(0.06, 0.25, smoothstep(0, 1, t));
+        } else if (p < 0.62) {
+          const t = (p - 0.40) / 0.22;
+          macro = lerp(0.25, 0.58, Math.pow(t, 1.08));
+        } else if (p < 0.84) {
+          const t = (p - 0.62) / 0.22;
+          macro = lerp(0.58, 0.92, Math.pow(t, 1.12));
+        } else {
+          const t = (p - 0.84) / 0.16;
+          macro = lerp(0.92, 1.24, t);
+        }
+
+        // Cyclic long-balloon inflation steps (12 cycles over 36s = 1 cycle every 3s)
+        // First half of each cycle: base & lower girth widens under pressure
+        // Second half of each cycle: axial length extends smoothly upward
+        const cycles = 12;
+        const cyclePos = p * cycles;
+        const cycleIdx = Math.floor(cyclePos);
+        const cycleFrac = cyclePos - cycleIdx;
+
+        // Smooth ease-in-out step for girth vs length
+        const girthPhase = smoothstep(0.0, 0.55, cycleFrac);
+        const lengthPhase = smoothstep(0.35, 0.95, cycleFrac);
+
+        const stepUnit = 1 / cycles;
+        const steppedGirth = (cycleIdx + girthPhase) * stepUnit;
+        const steppedLength = (cycleIdx + lengthPhase) * stepUnit;
+
+        // Blend smooth macro curve with stepped long-balloon inflation mechanics
+        const radialPressure = lerp(macro, steppedGirth * 1.22, 0.32);
+        const axialPressure = lerp(macro, steppedLength * 1.22, 0.36);
+
+        // Subtle rhythmic base pressurization pulse (expands at root, tapers smoothly upward)
+        const rootPulse = Math.sin(cycleFrac * Math.PI) * (0.015 + macro * 0.035);
+
+        return {
+          macro,
+          radialPressure,
+          axialPressure,
+          rootPulse
+        };
+      }
+
+      function buildTubeMesh(rings, sides) {
+        const verts = [];
+        const faces = [];
+
+        for (let r = 0; r <= rings; r++) {
+          const v = r / rings;
+          for (let s = 0; s < sides; s++) {
+            const u = s / sides;
+            const theta = u * Math.PI * 2;
+            verts.push({
+              v,
+              u,
+              theta,
+              cosT: Math.cos(theta),
+              sinT: Math.sin(theta)
+            });
+          }
+        }
+
+        for (let r = 0; r < rings; r++) {
+          for (let s = 0; s < sides; s++) {
+            const sNext = (s + 1) % sides;
+            const i0 = r * sides + s;
+            const i1 = r * sides + sNext;
+            const i2 = (r + 1) * sides + sNext;
+            const i3 = (r + 1) * sides + s;
+            faces.push([i0, i1, i2, i3]);
+          }
+        }
+
+        return { verts, faces, rings, sides };
+      }
+
+      function buildPouchMesh(latSteps, lonSteps) {
+        const verts = [];
+        const faces = [];
+        for (let i = 0; i <= latSteps; i++) {
+          const phi = (i / latSteps) * Math.PI;
+          for (let j = 0; j < lonSteps; j++) {
+            const theta = (j / lonSteps) * Math.PI * 2;
+            verts.push({
+              nx: Math.sin(phi) * Math.cos(theta),
+              ny: -Math.cos(phi),
+              nz: Math.sin(phi) * Math.sin(theta)
+            });
+          }
+        }
+        for (let i = 0; i < latSteps; i++) {
+          for (let j = 0; j < lonSteps; j++) {
+            const jNext = (j + 1) % lonSteps;
+            const i0 = i * lonSteps + j;
+            const i1 = i * lonSteps + jNext;
+            const i2 = (i + 1) * lonSteps + jNext;
+            const i3 = (i + 1) * lonSteps + j;
+            faces.push([i0, i1, i2, i3]);
+          }
+        }
+        return { verts, faces };
+      }
+    };
+    big3rTubeCeiling();
+  </script>
+
+
+</body>
+
+</html>
