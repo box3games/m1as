@@ -1,0 +1,31 @@
+=====================================================================
+Project IN
+================================================================
+Please prepare to receive my project context across one or more incoming `msgAI` messages labeled `[MSG 1/N]` through `[MSG N/N]`.
+
+Hold your analysis and do not generate plans or code until the final block (`[MSG N/N - INGEST COMPLETE...]`) arrives. Once all parts are pasted, decode the `DICT:` abbreviations, merge all chunks into one unified mental model, and immediately surface any items listed under `FLAGS:` so we can resolve them first.
+
+Whenever I type "msgAI" (or "mesgAI") later in our session, pack our updated state into the fewest possible plain-text code blocks strictly under 1,150 characters each using `[MSG X/N]` headers and the exact same `DICT:`, `PROTO:`, `EPICS:`, `NOW:`, and `FLAGS:` structure (with latest decisions overwriting older ones).
+
+Reply "Ready for [MSG 1/N]" now.
+
+==================================================================================================
+[MSG N/N - INGEST COMPLETE...] <- add to last msgAI
+===================================================================================================
+===================================================================================================
+Project Out
+====================================================================================================
+Please summarize our entire session into our adaptive multi-part `msgAI` state-transfer format. Pack the information into the fewest possible plain-text code blocks while keeping EVERY block strictly under 1,150 characters (including headers) so nothing truncates when pasted. Output ONLY the code blocks with zero conversational text before, between, or after them.
+
+Chunking & Header Rules:
+- Label the first line of each block `[MSG X/N - HOLD RESPONSE UNTIL MSG N/N ARRIVES]`, and label the final block `[MSG N/N - INGEST COMPLETE. SURFACE FLAGS FIRST.]`.
+- Maximize density in each chunk up to the 1,150-character ceiling before starting the next block, never splitting mid-word or mid-rule.
+
+Required Content Order Across the Chunks:
+1. `DICT:` Map short uppercase abbreviations (`$M1=M1AS|$B3=BIG3R`) to repeated technical terms, file names, and class names.
+2. `PROTO:` Include active workflow constraints and embed `Trigger="msgAI"->audit_latest,dedupe,flag_conflicts,pack_into_min_blocks(<1150chars_each)_with_[MSG_X/N]_headers_preserving_this_Trigger` so the next chat inherits this exact adaptive export rule.
+3. `EPICS:` Planned features, architecture specs, and numeric thresholds.
+4. `NOW:` Current implemented codebase state, file paths, interfaces, build rules, and verified fixes.
+5. `FLAGS:` Any conflicting specs (`[CONFLICT]`), unverified states (`[CHECK]`), or missing details (`[MISSING]`) the next chat should ask me about first.
+
+Audit the conversation chronologically so the most recent decisions overwrite older ones, and deduplicate overlapping details. Generate the code blocks now.
