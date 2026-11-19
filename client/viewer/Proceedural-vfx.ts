@@ -42,8 +42,6 @@ export interface ProceduralVfxConfig {
     loopDurationSec: number;
     big3rAngle: Big3rCameraAngle;
     big3rGrowthDirection: Big3rGrowthDirection;
-    big3rAnchorOffsetX: number;
-    big3rAnchorOffsetY: number;
     big3rFramingMode: Big3rFramingMode;
 }
 
@@ -640,8 +638,6 @@ export class ProceduralVfxCanvas {
         loopDurationSec: 2.0,
         big3rAngle: 'ceiling',
         big3rGrowthDirection: 'north',
-        big3rAnchorOffsetX: 0,
-        big3rAnchorOffsetY: 0,
         big3rFramingMode: 'hybrid',
     };
 
