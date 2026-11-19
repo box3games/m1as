@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>m1as Media Browser & Composable Component Playground</title>
+    <title>13163R Media Browser & Composable Component Playground</title>
     <link rel="stylesheet" href="./m1as-viewer.css">
     <script type="module" id="m1as-runtime-engine"></script>
     <script type="module" src="./m1as-viewer.js"></script>
@@ -13,24 +13,6 @@
 <body>
 
     <h1>m1as Streaming Test</h1>
-
-    <div class="playground-panel">
-        <h3 class="panel-title">🚀 Composable Component Simulation Area</h3>
-        <p class="panel-subtitle">
-            Click <strong>Stream</strong> on any asset to render it below, or click <strong>Sign URL</strong> to copy a
-            signed stream token for a 3D cube face.
-        </p>
-        <div class="playground-form">
-            <input type="text" id="streamUrlInput" class="playground-input"
-                placeholder="Paste your m1as signed stream URL here..." />
-            <button id="renderComponentBtn" class="playground-btn">Render Component</button>
-        </div>
-        <div id="componentStage">
-            <div class="stage-placeholder">
-                Stage empty. Awaiting signed asset target string link...
-            </div>
-        </div>
-    </div>
 
     <div class="playground-panel playground-panel--recorder">
         <h3 class="panel-title panel-title--recorder">🎬 .webm VFX &amp; CCSA Composition Recorder</h3>
@@ -43,6 +25,7 @@
             <select id="recSourceMode" class="m1as-select m1as-select--lg">
                 <option value="big3r">🍄 Source: BIG3R Growth &amp; Cinema Sandbox</option>
                 <option value="ccsa">🚀 Source: Live CCSA 3D Stage</option>
+                <option value="procedural-big3r-tube-ceiling">🍄 BIG3R — Tube &amp; Ceiling Growth (36s)</option>
                 <option value="procedural-growth">✨ Procedural Alpha VFX: Growth Surge (1.5s)</option>
                 <option value="procedural-fireball">🔥 Procedural Alpha VFX: Colossal Burst (1.5s)</option>
                 <option value="procedural-collapse">💥 Procedural Alpha VFX: Gate Shatter &amp; Dust (1.8s)</option>
@@ -50,9 +33,22 @@
                 <option value="procedural-lightning">⚡ Procedural Alpha VFX: Midpoint Lightning (2.0s)</option>
                 <option value="procedural-metaball-fluid">💧 Procedural Alpha VFX: 2D Metaball Fluid (2.0s)</option>
                 <option value="procedural-goo-pour">🧪 Procedural Alpha VFX: Thick Goo / Jelly Pour (2.0s)</option>
-                <option value="procedural-spinning-coin">🪙 Procedural Alpha VFX: Spinning M1 Coin (2.0s)</option>
+                <option value="procedural-spinning-coin">💎Procedural Alpha VFX: Spinning M1 Coin (2.0s)</option>
                 <option value="procedural-spinning-skull">💀 Procedural Alpha VFX: Spinning Skull (2.0s)</option>
             </select>
+            <div className="VCR cameraOptions">
+                <select id="recBig3rAngle" aria-label="BIG3R camera angle" class="m1as-select m1as-select--lg">
+                <option value="ceiling">BIG3R: Ceiling View</option>
+                <option value="left45">BIG3R: 45° Left</option>
+                <option value="right45">BIG3R: 45° Right</option>
+                <option value="topDown">BIG3R: Top-Down</option>
+            </select>
+            <select id="recBig3rFraming" aria-label="BIG3R framing mode" class="m1as-select m1as-select--lg">
+                <option value="hybrid">Framing: Hybrid</option>
+                <option value="pullback">Framing: Pullback</option>
+                <option value="locked">Framing: Locked</option>
+            </select>
+            </div>
 
             <label class="control-inline-label">
                 Fluid Viscosity:
@@ -77,8 +73,10 @@
                 <video id="recPreviewVideo" class="rec-preview-video" controls loop muted playsinline></video>
                 <div class="rec-preview-actions">
                     <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
-                    <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb Click</button>
-                    <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth VFX</button>
+                    <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb
+                        Click</button>
+                    <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth
+                        VFX</button>
                 </div>
             </div>
         </div>
@@ -143,7 +141,8 @@
                 </select>
 
                 <label class="control-inline-label">
-                    Ceiling: <input type="range" id="vfxCeilingSlider" class="ceiling-slider" min="1.5" max="12.0" step="0.1" value="3.2" />
+                    Ceiling: <input type="range" id="vfxCeilingSlider" class="ceiling-slider" min="1.5" max="12.0"
+                        step="0.1" value="3.2" />
                     <span id="vfxCeilingVal" class="ceiling-readout">3.2m</span>
                 </label>
 
@@ -198,7 +197,8 @@
                 </select>
 
                 <button id="vfxMountTvBtn" class="playground-btn btn--violet">📺 Spawn 4-Face TV</button>
-                <button id="vfxLoadManifestBtn" class="playground-btn btn--emerald">📂 Load Level Manifest (.json)</button>
+                <button id="vfxLoadManifestBtn" class="playground-btn btn--emerald">📂 Load Level Manifest
+                    (.json)</button>
                 <input type="file" id="vfxManifestFileInput" accept=".json,application/json" class="is-hidden" />
             </div>
 
@@ -216,7 +216,8 @@
                 </select>
 
                 <label class="control-inline-label control-inline-label--tight">
-                    Height: <input type="number" id="vfxPropHeight" class="prop-height-input" value="0.6" min="0.1" max="15.0" step="0.1" />m
+                    Height: <input type="number" id="vfxPropHeight" class="prop-height-input" value="0.6" min="0.1"
+                        max="15.0" step="0.1" />m
                 </label>
 
                 <button id="vfxSpawnPropBtn" class="playground-btn btn--sky">+ Spawn Prop</button>
@@ -240,13 +241,27 @@
             </div>
         </div>
     </div>
-
-    <button id="loadAssets" class="playground-btn">Load Public Assets</button>
-
     <div id="ttlStatus" class="ttl-status"></div>
     <div id="viewer"></div>
+        <div class="playground-panel">
+        <h3 class="panel-title">🚀 Composable Component Simulation Area</h3>
+        <p class="panel-subtitle">
+            Click <strong>Stream</strong> on any asset to render it below, or click <strong>Sign URL</strong> to copy a
+            signed stream token for a 3D cube face.
+        </p>
+        <div class="playground-form">
+            <input type="text" id="streamUrlInput" class="playground-input"
+                placeholder="Paste your m1as signed stream URL here..." />
+            <button id="renderComponentBtn" class="playground-btn">Render Component</button>
+        </div>
+        <div id="componentStage">
+            <div class="stage-placeholder">
+                Stage empty. Awaiting signed asset target string link...
+            </div>
+        </div>
+    </div>
+    <button id="loadAssets" class="playground-btn">Load Public Assets</button>
     <div id="assetList"></div>
-    <!-- <script type="module" src="./dist/viewer.js"></script> -->
 </body>
 
 </html>
