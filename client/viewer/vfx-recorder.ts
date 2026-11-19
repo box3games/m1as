@@ -101,6 +101,7 @@ export class VfxRecorderController {
     private readonly startBtn = document.getElementById('startRecBtn') as HTMLButtonElement;
     private readonly stopBtn = document.getElementById('stopRecBtn') as HTMLButtonElement;
     private readonly proceduralCanvas = document.getElementById('proceduralVfxCanvas') as HTMLCanvasElement;
+    private readonly proceduralPreviewStage = document.getElementById('proceduralPreviewStage') as HTMLElement | null;
     private readonly backdropVideo = document.getElementById('recBackdropVideo') as HTMLVideoElement | null;
     private readonly backdropUrlInput = document.getElementById('recBackdropUrl') as HTMLInputElement | null;
     private readonly backdropFileInput = document.getElementById('recBackdropFile') as HTMLInputElement | null;
@@ -333,6 +334,7 @@ export class VfxRecorderController {
 
         this.big3rPreviewActive = true;
 
+        this.proceduralPreviewStage?.classList.remove('is-hidden');
         this.proceduralCanvas.classList.remove('is-hidden');
         if (this.backdropVideo?.src) void this.backdropVideo.play().catch(() => {
             this.statusEl.textContent = 'Backdrop loaded but playback was blocked; press play in the backdrop preview.';
@@ -577,6 +579,7 @@ export class VfxRecorderController {
                 this.big3rCameraLocked = false;
                 this.big3rPointerId = null;
                 this.proceduralCanvas.classList.add('is-hidden');
+                this.proceduralPreviewStage?.classList.add('is-hidden');
                 this.big3rControls?.classList.add('is-hidden');
             }
         });
@@ -727,6 +730,7 @@ export class VfxRecorderController {
         } else {
             targetCanvas = this.proceduralCanvas;
             targetCanvas.classList.remove('is-hidden');
+            if (mode.startsWith('procedural-')) this.proceduralPreviewStage?.classList.remove('is-hidden');
         }
 
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
@@ -785,6 +789,7 @@ export class VfxRecorderController {
                 this.startBig3rPreview();
             } else if (mode.startsWith('procedural-')) {
                 targetCanvas?.classList.add('is-hidden');
+                this.proceduralPreviewStage?.classList.add('is-hidden');
             }
 
             this.previewVideo.pause();
@@ -804,6 +809,7 @@ export class VfxRecorderController {
 
             if (mode.startsWith('procedural-') && mode !== 'procedural-big3r-tube-ceiling') {
                 targetCanvas?.classList.add('is-hidden');
+                this.proceduralPreviewStage?.classList.add('is-hidden');
             }
 
             this.statusEl.textContent = this.lastBig3rMetadata
