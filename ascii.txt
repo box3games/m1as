@@ -1,0 +1,14 @@
+                 ^
+                 |
+                 |
+      .-"""-.    |   <-- Growth direction appears going up like a candle on a table 
+     /       \
+    |         |     <-- Tapered Dome Cap
+    |_________|
+     |       |
+     | |   | |       <-- Vertical Cylinder
+     | |   | |
+  .-.| |   | |.-.
+ /   | |   | /   \   <-- Rear Base Sphere (Top Down)
+ \   | |   | \   /
+  '-'         '-'

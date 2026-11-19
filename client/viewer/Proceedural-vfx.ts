@@ -1,6 +1,20 @@
 
 export type Big3rCameraAngle = 'ceiling' | 'left45' | 'right45' | 'topDown';
 export type Big3rFramingMode = 'hybrid' | 'pullback' | 'locked';
+export interface Big3rCameraState {
+    yawOffset: number;
+    pitchOffset: number;
+    distanceOffset: number;
+    panX: number;
+    panY: number;
+}
+
+export interface Big3rCameraSnapshot {
+    preset: 'big3r-tube-ceiling';
+    angle: Big3rCameraAngle;
+    framing: Big3rFramingMode;
+    camera: Big3rCameraState;
+}
 
 export type ProceduralVfxPreset =
     | 'magic-smoke'
@@ -314,6 +328,7 @@ function renderBig3rSurge(
     meshes: Big3rMeshes,
     angleKey: Big3rCameraAngle,
     framingMode: Big3rFramingMode,
+    cameraState: Big3rCameraState,
 ): void {
     const preset = big3rCameraPresets[angleKey] ?? big3rCameraPresets.ceiling;
     const p = Math.max(0, Math.min(1, progress));
@@ -345,13 +360,13 @@ function renderBig3rSurge(
     }
 
     const cam = {
-        dist: camDist,
-        pitch: camPitch,
-        yaw: preset.yaw,
+        dist: Math.max(80, camDist + cameraState.distanceOffset),
+        pitch: camPitch + cameraState.pitchOffset,
+        yaw: preset.yaw + cameraState.yawOffset,
     };
 
-    const anchorX = preset.anchorX;
-    const anchorY = preset.anchorY;
+    const anchorX = preset.anchorX + cameraState.panX;
+    const anchorY = preset.anchorY + cameraState.panY;
     const worldVerts: Big3rWorldPoint[] = [];
     const projVerts: Big3rProjectedPoint[] = [];
 
@@ -581,6 +596,16 @@ export class ProceduralVfxCanvas {
     private readonly offscreen: HTMLCanvasElement;
     private readonly offCtx: CanvasRenderingContext2D;
 
+    private big3rPreviewLoop = false;
+
+    private big3rCameraState: Big3rCameraState = {
+        yawOffset: 0,
+        pitchOffset: 0,
+        distanceOffset: 0,
+        panX: 0,
+        panY: 0,
+    };
+
     private config: ProceduralVfxConfig = {
         preset: 'metaball-fluid',
         viscosity: 0.9,
@@ -608,6 +633,41 @@ export class ProceduralVfxCanvas {
         this.offscreen.width = width;
         this.offscreen.height = height;
         this.offCtx = this.offscreen.getContext('2d', { alpha: true })!;
+    }
+
+    public setBig3rCameraState(
+        partial: Partial<Big3rCameraState>,
+    ): void {
+        this.big3rCameraState = {
+            ...this.big3rCameraState,
+            ...partial,
+            pitchOffset: Math.max(
+                -1.45,
+                Math.min(1.45, partial.pitchOffset ?? this.big3rCameraState.pitchOffset),
+            ),
+            distanceOffset: Math.max(
+                -220,
+                Math.min(500, partial.distanceOffset ?? this.big3rCameraState.distanceOffset),
+            ),
+        };
+    }
+
+    public setBig3rPreviewLoop(enabled: boolean): void {
+        this.big3rPreviewLoop = enabled;
+    }
+
+    public getBig3rCameraState(): Big3rCameraState {
+        return { ...this.big3rCameraState };
+    }
+
+    public resetBig3rCameraState(): void {
+        this.big3rCameraState = {
+            yawOffset: 0,
+            pitchOffset: 0,
+            distanceOffset: 0,
+            panX: 0,
+            panY: 0,
+        };
     }
 
     public setConfig(partial: Partial<ProceduralVfxConfig>): void {
@@ -658,7 +718,16 @@ export class ProceduralVfxCanvas {
     }
 
     public step(dt: number): void {
-        this.elapsedSec += dt;
+        if (this.config.preset === 'big3r-tube-ceiling') {
+            const nextTime = this.elapsedSec + dt;
+
+            // Preview loops continuously. Recording stops at the 36-second endpoint.
+            this.elapsedSec = this.big3rPreviewLoop
+                ? nextTime % 36
+                : Math.min(nextTime, 36);
+        } else {
+            this.elapsedSec += dt;
+        }
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
 
@@ -689,6 +758,7 @@ export class ProceduralVfxCanvas {
                     this.big3rMeshes,
                     this.config.big3rAngle,
                     this.config.big3rFramingMode,
+                    this.big3rCameraState,
                 );
                 break;
         }

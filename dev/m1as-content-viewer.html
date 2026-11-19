@@ -12,7 +12,7 @@
 
 <body>
 
-    <h1>m1as Streaming Test</h1>
+    <h1>13163R Streaming Test BIG3R + M1AS</h1>
 
     <div class="playground-panel playground-panel--recorder">
         <h3 class="panel-title panel-title--recorder">🎬 .webm VFX &amp; CCSA Composition Recorder</h3>
@@ -37,17 +37,29 @@
                 <option value="procedural-spinning-skull">💀 Procedural Alpha VFX: Spinning Skull (2.0s)</option>
             </select>
             <div className="VCR cameraOptions">
-                <select id="recBig3rAngle" aria-label="BIG3R camera angle" class="m1as-select m1as-select--lg">
-                <option value="ceiling">BIG3R: Ceiling View</option>
-                <option value="left45">BIG3R: 45° Left</option>
-                <option value="right45">BIG3R: 45° Right</option>
-                <option value="topDown">BIG3R: Top-Down</option>
-            </select>
-            <select id="recBig3rFraming" aria-label="BIG3R framing mode" class="m1as-select m1as-select--lg">
-                <option value="hybrid">Framing: Hybrid</option>
-                <option value="pullback">Framing: Pullback</option>
-                <option value="locked">Framing: Locked</option>
-            </select>
+                <div id="recBig3rControls" class="big3r-camera-controls is-hidden">
+                    <label class="m1as-select m1as-select--lg">
+                        Camera Angle
+                        <select id="recBig3rAngle" class="">
+                            <option value="topDown" selected>Top Down</option>
+                            <option value="ceiling">Ceiling</option>
+                            <option value="left45">45° Left</option>
+                            <option value="right45">45° Right</option>
+                        </select>
+                    </label>
+
+                    <label class="m1as-select m1as-select--lg">
+                        Framing
+                        <select id="recBig3rFraming" class="">
+                            <option value="hybrid" selected>Hybrid</option>
+                            <option value="pullback">Pullback</option>
+                            <option value="locked">Locked</option>
+                        </select>
+                    </label>
+
+                    <span class="m1as-select m1as-select--lg">Drag: Orbit · Shift/right-drag: Pan · Wheel: Zoom</span>
+                </div>
+
             </div>
 
             <label class="control-inline-label">
@@ -243,7 +255,7 @@
     </div>
     <div id="ttlStatus" class="ttl-status"></div>
     <div id="viewer"></div>
-        <div class="playground-panel">
+    <div class="playground-panel">
         <h3 class="panel-title">🚀 Composable Component Simulation Area</h3>
         <p class="panel-subtitle">
             Click <strong>Stream</strong> on any asset to render it below, or click <strong>Sign URL</strong> to copy a
