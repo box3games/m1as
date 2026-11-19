@@ -301,7 +301,7 @@ export class VfxRecorderController {
         anchor.href = url;
         anchor.download = `m1as-big3r-${this.lastBig3rMetadata.recordingId}.json`;
         anchor.click();
-        URL.revokeObjectURL(url);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     private startBig3rPreview(): void {
@@ -575,7 +575,10 @@ export class VfxRecorderController {
             mode === 'procedural-big3r-tube-ceiling';
 
         if (isProceduralBig3r) {
+            if (this.big3rMotionCaptureActive) this.stopBig3rMotionCapture();
             this.stopBig3rPreview();
+            this.lastBig3rMetadata = null;
+            if (this.big3rMetadataDownloadBtn) this.big3rMetadataDownloadBtn.disabled = true;
 
             this.big3rCameraLocked = true;
             this.proceduralCanvas.classList.remove('is-hidden');
