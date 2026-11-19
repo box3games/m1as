@@ -58,6 +58,18 @@
                     </label>
 
                     <span class="m1as-select m1as-select--lg">Drag: Orbit · Shift/right-drag: Pan · Wheel: Zoom</span>
+                    <div class="big3r-camera-actions">
+                        <button id="recBig3rResetCamera" type="button" class="playground-btn btn--slate">Reset Camera</button>
+                    </div>
+                    <div class="big3r-camera-saved">
+                        <input id="recBig3rCameraName" class="playground-input playground-input--compact" type="text" maxlength="48" placeholder="Camera configuration name" aria-label="Camera configuration name" />
+                        <button id="recBig3rSaveCamera" type="button" class="playground-btn">Save Camera</button>
+                        <select id="recBig3rCameraPreset" class="m1as-select m1as-select--lg" aria-label="Saved camera configurations">
+                            <option value="">Saved camera configurations…</option>
+                        </select>
+                        <button id="recBig3rLoadCamera" type="button" class="playground-btn btn--sky">Restore</button>
+                        <button id="recBig3rDeleteCamera" type="button" class="playground-btn btn--danger">Delete</button>
+                    </div>
                 </div>
 
             </div>
