@@ -281,6 +281,51 @@ body {
     align-items: flex-start;
 }
 
+.procedural-preview-stage {
+    position: relative;
+    width: 512px;
+    height: 512px;
+    max-width: 100%;
+    overflow: hidden;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+}
+
+.procedural-backdrop-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    display: none;
+}
+
+.procedural-backdrop-video[src] {
+    display: block;
+}
+
+#proceduralVfxCanvas {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+}
+
+.vfx-backdrop-controls {
+    width: 100%;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.vfx-backdrop-controls .playground-input {
+    min-width: 240px;
+}
+
 .rec-preview-box {
     display: none;
     flex-direction: column;
