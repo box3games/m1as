@@ -21,7 +21,27 @@
             generate a standalone transparent 2D VFX overlay.
         </p>
 
-        <div class="playground-form playground-form--wrap">
+                            <div class="rec-workspace">
+            <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
+
+            <div id="recPreviewBox" class="rec-preview-box">
+                <span class="rec-preview-title">Recorded .webm Preview (Alpha Preserved):</span>
+                <video id="recPreviewVideo" class="rec-preview-video" controls loop muted playsinline></video>
+                <div class="rec-preview-actions">
+                    <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
+                    <button id="downloadRecMetadataBtn" class="playground-btn btn--sky" disabled>Download Camera JSON</button>
+                    <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb
+                        Click</button>
+                    <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth
+                        VFX</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="recStatus" class="rec-status">Ready to record VP9 .webm.</div>
+
+
+        <div class="vfx-control-bar is-visible">
             <select id="recSourceMode" class="m1as-select m1as-select--lg">
                 <option value="big3r">🍄 Source: BIG3R Growth &amp; Cinema Sandbox</option>
                 <option value="ccsa">🚀 Source: Live CCSA 3D Stage</option>
@@ -36,38 +56,44 @@
                 <option value="procedural-spinning-coin">💎Procedural Alpha VFX: Spinning M1 Coin (2.0s)</option>
                 <option value="procedural-spinning-skull">💀 Procedural Alpha VFX: Spinning Skull (2.0s)</option>
             </select>
+            <!-- New VCR Camera Options -->
             <div className="VCR cameraOptions">
                 <div id="recBig3rControls" class="big3r-camera-controls is-hidden">
-                    <label class="m1as-select m1as-select--lg">
-                        Camera Angle
-                        <select id="recBig3rAngle" class="">
-                            <option value="topDown" selected>Top Down</option>
-                            <option value="ceiling">Ceiling</option>
-                            <option value="left45">45° Left</option>
-                            <option value="right45">45° Right</option>
-                        </select>
-                    </label>
+                    <section class="playground-form playground-form--wrap">
+                        <label class="m1as-select m1as-select--lg">
+                            Camera Angle
+                            <select id="recBig3rAngle" class="">
+                                <option value="topDown" selected>Top Down</option>
+                                <option value="ceiling">Ceiling</option>
+                                <option value="left45">45° Left</option>
+                                <option value="right45">45° Right</option>
+                            </select>
+                        </label>
 
-                    <label class="m1as-select m1as-select--lg">
-                        Framing
-                        <select id="recBig3rFraming" class="">
-                            <option value="hybrid" selected>Hybrid</option>
-                            <option value="pullback">Pullback</option>
-                            <option value="locked">Locked</option>
-                        </select>
-                    </label>
-
-                    <span class="m1as-select m1as-select--lg">Drag: Orbit · Shift/right-drag: Pan · Wheel: Zoom</span>
+                        <label class="m1as-select m1as-select--lg">
+                            Framing
+                            <select id="recBig3rFraming" class="">
+                                <option value="hybrid" selected>Hybrid</option>
+                                <option value="pullback">Pullback</option>
+                                <option value="locked">Locked</option>
+                                </select>
+                            </label>
+                        <span class="m1as-select m1as-select--lg">Drag: Orbit · Shift/right-drag: Pan · Wheel: Zoom</span>
+                    </section>
+                    </br>
+ 
+                
+                    <section class="playground-form playground-form--wrap">
                     <div class="big3r-camera-actions">
                         <button id="recBig3rResetCamera" type="button" class="playground-btn btn--slate">Reset Camera</button>
                     </div>
-                    <div class="big3r-camera-motion">
+                    <div class="big3r-camera-motion vfx-control-row">
                         <button id="recBig3rMotionStart" type="button" class="playground-btn btn--amber">● Record Camera Motion</button>
                         <button id="recBig3rMotionStop" type="button" class="playground-btn btn--slate" disabled>■ Stop Motion Take</button>
                         <button id="recBig3rMotionClear" type="button" class="playground-btn btn--danger">Clear Motion</button>
                         <span class="m1as-select m1as-select--lg">A saved motion take replays on the next 36s recording.</span>
                     </div>
-                    <div class="big3r-camera-saved">
+                    <div class="big3r-camera-saved vfx-control-row">
                         <input id="recBig3rCameraName" class="playground-input playground-input--compact" type="text" maxlength="48" placeholder="Camera configuration name" aria-label="Camera configuration name" />
                         <button id="recBig3rSaveCamera" type="button" class="playground-btn">Save Camera</button>
                         <select id="recBig3rCameraPreset" class="m1as-select m1as-select--lg" aria-label="Saved camera configurations">
@@ -76,6 +102,7 @@
                         <button id="recBig3rLoadCamera" type="button" class="playground-btn btn--sky">Restore</button>
                         <button id="recBig3rDeleteCamera" type="button" class="playground-btn btn--danger">Delete</button>
                     </div>
+                    </section>
                 </div>
 
             </div>
@@ -95,24 +122,7 @@
             <button id="stopRecBtn" class="playground-btn btn--danger" disabled>■ Stop &amp; Preview</button>
         </div>
 
-        <div class="rec-workspace">
-            <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
 
-            <div id="recPreviewBox" class="rec-preview-box">
-                <span class="rec-preview-title">Recorded .webm Preview (Alpha Preserved):</span>
-                <video id="recPreviewVideo" class="rec-preview-video" controls loop muted playsinline></video>
-                <div class="rec-preview-actions">
-                    <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
-                    <button id="downloadRecMetadataBtn" class="playground-btn btn--sky" disabled>Download Camera JSON</button>
-                    <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb
-                        Click</button>
-                    <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth
-                        VFX</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="recStatus" class="rec-status">Ready to record VP9 .webm.</div>
     </div>
 
     <div class="playground-panel playground-panel--vfx">
