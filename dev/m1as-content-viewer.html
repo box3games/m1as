@@ -22,7 +22,17 @@
         </p>
 
                             <div class="rec-workspace">
-            <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
+            <div class="procedural-preview-stage" id="proceduralPreviewStage">
+                <video id="recBackdropVideo" class="procedural-backdrop-video" muted loop playsinline></video>
+                <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
+            </div>
+            <div class="vfx-control-row vfx-backdrop-controls">
+                <input id="recBackdropUrl" class="playground-input" type="url" placeholder="Optional streamed backdrop WebM / MP4 URL…" />
+                <button id="recBackdropLoad" type="button" class="playground-btn btn--sky">Load Backdrop URL</button>
+                <label class="playground-btn btn--slate" for="recBackdropFile">Choose Backdrop File</label>
+                <input id="recBackdropFile" type="file" accept="video/webm,video/mp4,video/*,image/png,image/jpeg,image/webp" class="is-hidden" />
+                <button id="recBackdropClear" type="button" class="playground-btn btn--danger">Clear Backdrop</button>
+            </div>
 
             <div id="recPreviewBox" class="rec-preview-box">
                 <span class="rec-preview-title">Recorded .webm Preview (Alpha Preserved):</span>
