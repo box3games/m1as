@@ -753,6 +753,30 @@ export class VfxRecorderController {
             : 'foreground';
         if (isProceduralBig3r && big3rOutputMode === 'composite') {
             targetCanvas = this.big3rCompositeCanvas;
+            // Reset the canvas origin-clean flag before preflighting a remote video frame.
+            targetCanvas.width = this.proceduralCanvas.width;
+            targetCanvas.height = this.proceduralCanvas.height;
+            const compositeCtx = targetCanvas.getContext('2d', { alpha: false });
+            if (!compositeCtx) {
+                this.big3rCameraLocked = false;
+                this.big3rControls?.classList.remove('is-disabled');
+                this.startBig3rPreview();
+                this.statusEl.textContent = 'Composite canvas could not be initialized. Choose Transparent foreground instead.';
+                return;
+            }
+            if (this.backdropVideo?.src) {
+                if (this.backdropVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+                    this.big3rCameraLocked = false;
+                    this.big3rControls?.classList.remove('is-disabled');
+                    this.startBig3rPreview();
+                    this.statusEl.textContent = 'Wait for the backdrop video to finish loading before starting a composite recording.';
+                    return;
+                }
+                compositeCtx.drawImage(this.backdropVideo, 0, 0, targetCanvas.width, targetCanvas.height);
+            } else {
+                compositeCtx.fillStyle = '#0f172a';
+                compositeCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+            }
             if (this.backdropVideo?.src && this.backdropVideo.paused) {
                 void this.backdropVideo.play().catch(() => undefined);
             }
