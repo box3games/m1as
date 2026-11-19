@@ -514,7 +514,11 @@ export class VfxRecorderController {
         }
         this.releaseBackdropObjectUrl();
         this.backdropVideo.pause();
-        this.backdropVideo.crossOrigin = 'anonymous';
+        if (this.big3rOutputModeSelect?.value === 'composite') {
+            this.backdropVideo.crossOrigin = 'anonymous';
+        } else {
+            this.backdropVideo.removeAttribute('crossorigin');
+        }
         this.backdropVideo.src = raw;
         this.backdropVideo.load();
         this.backdropVideo.onloadeddata = () => {
@@ -629,6 +633,10 @@ export class VfxRecorderController {
         this.big3rMotionStartBtn?.addEventListener('click', () => this.startBig3rMotionCapture());
         this.backdropLoadBtn?.addEventListener('click', () => this.loadBackdropUrl());
         this.backdropClearBtn?.addEventListener('click', () => this.clearBackdrop());
+        this.big3rOutputModeSelect?.addEventListener('change', () => {
+            if (this.backdropDescriptor.kind === 'url') this.loadBackdropUrl();
+            else if (this.backdropDescriptor.kind === 'file') this.loadBackdropFile();
+        });
         this.backdropFileInput?.addEventListener('change', () => this.loadBackdropFile());
         this.big3rMotionStopBtn?.addEventListener('click', () => this.stopBig3rMotionCapture());
         this.big3rMotionClearBtn?.addEventListener('click', () => this.clearBig3rMotionCapture());
