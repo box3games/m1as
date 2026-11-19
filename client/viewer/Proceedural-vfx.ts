@@ -361,7 +361,7 @@ function renderBig3rSurge(
 
     const cam = {
         dist: Math.max(80, camDist + cameraState.distanceOffset),
-        pitch: camPitch + cameraState.pitchOffset,
+        pitch: Math.max(-1.45, Math.min(1.45, camPitch + cameraState.pitchOffset)),
         yaw: preset.yaw + cameraState.yawOffset,
     };
 
@@ -638,17 +638,16 @@ export class ProceduralVfxCanvas {
     public setBig3rCameraState(
         partial: Partial<Big3rCameraState>,
     ): void {
+        const next = { ...this.big3rCameraState, ...partial };
+        const clamp = (value: number, min: number, max: number, fallback: number) =>
+            Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+        const rawYaw = clamp(next.yawOffset, -Math.PI * 8, Math.PI * 8, 0);
         this.big3rCameraState = {
-            ...this.big3rCameraState,
-            ...partial,
-            pitchOffset: Math.max(
-                -1.45,
-                Math.min(1.45, partial.pitchOffset ?? this.big3rCameraState.pitchOffset),
-            ),
-            distanceOffset: Math.max(
-                -220,
-                Math.min(500, partial.distanceOffset ?? this.big3rCameraState.distanceOffset),
-            ),
+            yawOffset: ((rawYaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI,
+            pitchOffset: clamp(next.pitchOffset, -1.45, 1.45, 0),
+            distanceOffset: clamp(next.distanceOffset, -220, 500, 0),
+            panX: clamp(next.panX, -256, 256, 0),
+            panY: clamp(next.panY, -256, 256, 0),
         };
     }
 
@@ -686,6 +685,10 @@ export class ProceduralVfxCanvas {
 
     public getConfig(): ProceduralVfxConfig {
         return { ...this.config };
+    }
+
+    public getElapsedSec(): number {
+        return this.elapsedSec;
     }
 
     public resetSimulation(): void {
