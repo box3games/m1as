@@ -33,6 +33,27 @@ interface Big3rSavedCameraPreset {
     savedAt: string;
 }
 
+interface Big3rCameraKeyframe {
+    timeMs: number;
+    camera: Big3rCameraState;
+}
+
+interface Big3rRecordingMetadata {
+    schemaVersion: 1;
+    recordingId: string;
+    source: 'procedural-big3r-tube-ceiling';
+    startedAt: string;
+    durationMs: number;
+    completed: boolean;
+    stopReason: 'completed' | 'user' | 'unknown';
+    width: number;
+    height: number;
+    requestedFrameRate: number;
+    mimeType: string;
+    camera: Big3rCameraSnapshot;
+    cameraKeyframes: Big3rCameraKeyframe[];
+}
+
 const BIG3R_CAMERA_STORAGE_KEY = 'm1as.big3r.camera-presets.v1';
 
 const ADVANCED_PRESETS = new Set<ProceduralVfxPreset>([
@@ -63,6 +84,10 @@ export class VfxRecorderController {
     private readonly big3rSaveCameraBtn = document.getElementById('recBig3rSaveCamera') as HTMLButtonElement | null;
     private readonly big3rLoadCameraBtn = document.getElementById('recBig3rLoadCamera') as HTMLButtonElement | null;
     private readonly big3rDeleteCameraBtn = document.getElementById('recBig3rDeleteCamera') as HTMLButtonElement | null;
+    private readonly big3rMotionStartBtn = document.getElementById('recBig3rMotionStart') as HTMLButtonElement | null;
+    private readonly big3rMotionStopBtn = document.getElementById('recBig3rMotionStop') as HTMLButtonElement | null;
+    private readonly big3rMotionClearBtn = document.getElementById('recBig3rMotionClear') as HTMLButtonElement | null;
+    private readonly big3rMetadataDownloadBtn = document.getElementById('downloadRecMetadataBtn') as HTMLButtonElement | null;
     private readonly big3rCameraNameInput = document.getElementById('recBig3rCameraName') as HTMLInputElement | null;
     private readonly big3rCameraPresetSelect = document.getElementById('recBig3rCameraPreset') as HTMLSelectElement | null;
     private readonly startBtn = document.getElementById('startRecBtn') as HTMLButtonElement;
@@ -82,6 +107,13 @@ export class VfxRecorderController {
     private big3rPanMode = false;
     private big3rRecordingId: string | null = null;
     private lastBig3rCameraSnapshot: Big3rCameraSnapshot | null = null;
+    private lastBig3rMetadata: Big3rRecordingMetadata | null = null;
+    private big3rRecordingStartedAt = '';
+    private big3rRecordingStartedPerf = 0;
+    private big3rStopReason: 'completed' | 'user' | 'unknown' = 'unknown';
+    private big3rCameraKeyframes: Big3rCameraKeyframe[] = [];
+    private big3rMotionCaptureActive = false;
+    private big3rMotionCaptureStartedAt = 0;
 
     private big3rPreviewActive = false;
     private big3rPreviewCopyRafId: number | null = null;
@@ -184,6 +216,92 @@ export class VfxRecorderController {
     private resetBig3rCamera(): void {
         this.advancedProcedural.resetBig3rCameraState();
         this.statusEl.textContent = 'Camera reset to the selected BIG3R angle and framing.';
+    }
+
+    private captureBig3rCameraKeyframe(timeMs?: number): void {
+        if (!this.big3rMotionCaptureActive) return;
+        const now = performance.now();
+        const time = Math.max(0, timeMs ?? now - this.big3rMotionCaptureStartedAt);
+        const camera = this.advancedProcedural.getBig3rCameraState();
+        const previous = this.big3rCameraKeyframes[this.big3rCameraKeyframes.length - 1];
+        if (previous && time - previous.timeMs < 24) {
+            previous.camera = camera;
+            return;
+        }
+        this.big3rCameraKeyframes.push({ timeMs: time, camera });
+    }
+
+    private startBig3rMotionCapture(): void {
+        if (this.big3rCameraLocked) return;
+        this.big3rCameraKeyframes = [];
+        this.big3rMotionCaptureStartedAt = performance.now();
+        this.big3rMotionCaptureActive = true;
+        this.captureBig3rCameraKeyframe(0);
+        if (this.big3rMotionStartBtn) this.big3rMotionStartBtn.disabled = true;
+        if (this.big3rMotionStopBtn) this.big3rMotionStopBtn.disabled = false;
+        this.statusEl.textContent = 'Camera motion capture is recording. Move the camera, then stop to save the motion take.';
+    }
+
+    private stopBig3rMotionCapture(): void {
+        if (!this.big3rMotionCaptureActive) return;
+        this.captureBig3rCameraKeyframe();
+        this.big3rMotionCaptureActive = false;
+        if (this.big3rMotionStartBtn) this.big3rMotionStartBtn.disabled = false;
+        if (this.big3rMotionStopBtn) this.big3rMotionStopBtn.disabled = true;
+        this.statusEl.textContent = `Captured ${this.big3rCameraKeyframes.length} camera keyframes (${Math.round(this.big3rCameraKeyframes[this.big3rCameraKeyframes.length - 1]?.timeMs ?? 0)} ms). Start Recording to replay this move.`;
+    }
+
+    private clearBig3rMotionCapture(): void {
+        this.big3rMotionCaptureActive = false;
+        this.big3rCameraKeyframes = [];
+        if (this.big3rMotionStartBtn) this.big3rMotionStartBtn.disabled = false;
+        if (this.big3rMotionStopBtn) this.big3rMotionStopBtn.disabled = true;
+        this.statusEl.textContent = 'Camera motion take cleared.';
+    }
+
+    private applyBig3rCameraMotion(timeMs: number): void {
+        const frames = this.big3rCameraKeyframes;
+        if (frames.length === 0) return;
+        if (timeMs <= frames[0].timeMs) {
+            this.advancedProcedural.setBig3rCameraState(frames[0].camera);
+            return;
+        }
+        const last = frames[frames.length - 1];
+        if (timeMs >= last.timeMs) {
+            this.advancedProcedural.setBig3rCameraState(last.camera);
+            return;
+        }
+        let rightIndex = frames.findIndex(frame => frame.timeMs >= timeMs);
+        if (rightIndex < 1) rightIndex = 1;
+        const left = frames[rightIndex - 1];
+        const right = frames[rightIndex];
+        const span = Math.max(1, right.timeMs - left.timeMs);
+        const t = Math.max(0, Math.min(1, (timeMs - left.timeMs) / span));
+        const lerp = (a: number, b: number) => a + (b - a) * t;
+        const yawDelta = Math.atan2(
+            Math.sin(right.camera.yawOffset - left.camera.yawOffset),
+            Math.cos(right.camera.yawOffset - left.camera.yawOffset),
+        );
+        this.advancedProcedural.setBig3rCameraState({
+            yawOffset: left.camera.yawOffset + yawDelta * t,
+            pitchOffset: lerp(left.camera.pitchOffset, right.camera.pitchOffset),
+            distanceOffset: lerp(left.camera.distanceOffset, right.camera.distanceOffset),
+            panX: lerp(left.camera.panX, right.camera.panX),
+            panY: lerp(left.camera.panY, right.camera.panY),
+        });
+    }
+
+    private downloadBig3rMetadata(): void {
+        if (!this.lastBig3rMetadata) return;
+        const blob = new Blob([JSON.stringify(this.lastBig3rMetadata, null, 2)], {
+            type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `m1as-big3r-${this.lastBig3rMetadata.recordingId}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
     }
 
     private startBig3rPreview(): void {
@@ -301,6 +419,7 @@ export class VfxRecorderController {
                     pitchOffset: current.pitchOffset + dy * 0.008,
                 });
             }
+            this.captureBig3rCameraKeyframe();
         });
 
         const releasePointer = (event: PointerEvent) => {
@@ -328,6 +447,7 @@ export class VfxRecorderController {
             this.advancedProcedural.setBig3rCameraState({
                 distanceOffset: current.distanceOffset + event.deltaY * 0.35,
             });
+            this.captureBig3rCameraKeyframe();
         }, { passive: false });
     }
 
@@ -378,6 +498,10 @@ export class VfxRecorderController {
         this.big3rSaveCameraBtn?.addEventListener('click', () => this.saveBig3rCameraPreset());
         this.big3rLoadCameraBtn?.addEventListener('click', () => this.loadBig3rCameraPreset());
         this.big3rDeleteCameraBtn?.addEventListener('click', () => this.deleteBig3rCameraPreset());
+        this.big3rMotionStartBtn?.addEventListener('click', () => this.startBig3rMotionCapture());
+        this.big3rMotionStopBtn?.addEventListener('click', () => this.stopBig3rMotionCapture());
+        this.big3rMotionClearBtn?.addEventListener('click', () => this.clearBig3rMotionCapture());
+        this.big3rMetadataDownloadBtn?.addEventListener('click', () => this.downloadBig3rMetadata());
 
 
 
@@ -401,6 +525,9 @@ export class VfxRecorderController {
         this.startBtn.addEventListener('click', () => this.startRecording());
 
         this.stopBtn.addEventListener('click', () => {
+            if (this.sourceModeSelect.value === 'procedural-big3r-tube-ceiling') {
+                this.big3rStopReason = 'user';
+            }
             this.advancedProcedural.stopLoop();
 
             if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
@@ -413,7 +540,9 @@ export class VfxRecorderController {
 
             const a = document.createElement('a');
             a.href = this.lastRecordedBlobUrl;
-            a.download = `m1as-${this.sourceModeSelect.value}-${Date.now()}.webm`;
+            a.download = this.lastBig3rMetadata
+                ? `m1as-big3r-${this.lastBig3rMetadata.recordingId}.webm`
+                : `m1as-${this.sourceModeSelect.value}-${Date.now()}.webm`;
             a.click();
         });
 
@@ -496,6 +625,33 @@ export class VfxRecorderController {
         this.mediaRecorder.onstop = () => {
             const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
 
+            if (mode === 'procedural-big3r-tube-ceiling' && this.big3rRecordingId && this.lastBig3rCameraSnapshot) {
+                const durationMs = Math.max(0, Math.round(performance.now() - this.big3rRecordingStartedPerf));
+                this.lastBig3rMetadata = {
+                    schemaVersion: 1,
+                    recordingId: this.big3rRecordingId,
+                    source: 'procedural-big3r-tube-ceiling',
+                    startedAt: this.big3rRecordingStartedAt,
+                    durationMs,
+                    completed: this.big3rStopReason === 'completed',
+                    stopReason: this.big3rStopReason,
+                    width: targetCanvas?.width ?? 512,
+                    height: targetCanvas?.height ?? 512,
+                    requestedFrameRate: 60,
+                    mimeType,
+                    camera: this.lastBig3rCameraSnapshot,
+                    cameraKeyframes: this.big3rCameraKeyframes.map(frame => ({
+                        timeMs: frame.timeMs,
+                        camera: { ...frame.camera },
+                    })),
+                };
+                if (this.big3rMetadataDownloadBtn) this.big3rMetadataDownloadBtn.disabled = false;
+            } else if (mode !== 'procedural-big3r-tube-ceiling') {
+                this.lastBig3rMetadata = null;
+                this.big3rRecordingId = null;
+                if (this.big3rMetadataDownloadBtn) this.big3rMetadataDownloadBtn.disabled = true;
+            }
+
             if (mode === 'procedural-big3r-tube-ceiling') {
                 this.big3rCameraLocked = false;
                 this.big3rControls?.classList.remove('is-disabled');
@@ -523,8 +679,9 @@ export class VfxRecorderController {
                 targetCanvas?.classList.add('is-hidden');
             }
 
-            this.statusEl.textContent =
-                `Captured ${(blob.size / 1024).toFixed(1)} KB (${mimeType}). Ready to download or bind!`;
+            this.statusEl.textContent = this.lastBig3rMetadata
+                ? `Captured ${(blob.size / 1024).toFixed(1)} KB. Camera metadata ready (${this.lastBig3rMetadata.durationMs} ms, ${this.lastBig3rMetadata.cameraKeyframes.length} keyframes).`
+                : `Captured ${(blob.size / 1024).toFixed(1)} KB (${mimeType}). Ready to download or bind!`;
         };
 
         this.startBtn.disabled = true;
@@ -568,15 +725,17 @@ export class VfxRecorderController {
                     this.big3rRecordingId =
                         globalThis.crypto?.randomUUID?.() ??
                         `big3r-${Date.now()}`;
-
+                    this.big3rRecordingStartedAt = new Date().toISOString();
+                    this.big3rRecordingStartedPerf = performance.now();
+                    this.big3rStopReason = 'unknown';
                     this.lastBig3rCameraSnapshot = {
                         preset: 'big3r-tube-ceiling',
                         angle: big3rAngle,
                         framing: big3rFramingMode,
                         camera: this.advancedProcedural.getBig3rCameraState(),
                     };
-
-                    // Keep the selected camera configuration fixed throughout capture.
+                    // Camera is locked against manual input, but a captured motion take
+                    // is still applied by the recording frame loop below.
                     this.big3rCameraLocked = true;
                 }
 
@@ -590,6 +749,10 @@ export class VfxRecorderController {
                     if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
                         this.advancedProcedural.stopLoop();
                         return;
+                    }
+
+                    if (isBig3r && this.big3rCameraKeyframes.length > 0) {
+                        this.applyBig3rCameraMotion(now - clipStartedAt);
                     }
 
                     if (targetCtx && targetCanvas) {
@@ -606,6 +769,7 @@ export class VfxRecorderController {
                     if (now - clipStartedAt < clipDurationMs) {
                         requestAnimationFrame(copyAdvancedFrame);
                     } else {
+                        this.big3rStopReason = isBig3r ? 'completed' : 'unknown';
                         this.advancedProcedural.stopLoop();
                         finishRecording();
                     }
