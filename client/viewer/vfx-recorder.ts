@@ -41,7 +41,8 @@ interface Big3rCameraKeyframe {
 }
 
 interface Big3rRecordingMetadata {
-    schemaVersion: 2;
+    schemaVersion: 3;
+    outputMode: 'foreground' | 'composite';
     recordingId: string;
     source: 'procedural-big3r-tube-ceiling';
     growthDirection: Big3rGrowthDirection;
@@ -103,6 +104,8 @@ export class VfxRecorderController {
     private readonly proceduralCanvas = document.getElementById('proceduralVfxCanvas') as HTMLCanvasElement;
     private readonly proceduralPreviewStage = document.getElementById('proceduralPreviewStage') as HTMLElement | null;
     private readonly backdropVideo = document.getElementById('recBackdropVideo') as HTMLVideoElement | null;
+    private readonly big3rOutputModeSelect = document.getElementById('recBig3rOutputMode') as HTMLSelectElement | null;
+    private readonly big3rCompositeCanvas = document.createElement('canvas');
     private readonly backdropUrlInput = document.getElementById('recBackdropUrl') as HTMLInputElement | null;
     private readonly backdropFileInput = document.getElementById('recBackdropFile') as HTMLInputElement | null;
     private readonly backdropLoadBtn = document.getElementById('recBackdropLoad') as HTMLButtonElement | null;
@@ -483,6 +486,8 @@ export class VfxRecorderController {
 
     constructor(hooks: VfxRecorderHooks) {
         this.hooks = hooks;
+        this.big3rCompositeCanvas.width = this.proceduralCanvas.width;
+        this.big3rCompositeCanvas.height = this.proceduralCanvas.height;
         this.advancedProcedural = new ProceduralVfxCanvas(
             this.proceduralCanvas.width,
             this.proceduralCanvas.height,
@@ -509,6 +514,7 @@ export class VfxRecorderController {
         }
         this.releaseBackdropObjectUrl();
         this.backdropVideo.pause();
+        this.backdropVideo.crossOrigin = 'anonymous';
         this.backdropVideo.src = raw;
         this.backdropVideo.load();
         this.backdropVideo.onloadeddata = () => {
@@ -533,6 +539,7 @@ export class VfxRecorderController {
         this.releaseBackdropObjectUrl();
         this.backdropObjectUrl = URL.createObjectURL(file);
         this.backdropVideo.pause();
+        this.backdropVideo.removeAttribute('crossorigin');
         this.backdropVideo.src = this.backdropObjectUrl;
         this.backdropVideo.load();
         this.backdropVideo.onloadeddata = () => {
@@ -733,11 +740,35 @@ export class VfxRecorderController {
             if (mode.startsWith('procedural-')) this.proceduralPreviewStage?.classList.remove('is-hidden');
         }
 
+        const big3rOutputMode: 'foreground' | 'composite' = isProceduralBig3r && this.big3rOutputModeSelect?.value === 'composite'
+            ? 'composite'
+            : 'foreground';
+        if (isProceduralBig3r && big3rOutputMode === 'composite') {
+            targetCanvas = this.big3rCompositeCanvas;
+            if (this.backdropVideo && !this.backdropVideo.paused) {
+                // Keep the streamed backdrop moving while the composite canvas is recorded.
+            } else if (this.backdropVideo?.src) {
+                void this.backdropVideo.play().catch(() => undefined);
+            }
+        }
+
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
             ? 'video/webm;codecs=vp9'
             : 'video/webm';
 
-        const stream = targetCanvas.captureStream(60);
+        let stream: MediaStream;
+        try {
+            stream = targetCanvas.captureStream(60);
+        } catch (error) {
+            if (isProceduralBig3r && big3rOutputMode === 'composite') {
+                this.big3rCameraLocked = false;
+                this.big3rControls?.classList.remove('is-disabled');
+                this.startBig3rPreview();
+                this.statusEl.textContent = 'Composite capture failed. The backdrop may not allow cross-origin canvas capture; choose Transparent foreground or enable CORS on the media host.';
+                return;
+            }
+            throw error;
+        }
         this.recordedChunks = [];
         this.mediaRecorder = new MediaRecorder(stream, {
             mimeType,
@@ -756,7 +787,8 @@ export class VfxRecorderController {
             if (mode === 'procedural-big3r-tube-ceiling' && this.big3rRecordingId && this.lastBig3rCameraSnapshot) {
                 const durationMs = Math.max(0, Math.round(performance.now() - this.big3rRecordingStartedPerf));
                 this.lastBig3rMetadata = {
-                    schemaVersion: 2,
+                    schemaVersion: 3,
+                    outputMode: big3rOutputMode,
                     recordingId: this.big3rRecordingId,
                     source: 'procedural-big3r-tube-ceiling',
                     growthDirection: this.lastBig3rCameraSnapshot.growthDirection,
@@ -894,6 +926,14 @@ export class VfxRecorderController {
 
                     if (targetCtx && targetCanvas) {
                         targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+                        if (isBig3r && big3rOutputMode === 'composite') {
+                            if (this.backdropVideo && this.backdropVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+                                targetCtx.drawImage(this.backdropVideo, 0, 0, targetCanvas.width, targetCanvas.height);
+                            } else {
+                                targetCtx.fillStyle = '#0f172a';
+                                targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+                            }
+                        }
                         targetCtx.drawImage(
                             this.advancedProcedural.canvas,
                             0,
