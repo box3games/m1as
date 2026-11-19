@@ -28,6 +28,12 @@
             </div>
             <div class="vfx-control-row vfx-backdrop-controls">
                 <input id="recBackdropUrl" class="playground-input" type="url" placeholder="Optional streamed backdrop WebM / MP4 URL…" />
+                <label class="control-inline-label">Recording Output
+                    <select id="recBig3rOutputMode" class="m1as-select m1as-select--lg">
+                        <option value="foreground" selected>Transparent foreground</option>
+                        <option value="composite">Flattened backdrop + foreground</option>
+                    </select>
+                </label>
                 <button id="recBackdropLoad" type="button" class="playground-btn btn--sky">Load Backdrop URL</button>
                 <label class="playground-btn btn--slate" for="recBackdropFile">Choose Video Backdrop</label>
                 <input id="recBackdropFile" type="file" accept="video/webm,video/mp4,video/*" class="is-hidden" />
