@@ -5,6 +5,7 @@ import {
     type Big3rCameraAngle,
     type Big3rFramingMode,
     type Big3rCameraState,
+    type Big3rAnchorState,
     type Big3rGrowthDirection,
     type Big3rCameraSnapshot,
 } from './Proceedural-vfx.js';
@@ -82,6 +83,8 @@ export class VfxRecorderController {
     private readonly viscosityValEl = document.getElementById('recViscosityVal') as HTMLElement | null;
     private readonly big3rAngleSelect = document.getElementById('recBig3rAngle') as HTMLSelectElement | null;
     private readonly big3rDirectionSelect = document.getElementById('recBig3rDirection') as HTMLSelectElement | null;
+    private readonly big3rAnchorXInput = document.getElementById('recBig3rAnchorX') as HTMLInputElement | null;
+    private readonly big3rAnchorYInput = document.getElementById('recBig3rAnchorY') as HTMLInputElement | null;
     private readonly big3rFramingSelect = document.getElementById('recBig3rFraming') as HTMLSelectElement | null;
     private readonly big3rControls = document.getElementById('recBig3rControls') as HTMLElement | null;
     private readonly big3rResetCameraBtn = document.getElementById('recBig3rResetCamera') as HTMLButtonElement | null;
@@ -165,6 +168,7 @@ export class VfxRecorderController {
             preset: 'big3r-tube-ceiling',
             angle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
             growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+            anchor: this.advancedProcedural.getBig3rAnchorState(),
             framing: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
             camera: this.advancedProcedural.getBig3rCameraState(),
         };
@@ -173,6 +177,10 @@ export class VfxRecorderController {
     private restoreBig3rCameraSnapshot(snapshot: Big3rCameraSnapshot): void {
         if (this.big3rAngleSelect) this.big3rAngleSelect.value = snapshot.angle;
         if (this.big3rDirectionSelect) this.big3rDirectionSelect.value = snapshot.growthDirection || 'north';
+        const anchor = snapshot.anchor || { offsetX: 0, offsetY: 0 };
+        this.advancedProcedural.setBig3rAnchorState(anchor);
+        if (this.big3rAnchorXInput) this.big3rAnchorXInput.value = String(anchor.offsetX);
+        if (this.big3rAnchorYInput) this.big3rAnchorYInput.value = String(anchor.offsetY);
         if (this.big3rFramingSelect) this.big3rFramingSelect.value = snapshot.framing;
         this.advancedProcedural.setConfig({
             preset: 'big3r-tube-ceiling',
@@ -587,6 +595,15 @@ export class VfxRecorderController {
             });
         });
 
+        const updateAnchor = () => {
+            this.advancedProcedural.setBig3rAnchorState({
+                offsetX: Number(this.big3rAnchorXInput?.value ?? 0),
+                offsetY: Number(this.big3rAnchorYInput?.value ?? 0),
+            });
+        };
+        this.big3rAnchorXInput?.addEventListener('input', updateAnchor);
+        this.big3rAnchorYInput?.addEventListener('input', updateAnchor);
+
         this.big3rFramingSelect?.addEventListener('change', () => {
             this.advancedProcedural.setConfig({
                 preset: 'big3r-tube-ceiling',
@@ -738,6 +755,7 @@ export class VfxRecorderController {
                     recordingId: this.big3rRecordingId,
                     source: 'procedural-big3r-tube-ceiling',
                     growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+                    anchor: this.advancedProcedural.getBig3rAnchorState(),
                     startedAt: this.big3rRecordingStartedAt,
                     durationMs,
                     completed: this.big3rStopReason === 'completed',
