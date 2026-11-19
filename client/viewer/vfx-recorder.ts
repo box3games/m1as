@@ -40,7 +40,7 @@ interface Big3rCameraKeyframe {
 }
 
 interface Big3rRecordingMetadata {
-    schemaVersion: 1;
+    schemaVersion: 2;
     recordingId: string;
     source: 'procedural-big3r-tube-ceiling';
     growthDirection: Big3rGrowthDirection;
