@@ -61,6 +61,12 @@
                     <div class="big3r-camera-actions">
                         <button id="recBig3rResetCamera" type="button" class="playground-btn btn--slate">Reset Camera</button>
                     </div>
+                    <div class="big3r-camera-motion">
+                        <button id="recBig3rMotionStart" type="button" class="playground-btn btn--amber">● Record Camera Motion</button>
+                        <button id="recBig3rMotionStop" type="button" class="playground-btn btn--slate" disabled>■ Stop Motion Take</button>
+                        <button id="recBig3rMotionClear" type="button" class="playground-btn btn--danger">Clear Motion</button>
+                        <span class="m1as-select m1as-select--lg">A saved motion take replays on the next 36s recording.</span>
+                    </div>
                     <div class="big3r-camera-saved">
                         <input id="recBig3rCameraName" class="playground-input playground-input--compact" type="text" maxlength="48" placeholder="Camera configuration name" aria-label="Camera configuration name" />
                         <button id="recBig3rSaveCamera" type="button" class="playground-btn">Save Camera</button>
@@ -97,6 +103,7 @@
                 <video id="recPreviewVideo" class="rec-preview-video" controls loop muted playsinline></video>
                 <div class="rec-preview-actions">
                     <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
+                    <button id="downloadRecMetadataBtn" class="playground-btn btn--sky" disabled>Download Camera JSON</button>
                     <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb
                         Click</button>
                     <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth
