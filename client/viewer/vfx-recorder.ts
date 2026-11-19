@@ -27,6 +27,14 @@ interface VfxParticle {
     maxLife: number;
 }
 
+interface Big3rSavedCameraPreset {
+    name: string;
+    snapshot: Big3rCameraSnapshot;
+    savedAt: string;
+}
+
+const BIG3R_CAMERA_STORAGE_KEY = 'm1as.big3r.camera-presets.v1';
+
 const ADVANCED_PRESETS = new Set<ProceduralVfxPreset>([
     'magic-smoke',
     'lightning',
@@ -51,6 +59,12 @@ export class VfxRecorderController {
     private readonly big3rAngleSelect = document.getElementById('recBig3rAngle') as HTMLSelectElement | null;
     private readonly big3rFramingSelect = document.getElementById('recBig3rFraming') as HTMLSelectElement | null;
     private readonly big3rControls = document.getElementById('recBig3rControls') as HTMLElement | null;
+    private readonly big3rResetCameraBtn = document.getElementById('recBig3rResetCamera') as HTMLButtonElement | null;
+    private readonly big3rSaveCameraBtn = document.getElementById('recBig3rSaveCamera') as HTMLButtonElement | null;
+    private readonly big3rLoadCameraBtn = document.getElementById('recBig3rLoadCamera') as HTMLButtonElement | null;
+    private readonly big3rDeleteCameraBtn = document.getElementById('recBig3rDeleteCamera') as HTMLButtonElement | null;
+    private readonly big3rCameraNameInput = document.getElementById('recBig3rCameraName') as HTMLInputElement | null;
+    private readonly big3rCameraPresetSelect = document.getElementById('recBig3rCameraPreset') as HTMLSelectElement | null;
     private readonly startBtn = document.getElementById('startRecBtn') as HTMLButtonElement;
     private readonly stopBtn = document.getElementById('stopRecBtn') as HTMLButtonElement;
     private readonly proceduralCanvas = document.getElementById('proceduralVfxCanvas') as HTMLCanvasElement;
@@ -71,6 +85,106 @@ export class VfxRecorderController {
 
     private big3rPreviewActive = false;
     private big3rPreviewCopyRafId: number | null = null;
+
+    private readSavedBig3rCameraPresets(): Big3rSavedCameraPreset[] {
+        try {
+            const raw = localStorage.getItem(BIG3R_CAMERA_STORAGE_KEY);
+            if (!raw) return [];
+            const parsed: unknown = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter((item): item is Big3rSavedCameraPreset =>
+                !!item && typeof item.name === 'string' &&
+                !!item.snapshot && item.snapshot.preset === 'big3r-tube-ceiling' &&
+                !!item.snapshot.camera &&
+                ['yawOffset','pitchOffset','distanceOffset','panX','panY'].every(
+                    key => typeof item.snapshot.camera[key] === 'number'
+                )
+            );
+        } catch {
+            return [];
+        }
+    }
+
+    private refreshBig3rCameraPresetSelect(): void {
+        if (!this.big3rCameraPresetSelect) return;
+        const selected = this.big3rCameraPresetSelect.value;
+        const presets = this.readSavedBig3rCameraPresets();
+        this.big3rCameraPresetSelect.replaceChildren(new Option('Saved camera configurations…', ''));
+        for (const preset of presets) this.big3rCameraPresetSelect.add(new Option(preset.name, preset.name));
+        if (presets.some(preset => preset.name === selected)) this.big3rCameraPresetSelect.value = selected;
+        if (this.big3rDeleteCameraBtn) this.big3rDeleteCameraBtn.disabled = presets.length === 0;
+        if (this.big3rLoadCameraBtn) this.big3rLoadCameraBtn.disabled = presets.length === 0;
+    }
+
+    private getBig3rCameraSnapshot(): Big3rCameraSnapshot {
+        return {
+            preset: 'big3r-tube-ceiling',
+            angle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
+            framing: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
+            camera: this.advancedProcedural.getBig3rCameraState(),
+        };
+    }
+
+    private restoreBig3rCameraSnapshot(snapshot: Big3rCameraSnapshot): void {
+        if (this.big3rAngleSelect) this.big3rAngleSelect.value = snapshot.angle;
+        if (this.big3rFramingSelect) this.big3rFramingSelect.value = snapshot.framing;
+        this.advancedProcedural.setConfig({
+            preset: 'big3r-tube-ceiling',
+            big3rAngle: snapshot.angle,
+            big3rFramingMode: snapshot.framing,
+        });
+        this.advancedProcedural.setBig3rCameraState(snapshot.camera);
+        this.statusEl.textContent = 'Restored BIG3R camera configuration.';
+    }
+
+    private saveBig3rCameraPreset(): void {
+        const name = this.big3rCameraNameInput?.value.trim();
+        if (!name) {
+            this.statusEl.textContent = 'Enter a name before saving the camera configuration.';
+            this.big3rCameraNameInput?.focus();
+            return;
+        }
+        const presets = this.readSavedBig3rCameraPresets();
+        const next: Big3rSavedCameraPreset = {
+            name, snapshot: this.getBig3rCameraSnapshot(), savedAt: new Date().toISOString(),
+        };
+        const existing = presets.findIndex(item => item.name.toLowerCase() === name.toLowerCase());
+        if (existing >= 0) presets[existing] = next;
+        else presets.push(next);
+        try {
+            localStorage.setItem(BIG3R_CAMERA_STORAGE_KEY, JSON.stringify(presets));
+            this.refreshBig3rCameraPresetSelect();
+            if (this.big3rCameraPresetSelect) this.big3rCameraPresetSelect.value = name;
+            this.statusEl.textContent = `Saved camera configuration “${name}”.`;
+        } catch {
+            this.statusEl.textContent = 'Could not save camera configuration in this browser.';
+        }
+    }
+
+    private loadBig3rCameraPreset(): void {
+        const name = this.big3rCameraPresetSelect?.value;
+        if (!name) return;
+        const preset = this.readSavedBig3rCameraPresets().find(item => item.name === name);
+        if (preset) this.restoreBig3rCameraSnapshot(preset.snapshot);
+    }
+
+    private deleteBig3rCameraPreset(): void {
+        const name = this.big3rCameraPresetSelect?.value;
+        if (!name) return;
+        const presets = this.readSavedBig3rCameraPresets().filter(item => item.name !== name);
+        try {
+            localStorage.setItem(BIG3R_CAMERA_STORAGE_KEY, JSON.stringify(presets));
+            this.refreshBig3rCameraPresetSelect();
+            this.statusEl.textContent = `Deleted camera configuration “${name}”.`;
+        } catch {
+            this.statusEl.textContent = 'Could not update saved camera configurations.';
+        }
+    }
+
+    private resetBig3rCamera(): void {
+        this.advancedProcedural.resetBig3rCameraState();
+        this.statusEl.textContent = 'Camera reset to the selected BIG3R angle and framing.';
+    }
 
     private startBig3rPreview(): void {
         if (this.big3rPreviewActive || this.big3rCameraLocked) return;
@@ -143,7 +257,8 @@ export class VfxRecorderController {
         canvas.addEventListener('pointerdown', (event) => {
             if (
                 this.sourceModeSelect.value !== 'procedural-big3r-tube-ceiling' ||
-                this.big3rCameraLocked
+                this.big3rCameraLocked ||
+                (event.button !== 0 && event.button !== 2)
             ) return;
 
             this.big3rPointerId = event.pointerId;
@@ -151,7 +266,12 @@ export class VfxRecorderController {
             this.big3rLastPointerY = event.clientY;
             this.big3rPanMode = event.button === 2 || event.shiftKey;
 
-            canvas.setPointerCapture(event.pointerId);
+            try {
+                canvas.setPointerCapture(event.pointerId);
+            } catch {
+                this.big3rPointerId = null;
+                return;
+            }
             event.preventDefault();
         });
 
@@ -161,8 +281,9 @@ export class VfxRecorderController {
                 this.big3rCameraLocked
             ) return;
 
-            const dx = event.clientX - this.big3rLastPointerX;
-            const dy = event.clientY - this.big3rLastPointerY;
+            const rect = canvas.getBoundingClientRect();
+            const dx = (event.clientX - this.big3rLastPointerX) * (canvas.width / Math.max(1, rect.width));
+            const dy = (event.clientY - this.big3rLastPointerY) * (canvas.height / Math.max(1, rect.height));
 
             this.big3rLastPointerX = event.clientX;
             this.big3rLastPointerY = event.clientY;
@@ -189,7 +310,10 @@ export class VfxRecorderController {
 
         canvas.addEventListener('pointerup', releasePointer);
         canvas.addEventListener('pointercancel', releasePointer);
-        canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+        canvas.addEventListener('lostpointercapture', releasePointer);
+        canvas.addEventListener('contextmenu', (event) => {
+            if (this.sourceModeSelect.value === 'procedural-big3r-tube-ceiling') event.preventDefault();
+        });
 
         canvas.addEventListener('wheel', (event) => {
             if (
@@ -215,6 +339,7 @@ export class VfxRecorderController {
         );
         this.bindEvents();
         this.bindBig3rOrbitControls();
+        this.refreshBig3rCameraPresetSelect();
     }
 
     private bindEvents(): void {
@@ -227,11 +352,32 @@ export class VfxRecorderController {
                 this.startBig3rPreview();
             } else {
                 this.stopBig3rPreview();
-
+                this.big3rCameraLocked = false;
+                this.big3rPointerId = null;
                 this.proceduralCanvas.classList.add('is-hidden');
                 this.big3rControls?.classList.add('is-hidden');
             }
         });
+
+        this.big3rAngleSelect?.addEventListener('change', () => {
+            this.advancedProcedural.setConfig({
+                preset: 'big3r-tube-ceiling',
+                big3rAngle: this.big3rAngleSelect!.value as Big3rCameraAngle,
+            });
+            this.advancedProcedural.resetBig3rCameraState();
+        });
+
+        this.big3rFramingSelect?.addEventListener('change', () => {
+            this.advancedProcedural.setConfig({
+                preset: 'big3r-tube-ceiling',
+                big3rFramingMode: this.big3rFramingSelect!.value as Big3rFramingMode,
+            });
+        });
+
+        this.big3rResetCameraBtn?.addEventListener('click', () => this.resetBig3rCamera());
+        this.big3rSaveCameraBtn?.addEventListener('click', () => this.saveBig3rCameraPreset());
+        this.big3rLoadCameraBtn?.addEventListener('click', () => this.loadBig3rCameraPreset());
+        this.big3rDeleteCameraBtn?.addEventListener('click', () => this.deleteBig3rCameraPreset());
 
 
 
@@ -351,12 +497,11 @@ export class VfxRecorderController {
             const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
 
             if (mode === 'procedural-big3r-tube-ceiling') {
-            this.big3rCameraLocked = false;
-            this.big3rControls?.classList.remove('is-disabled');
-
-            this.startBig3rPreview();
+                this.big3rCameraLocked = false;
+                this.big3rControls?.classList.remove('is-disabled');
+                this.startBig3rPreview();
             } else if (mode.startsWith('procedural-')) {
-            targetCanvas?.classList.add('is-hidden');
+                targetCanvas?.classList.add('is-hidden');
             }
 
             this.previewVideo.pause();
@@ -374,7 +519,7 @@ export class VfxRecorderController {
             this.stopBtn.disabled = true;
             this.big3rCameraLocked = false;
 
-            if (mode.startsWith('procedural-')) {
+            if (mode.startsWith('procedural-') && mode !== 'procedural-big3r-tube-ceiling') {
                 targetCanvas?.classList.add('is-hidden');
             }
 
@@ -397,56 +542,6 @@ export class VfxRecorderController {
                     }
                 }, 80);
             };
-
-            if (preset === 'big3r-tube-ceiling') {
-                this.advancedProcedural.setConfig({
-                    preset: 'big3r-tube-ceiling',
-                    loopDurationSec: 36,
-                    big3rAngle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
-                    big3rFramingMode: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
-                });
-
-                this.advancedProcedural.setBig3rPreviewLoop(false);
-                this.advancedProcedural.resetSimulation();
-                this.advancedProcedural.startLoop();
-
-                const targetCtx = targetCanvas?.getContext('2d', {
-                    alpha: true,
-                });
-
-                const clipStartedAt = performance.now();
-
-                const copyBig3rFrame = (now: number) => {
-                    if (!targetCtx || !targetCanvas) return;
-
-                    targetCtx.clearRect(
-                        0,
-                        0,
-                        targetCanvas.width,
-                        targetCanvas.height,
-                    );
-
-                    targetCtx.drawImage(
-                        this.advancedProcedural.canvas,
-                        0,
-                        0,
-                        targetCanvas.width,
-                        targetCanvas.height,
-                    );
-
-                    if (
-                        now - clipStartedAt < 36000 &&
-                        this.mediaRecorder?.state === 'recording'
-                    ) {
-                        requestAnimationFrame(copyBig3rFrame);
-                    } else {
-                        this.advancedProcedural.stopLoop();
-                        finishRecording();
-                    }
-                };
-
-                requestAnimationFrame(copyBig3rFrame);
-            }
 
             if (ADVANCED_PRESETS.has(preset)) {
                 const viscosity = this.viscositySlider
