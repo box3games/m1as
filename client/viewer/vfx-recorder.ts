@@ -753,9 +753,7 @@ export class VfxRecorderController {
             : 'foreground';
         if (isProceduralBig3r && big3rOutputMode === 'composite') {
             targetCanvas = this.big3rCompositeCanvas;
-            if (this.backdropVideo && !this.backdropVideo.paused) {
-                // Keep the streamed backdrop moving while the composite canvas is recorded.
-            } else if (this.backdropVideo?.src) {
+            if (this.backdropVideo?.src && this.backdropVideo.paused) {
                 void this.backdropVideo.play().catch(() => undefined);
             }
         }
@@ -853,7 +851,7 @@ export class VfxRecorderController {
             }
 
             this.statusEl.textContent = this.lastBig3rMetadata
-                ? `Captured ${(blob.size / 1024).toFixed(1)} KB. Camera metadata ready (${this.lastBig3rMetadata.durationMs} ms, ${this.lastBig3rMetadata.cameraKeyframes.length} keyframes).`
+                ? `Captured ${(blob.size / 1024).toFixed(1)} KB. Recording metadata ready (${this.lastBig3rMetadata.durationMs} ms, ${this.lastBig3rMetadata.cameraKeyframes.length} camera keyframes).`
                 : `Captured ${(blob.size / 1024).toFixed(1)} KB (${mimeType}). Ready to download or bind!`;
         };
 
