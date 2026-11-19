@@ -1,4 +1,5 @@
 
+export type Big3rGrowthDirection = 'north' | 'south' | 'east' | 'west';
 export type Big3rCameraAngle = 'ceiling' | 'left45' | 'right45' | 'topDown';
 export type Big3rFramingMode = 'hybrid' | 'pullback' | 'locked';
 export interface Big3rCameraState {
@@ -14,6 +15,7 @@ export interface Big3rCameraSnapshot {
     angle: Big3rCameraAngle;
     framing: Big3rFramingMode;
     camera: Big3rCameraState;
+    growthDirection: Big3rGrowthDirection;
 }
 
 export type ProceduralVfxPreset =
@@ -33,6 +35,7 @@ export interface ProceduralVfxConfig {
     secondaryColor: string;
     loopDurationSec: number;
     big3rAngle: Big3rCameraAngle;
+    big3rGrowthDirection: Big3rGrowthDirection;
     big3rFramingMode: Big3rFramingMode;
 }
 
@@ -322,6 +325,18 @@ function projectBig3rPoint(
     };
 }
 
+function orientBig3rPoint(point: Big3rWorldPoint, direction: Big3rGrowthDirection): Big3rWorldPoint {
+    // Rotate the canonical -Y growth axis around the fixed root origin.
+    // North is deliberately an identity transform to preserve the known-good baseline.
+    switch (direction) {
+        case 'south': return { x: -point.x, y: -point.y, z: point.z };
+        case 'east': return { x: -point.y, y: point.x, z: point.z };
+        case 'west': return { x: point.y, y: -point.x, z: point.z };
+        case 'north':
+        default: return point;
+    }
+}
+
 function renderBig3rSurge(
     ctx: CanvasRenderingContext2D,
     progress: number,
@@ -329,6 +344,7 @@ function renderBig3rSurge(
     angleKey: Big3rCameraAngle,
     framingMode: Big3rFramingMode,
     cameraState: Big3rCameraState,
+    growthDirection: Big3rGrowthDirection,
 ): void {
     const preset = big3rCameraPresets[angleKey] ?? big3rCameraPresets.ceiling;
     const p = Math.max(0, Math.min(1, progress));
@@ -401,11 +417,11 @@ function renderBig3rSurge(
             );
         }
 
-        const wp = {
+        const wp = orientBig3rPoint({
             x: vt.cosT * profileR,
             y: -v * totalHeight,
             z: vt.sinT * profileR,
-        };
+        }, growthDirection);
 
         worldVerts.push(wp);
         projVerts.push(projectBig3rPoint(wp, cam, anchorX, anchorY, fov));
@@ -529,11 +545,11 @@ function renderBig3rSurge(
         const pProj: Big3rProjectedPoint[] = [];
 
         for (const pv of meshes.pouch.verts) {
-            const wp = {
+            const wp = orientBig3rPoint({
                 x: pc.cx + pv.nx * pc.rx,
                 y: pc.cy + pv.ny * pc.ry,
                 z: pc.cz + pv.nz * pc.rz,
-            };
+            }, growthDirection);
 
             pWorld.push(wp);
             pProj.push(projectBig3rPoint(wp, cam, anchorX, anchorY, fov));
@@ -613,6 +629,7 @@ export class ProceduralVfxCanvas {
         secondaryColor: '#38bdf8',
         loopDurationSec: 2.0,
         big3rAngle: 'ceiling',
+        big3rGrowthDirection: 'north',
         big3rFramingMode: 'hybrid',
     };
 
@@ -762,6 +779,7 @@ export class ProceduralVfxCanvas {
                     this.config.big3rAngle,
                     this.config.big3rFramingMode,
                     this.big3rCameraState,
+                    this.config.big3rGrowthDirection,
                 );
                 break;
         }
