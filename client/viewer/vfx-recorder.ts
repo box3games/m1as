@@ -863,7 +863,7 @@ export class VfxRecorderController {
                     this.big3rRecordingStartedPerf = performance.now();
                     this.big3rStopReason = 'unknown';
                     this.recordingBackdrop = { ...this.backdropDescriptor };
-            this.lastBig3rCameraSnapshot = {
+                    this.lastBig3rCameraSnapshot = {
                         preset: 'big3r-tube-ceiling',
                         angle: big3rAngle,
                         growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
