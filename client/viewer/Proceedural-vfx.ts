@@ -2,6 +2,11 @@
 export type Big3rGrowthDirection = 'north' | 'south' | 'east' | 'west';
 export type Big3rCameraAngle = 'ceiling' | 'left45' | 'right45' | 'topDown';
 export type Big3rFramingMode = 'hybrid' | 'pullback' | 'locked';
+export interface Big3rAnchorState {
+    offsetX: number;
+    offsetY: number;
+}
+
 export interface Big3rCameraState {
     yawOffset: number;
     pitchOffset: number;
@@ -16,6 +21,7 @@ export interface Big3rCameraSnapshot {
     framing: Big3rFramingMode;
     camera: Big3rCameraState;
     growthDirection: Big3rGrowthDirection;
+    anchor: Big3rAnchorState;
 }
 
 export type ProceduralVfxPreset =
@@ -36,6 +42,8 @@ export interface ProceduralVfxConfig {
     loopDurationSec: number;
     big3rAngle: Big3rCameraAngle;
     big3rGrowthDirection: Big3rGrowthDirection;
+    big3rAnchorOffsetX: number;
+    big3rAnchorOffsetY: number;
     big3rFramingMode: Big3rFramingMode;
 }
 
@@ -345,6 +353,7 @@ function renderBig3rSurge(
     framingMode: Big3rFramingMode,
     cameraState: Big3rCameraState,
     growthDirection: Big3rGrowthDirection,
+    anchorState: Big3rAnchorState,
 ): void {
     const preset = big3rCameraPresets[angleKey] ?? big3rCameraPresets.ceiling;
     const p = Math.max(0, Math.min(1, progress));
@@ -381,8 +390,8 @@ function renderBig3rSurge(
         yaw: preset.yaw + cameraState.yawOffset,
     };
 
-    const anchorX = preset.anchorX + cameraState.panX;
-    const anchorY = preset.anchorY + cameraState.panY;
+    const anchorX = preset.anchorX + anchorState.offsetX + cameraState.panX;
+    const anchorY = preset.anchorY + anchorState.offsetY + cameraState.panY;
     const worldVerts: Big3rWorldPoint[] = [];
     const projVerts: Big3rProjectedPoint[] = [];
 
@@ -613,6 +622,7 @@ export class ProceduralVfxCanvas {
     private readonly offCtx: CanvasRenderingContext2D;
 
     private big3rPreviewLoop = false;
+    private big3rAnchorState: Big3rAnchorState = { offsetX: 0, offsetY: 0 };
 
     private big3rCameraState: Big3rCameraState = {
         yawOffset: 0,
@@ -630,6 +640,8 @@ export class ProceduralVfxCanvas {
         loopDurationSec: 2.0,
         big3rAngle: 'ceiling',
         big3rGrowthDirection: 'north',
+        big3rAnchorOffsetX: 0,
+        big3rAnchorOffsetY: 0,
         big3rFramingMode: 'hybrid',
     };
 
@@ -666,6 +678,20 @@ export class ProceduralVfxCanvas {
             panX: clamp(next.panX, -256, 256, 0),
             panY: clamp(next.panY, -256, 256, 0),
         };
+    }
+
+    public setBig3rAnchorState(partial: Partial<Big3rAnchorState>): void {
+        const next = { ...this.big3rAnchorState, ...partial };
+        const clamp = (value: number) => Number.isFinite(value) ? Math.max(-256, Math.min(256, value)) : 0;
+        this.big3rAnchorState = { offsetX: clamp(next.offsetX), offsetY: clamp(next.offsetY) };
+    }
+
+    public getBig3rAnchorState(): Big3rAnchorState {
+        return { ...this.big3rAnchorState };
+    }
+
+    public resetBig3rAnchorState(): void {
+        this.big3rAnchorState = { offsetX: 0, offsetY: 0 };
     }
 
     public setBig3rPreviewLoop(enabled: boolean): void {
@@ -780,6 +806,7 @@ export class ProceduralVfxCanvas {
                     this.config.big3rFramingMode,
                     this.big3rCameraState,
                     this.config.big3rGrowthDirection,
+                    this.big3rAnchorState,
                 );
                 break;
         }
