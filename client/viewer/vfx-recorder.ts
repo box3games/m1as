@@ -45,6 +45,7 @@ interface Big3rRecordingMetadata {
     recordingId: string;
     source: 'procedural-big3r-tube-ceiling';
     growthDirection: Big3rGrowthDirection;
+    anchor: Big3rAnchorState;
     startedAt: string;
     durationMs: number;
     completed: boolean;
@@ -754,8 +755,8 @@ export class VfxRecorderController {
                     schemaVersion: 2,
                     recordingId: this.big3rRecordingId,
                     source: 'procedural-big3r-tube-ceiling',
-                    growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
-                    anchor: this.advancedProcedural.getBig3rAnchorState(),
+                    growthDirection: this.lastBig3rCameraSnapshot.growthDirection,
+                    anchor: this.lastBig3rCameraSnapshot.anchor,
                     startedAt: this.big3rRecordingStartedAt,
                     durationMs,
                     completed: this.big3rStopReason === 'completed',
@@ -860,6 +861,7 @@ export class VfxRecorderController {
                         preset: 'big3r-tube-ceiling',
                         angle: big3rAngle,
                         growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+                        anchor: this.advancedProcedural.getBig3rAnchorState(),
                         framing: big3rFramingMode,
                         camera: this.advancedProcedural.getBig3rCameraState(),
                     };
