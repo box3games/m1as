@@ -6,6 +6,12 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Compiled viewer artifacts
+dev/m1as-viewer.js
+dev/m1as-viewer.js.map
+dev/m1as-viewer.css
+dev/m1as-viewer.css.map
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
