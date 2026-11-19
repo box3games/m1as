@@ -54,6 +54,7 @@ interface Big3rRecordingMetadata {
     mimeType: string;
     camera: Big3rCameraSnapshot;
     cameraKeyframes: Big3rCameraKeyframe[];
+    backdrop: { kind: 'url' | 'file' | 'none'; source: string | null };
 }
 
 const BIG3R_CAMERA_STORAGE_KEY = 'm1as.big3r.camera-presets.v1';
@@ -96,6 +97,11 @@ export class VfxRecorderController {
     private readonly startBtn = document.getElementById('startRecBtn') as HTMLButtonElement;
     private readonly stopBtn = document.getElementById('stopRecBtn') as HTMLButtonElement;
     private readonly proceduralCanvas = document.getElementById('proceduralVfxCanvas') as HTMLCanvasElement;
+    private readonly backdropVideo = document.getElementById('recBackdropVideo') as HTMLVideoElement | null;
+    private readonly backdropUrlInput = document.getElementById('recBackdropUrl') as HTMLInputElement | null;
+    private readonly backdropFileInput = document.getElementById('recBackdropFile') as HTMLInputElement | null;
+    private readonly backdropLoadBtn = document.getElementById('recBackdropLoad') as HTMLButtonElement | null;
+    private readonly backdropClearBtn = document.getElementById('recBackdropClear') as HTMLButtonElement | null;
     private readonly previewBox = document.getElementById('recPreviewBox') as HTMLElement;
     private readonly previewVideo = document.getElementById('recPreviewVideo') as HTMLVideoElement;
     private readonly downloadBtn = document.getElementById('downloadRecBtn') as HTMLButtonElement;
@@ -109,6 +115,9 @@ export class VfxRecorderController {
     private big3rLastPointerY = 0;
     private big3rPanMode = false;
     private big3rRecordingId: string | null = null;
+    private backdropObjectUrl: string | null = null;
+    private backdropDescriptor: { kind: 'url' | 'file' | 'none'; source: string | null } = { kind: 'none', source: null };
+    private recordingBackdrop: { kind: 'url' | 'file' | 'none'; source: string | null } = { kind: 'none', source: null };
     private lastBig3rCameraSnapshot: Big3rCameraSnapshot | null = null;
     private lastBig3rMetadata: Big3rRecordingMetadata | null = null;
     private big3rRecordingStartedAt = '';
@@ -316,6 +325,9 @@ export class VfxRecorderController {
         this.big3rPreviewActive = true;
 
         this.proceduralCanvas.classList.remove('is-hidden');
+        if (this.backdropVideo?.src) void this.backdropVideo.play().catch(() => {
+            this.statusEl.textContent = 'Backdrop loaded but playback was blocked; press play in the backdrop preview.';
+        });
 
         this.big3rControls?.classList.remove('is-hidden');
 
@@ -469,6 +481,80 @@ export class VfxRecorderController {
         this.refreshBig3rCameraPresetSelect();
     }
 
+    private sanitizeBackdropUrl(raw: string): string {
+        try {
+            const url = new URL(raw);
+            return `${url.protocol}//${url.host}${url.pathname}`;
+        } catch {
+            return raw.split('?')[0].split('#')[0];
+        }
+    }
+
+    private loadBackdropUrl(): void {
+        const raw = this.backdropUrlInput?.value.trim();
+        if (!raw || !this.backdropVideo) {
+            this.statusEl.textContent = 'Enter a valid streamed video URL first.';
+            return;
+        }
+        this.releaseBackdropObjectUrl();
+        this.backdropVideo.pause();
+        this.backdropVideo.src = raw;
+        this.backdropVideo.load();
+        this.backdropVideo.onloadeddata = () => {
+            this.backdropDescriptor = { kind: 'url', source: this.sanitizeBackdropUrl(raw) };
+            void this.backdropVideo?.play().catch(() => {
+                this.statusEl.textContent = 'Backdrop loaded. Browser autoplay was blocked; start playback in the preview.';
+            });
+            this.statusEl.textContent = 'Streamed backdrop loaded behind the isolated alpha VFX canvas.';
+        };
+        this.backdropVideo.onerror = () => {
+            this.statusEl.textContent = 'Backdrop could not be loaded. Check the URL, media format, and server access.';
+        };
+    }
+
+    private loadBackdropFile(): void {
+        const file = this.backdropFileInput?.files?.[0];
+        if (!file || !this.backdropVideo) return;
+        if (!file.type.startsWith('video/')) {
+            this.statusEl.textContent = 'The backdrop file must be a video (WebM or MP4).';
+            return;
+        }
+        this.releaseBackdropObjectUrl();
+        this.backdropObjectUrl = URL.createObjectURL(file);
+        this.backdropVideo.pause();
+        this.backdropVideo.src = this.backdropObjectUrl;
+        this.backdropVideo.load();
+        this.backdropVideo.onloadeddata = () => {
+            this.backdropDescriptor = { kind: 'file', source: file.name };
+            void this.backdropVideo?.play().catch(() => undefined);
+            this.statusEl.textContent = `Backdrop loaded: ${file.name}. Alpha recording remains isolated.`;
+        };
+        this.backdropVideo.onerror = () => {
+            this.statusEl.textContent = 'Selected backdrop video could not be decoded by this browser.';
+        };
+    }
+
+    private releaseBackdropObjectUrl(): void {
+        if (this.backdropObjectUrl) {
+            URL.revokeObjectURL(this.backdropObjectUrl);
+            this.backdropObjectUrl = null;
+        }
+    }
+
+    private clearBackdrop(): void {
+        if (this.backdropVideo) {
+            this.backdropVideo.pause();
+            this.backdropVideo.removeAttribute('src');
+            this.backdropVideo.load();
+            this.backdropVideo.onloadeddata = null;
+            this.backdropVideo.onerror = null;
+        }
+        this.releaseBackdropObjectUrl();
+        this.backdropDescriptor = { kind: 'none', source: null };
+        if (this.backdropFileInput) this.backdropFileInput.value = '';
+        this.statusEl.textContent = 'Backdrop cleared. The foreground canvas remains transparent.';
+    }
+
     private bindEvents(): void {
 
         this.sourceModeSelect.addEventListener('change', () => {
@@ -513,6 +599,9 @@ export class VfxRecorderController {
         this.big3rLoadCameraBtn?.addEventListener('click', () => this.loadBig3rCameraPreset());
         this.big3rDeleteCameraBtn?.addEventListener('click', () => this.deleteBig3rCameraPreset());
         this.big3rMotionStartBtn?.addEventListener('click', () => this.startBig3rMotionCapture());
+        this.backdropLoadBtn?.addEventListener('click', () => this.loadBackdropUrl());
+        this.backdropClearBtn?.addEventListener('click', () => this.clearBackdrop());
+        this.backdropFileInput?.addEventListener('change', () => this.loadBackdropFile());
         this.big3rMotionStopBtn?.addEventListener('click', () => this.stopBig3rMotionCapture());
         this.big3rMotionClearBtn?.addEventListener('click', () => this.clearBig3rMotionCapture());
         this.big3rMetadataDownloadBtn?.addEventListener('click', () => this.downloadBig3rMetadata());
@@ -658,6 +747,7 @@ export class VfxRecorderController {
                     requestedFrameRate: 60,
                     mimeType,
                     camera: this.lastBig3rCameraSnapshot,
+                    backdrop: { ...this.recordingBackdrop },
                     cameraKeyframes: this.big3rCameraKeyframes.map(frame => ({
                         timeMs: frame.timeMs,
                         camera: { ...frame.camera },
@@ -747,7 +837,8 @@ export class VfxRecorderController {
                     this.big3rRecordingStartedAt = new Date().toISOString();
                     this.big3rRecordingStartedPerf = performance.now();
                     this.big3rStopReason = 'unknown';
-                    this.lastBig3rCameraSnapshot = {
+                    this.recordingBackdrop = { ...this.backdropDescriptor };
+            this.lastBig3rCameraSnapshot = {
                         preset: 'big3r-tube-ceiling',
                         angle: big3rAngle,
                         growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
@@ -886,6 +977,7 @@ export class VfxRecorderController {
 
     public destroy(): void {
         this.advancedProcedural.destroy();
+        this.clearBackdrop();
         this.previewVideo.pause();
         this.previewVideo.removeAttribute('src');
         this.previewVideo.load();
