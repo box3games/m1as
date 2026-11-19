@@ -343,6 +343,29 @@ function orientBig3rPoint(point: Big3rWorldPoint, direction: Big3rGrowthDirectio
     }
 }
 
+function orientBig3rAnchor(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    direction: Big3rGrowthDirection,
+): { x: number; y: number } {
+    const centerX = width * 0.5;
+    const centerY = height * 0.5;
+    const dx = x - centerX;
+    const dy = y - centerY;
+
+    // Rotate the composition root around the canvas center with the growth axis.
+    // North remains unchanged, preserving the original bottom-center anchor.
+    switch (direction) {
+        case 'south': return { x: centerX - dx, y: centerY - dy };
+        case 'east': return { x: centerX - dy, y: centerY + dx };
+        case 'west': return { x: centerX + dy, y: centerY - dx };
+        case 'north':
+        default: return { x, y };
+    }
+}
+
 function renderBig3rSurge(
     ctx: CanvasRenderingContext2D,
     progress: number,
@@ -388,8 +411,15 @@ function renderBig3rSurge(
         yaw: preset.yaw + cameraState.yawOffset,
     };
 
-    const anchorX = preset.anchorX + anchorState.offsetX + cameraState.panX;
-    const anchorY = preset.anchorY + anchorState.offsetY + cameraState.panY;
+    const orientedAnchor = orientBig3rAnchor(
+        preset.anchorX,
+        preset.anchorY,
+        ctx.canvas.width,
+        ctx.canvas.height,
+        growthDirection,
+    );
+    const anchorX = orientedAnchor.x + anchorState.offsetX + cameraState.panX;
+    const anchorY = orientedAnchor.y + anchorState.offsetY + cameraState.panY;
     const worldVerts: Big3rWorldPoint[] = [];
     const projVerts: Big3rProjectedPoint[] = [];
 
