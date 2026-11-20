@@ -59,6 +59,8 @@ export interface VfxEngineOptions {
     onPropsChanged: (props: SpatialProp[]) => void;
     onStateChange: (state: VfxGrowthState) => void;
     onRoomCollapse: (newBoxTier: number, newCeiling: number) => void;
+    onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
+    onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
 }
 
 export type FaceSlotKey = "bg" | number;
