@@ -38,7 +38,9 @@ export class M1asApiClient {
     }
 
     async getSignedAssetUrl(assetId: string): Promise<string> {
-        const response = await fetch(`${this.apiBase}/assets/${assetId}/signed`);
+        const response = await fetch(`${this.apiBase}/assets/${assetId}/signed`, {
+            headers: { "m1as-user-id": this.userId }
+        });
         if (!response.ok) {
             throw new Error(`Failed to sign asset URL (${response.status})`);
         }
