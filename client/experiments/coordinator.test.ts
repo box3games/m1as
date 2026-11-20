@@ -4,6 +4,7 @@ import type {
   CaptureProfile, ExperimentManifest, ExperimentRecord, PresentationSampleRecord,
 } from './contracts.js';
 import { ExperimentCoordinator } from './coordinator.js';
+import { GrowthStimulusType } from '../GrowthEventQueue.js';
 import type { ExperimentStorage } from './recorder.js';
 
 const profile: CaptureProfile = {
@@ -118,4 +119,26 @@ test('overlapping event windows extend capture and do not duplicate prior sample
     'sampleId' in record);
   assert.deepEqual(samples.map(sample => sample.time.simulationTimeSeconds), [0, 0.5, 0.6, 0.8, 0.9]);
   assert.equal(new Set(samples.map(sample => sample.sampleId)).size, samples.length);
+});
+
+test('legacy queue release observations are exported and linked to presentation samples', async () => {
+  const storage = new MemoryStorage();
+  const coordinator = new ExperimentCoordinator({
+    manifest, storage, capturePresentation: samplePayload,
+  });
+  await coordinator.start();
+  coordinator.recordLegacyQueueRelease({
+    oldScale: 1, newScale: 1.35, delta: 0.35, growthPressure: 0.35,
+    type: GrowthStimulusType.Consumption, entropyImpact: 0.225, delayWeight: 0.28,
+  }, 0.25, 15);
+  coordinator.tick(0.25, 15);
+  await coordinator.stop();
+
+  const execution = storage.records.find(record =>
+    'provenance' in record && record.provenance === 'legacy_observation');
+  assert.ok(execution && 'eventId' in execution);
+  assert.equal(execution.status, 'active');
+  const presentation = storage.records.find(record => 'sampleId' in record);
+  assert.ok(presentation && 'relatedEventIds' in presentation);
+  assert.deepEqual(presentation.relatedEventIds, [execution.eventId]);
 });
