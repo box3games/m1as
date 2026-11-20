@@ -154,6 +154,11 @@ export class Big3rSandboxController {
 
         this.glbUrlInput.value = glbSignedUrl;
 
+        if (this.experimentCoordinator) {
+            await this.experimentCoordinator.stop();
+            this.experimentCoordinator = null;
+        }
+
         if (this.coordinator) {
             this.coordinator.destroy();
             this.coordinator = null;
@@ -228,6 +233,9 @@ export class Big3rSandboxController {
     }
 
     private installExperimentControls(engine: M1ASVFXEngine): void {
+        const previousExport = this.experimentExportLink && !this.experimentExportLink.hidden
+            ? { href: this.experimentExportLink.href, download: this.experimentExportLink.download }
+            : null;
         if (this.experimentControls) this.experimentControls.remove();
         const panel = document.createElement("div");
         panel.className = "m1as-experiment-controls";
@@ -237,6 +245,13 @@ export class Big3rSandboxController {
         panel.style.gap = "8px";
         panel.style.margin = "8px 0";
 
+        const profileSelect = document.createElement("select");
+        for (const profileName of ["lightweight", "detailed", "discovery"] as const) {
+            const option = document.createElement("option");
+            option.value = profileName;
+            option.textContent = profileName;
+            profileSelect.appendChild(option);
+        }
         const start = document.createElement("button");
         start.type = "button";
         start.textContent = "Start Experiment Capture";
@@ -253,7 +268,8 @@ export class Big3rSandboxController {
 
         start.addEventListener("click", async () => {
             if (this.experimentCoordinator?.isRecording) return;
-            const profile = { ...DEFAULT_CAPTURE_PROFILES.lightweight };
+            const profileName = profileSelect.value as keyof typeof DEFAULT_CAPTURE_PROFILES;
+            const profile = { ...DEFAULT_CAPTURE_PROFILES[profileName] };
             const experimentId = `13163r-${Date.now()}`;
             const manifest: ExperimentManifest = {
                 experimentId,
@@ -334,7 +350,7 @@ export class Big3rSandboxController {
                 start.disabled = true;
                 stop.disabled = false;
                 exportLink.hidden = true;
-                status.textContent = `Recording ${experimentId} · lightweight profile`;
+                status.textContent = `Recording ${experimentId} · ${profile.name} profile`;
             } catch (error) {
                 this.experimentCoordinator = null;
                 status.textContent = `Could not start capture: ${String(error)}`;
@@ -354,7 +370,12 @@ export class Big3rSandboxController {
             }
         });
 
-        panel.append(start, stop, status, exportLink);
+        if (previousExport) {
+            exportLink.href = previousExport.href;
+            exportLink.download = previousExport.download;
+            exportLink.hidden = false;
+        }
+        panel.append(profileSelect, start, stop, status, exportLink);
         this.controlBar.appendChild(panel);
         this.experimentControls = panel;
         this.experimentStatus = status;
