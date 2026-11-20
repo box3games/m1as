@@ -965,3 +965,83 @@ FLAGS:
 -[CHECK] Confirm exact $SK bone names (Pelvis/Hips, Spine_01..03, Clavicle, thigh.L/R, shin.L/R, Head) & whether $RC needs nested Yaw_Pivot->Pitch_Pivot nodes in $GD to prevent gimbal lock.
 -[MISSING] Concrete numeric scale multipliers per tier (Tiers 1-10) & $M1 .glb streaming preload triggers for $GEQ transitions.
 -[MISSING] Specific $25 overlay assets (.webm auras, sightline cones, height-ruler UI) ready for $13 integration.
+canonical character scaling with adaptive world contexts
+\[
+P = \log_2(S_{\text{persistent}})
+\]
+This is useful because each increase of 1 represents a doubling of scale.
+These are mathematical examples, not proposed game progression values.
+
+We could assign each world context its own reference value \(W\).
+
+The relative relationship becomes:
+\[
+R = 2^{P-W}
+\]
+
+Where:
+- \(P\) = persistent player growth.
+- \(W\) = world reference scale.
+- \(R\) = player's relative size within that world.
+
+This provides a way to describe the player as small, normal-sized or enormous relative to the environment without requiring the active simulation to use those enormous physical dimensions.
+
+If \(P-W=0\), the player is at the world's reference size.
+If \(P-W=5\), the player is 32 times that reference size.
+If \(P-W=-5\), the player is 1/32 of that reference size.
+
+We can also use this relationship to select environmental detail levels and presentation behavior.
+5. The box-within-a-box becomes a scale-management architecture
+Persistent game state
+
+Growth progression · Base size · Buff state · Growth potential
+World context
+
+Town / Library / City / Ocean / Space
+Local simulation
+
+Canonical character · Local environment · Physics · Collision
+Presentation
+
+Camera · Lighting · VFX · Composition
+
+
+
+Conceptual ownership and transformation hierarchy. These do not necessarily need to be nested scene nodes.
+7. An important opportunity: environmental detail can follow relative scale
+Your idea that the returning town could have minimized details is especially interesting.
+
+We could make environment generation respond to the player's relative scale.
+
+For example:
+- A book could initially have individual readable pages and interactive objects.
+- As the player becomes enormous relative to it, the book could become a simpler visual object.
+- A bookshelf could transition from individually simulated books to grouped geometry.
+- Buildings could transition between detailed structures and larger simplified representations.
+- At astronomical scales, planets could be represented by specialized procedural or impostor rendering techniques.
+This is more than ordinary level-of-detail optimization.
+
+It is scale-aware world representation.
+
+The world doesn't simply become smaller. Its representation changes according to the relationship between the player and the environment.
+\[
+S_{\text{local}} =
+\operatorname{clamp}
+\left(
+e^{P-W}\cdot B\cdot E,\,
+S_{\min},S_{\max}
+\right)
+\]
+
+Where:
+- \(P\) is absolute growth.
+- \(W\) is the world reference.
+- \(B\) is the temporary modifier.
+- \(E\) is the event modifier.
+A logistic function is one candidate for a bounded growth phase:
+\[
+G(t)=\frac{L}{1+e^{-k(t-t_0)}}
+\]
+However, because your game ultimately allows progression into astronomical scales, I would not make the entire progression globally bounded by one logistic curve. We could use separate growth phases or piecewise functions, each with its own parameters.
+
+This gives us opportunities for gameplay challenges without imposing an artificial permanent ceiling.
