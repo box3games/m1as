@@ -399,7 +399,11 @@ function renderBig3rSurge(
 
     const { macro, radial, axial, rootPulse } = computeBig3rBalloonCurve(p);
     const tautness = Math.min(1, macro / 0.85);
-    const totalHeight = (78 + axial * 205) * popIn;
+    const forwardNorth = trajectoryPreset === 'forward-to-north';
+    const latePhase = forwardNorth ? big3rSmoothstep(21 / 36, 33 / 36, p) : 0;
+    const straightenProgress = forwardNorth ? big3rSmoothstep(21 / 36, 23.2 / 36, p) : 0;
+    const rootPitchAngle = latePhase * (Math.PI / 3);
+    const totalHeight = (78 + axial * 205) * popIn * (1 + latePhase * 0.16);
     const shaftRadius = (14 + radial * 15) * popIn;
 
     const growthNorm = Math.min(1.15, macro);
@@ -468,20 +472,40 @@ function renderBig3rSurge(
             );
         }
 
-        let wp: Big3rWorldPoint;
-        if (trajectoryPreset === 'forward-to-north') {
+        if (forwardNorth) {
+            // The late phase is one continuous, root-pivoted shaft. The original
+            // distributed bend is retained through 21s, then blended into a
+            // straight axis that pitches toward North (negative Y) by 60 degrees.
             const bendProgress = big3rSmoothstep(0.52, 0.82, p);
-            const thetaAt = (distance: number) => bendProgress * big3rSmoothstep(0.32, 0.92, distance) * (Math.PI * 0.5);
+            const legacyThetaAt = (distance: number) =>
+                bendProgress * big3rSmoothstep(0.32, 0.92, distance) * (Math.PI * 0.5);
+            const tangentAngleAt = (distance: number) =>
+                big3rLerp(legacyThetaAt(distance), rootPitchAngle, straightenProgress);
+
+            // Inflate the continuous shaft into an elongated, rounded body.
+            // The terminal crown is shortened axially and broadened slightly,
+            // making it read as pressed by the expanding body rather than a
+            // separate bulb or attached mesh.
+            const bodyU = Math.max(0, Math.min(1, (v - 0.06) / 0.82));
+            const bodyEnvelope = Math.pow(Math.max(0, Math.sin(bodyU * Math.PI)), 0.72);
+            profileR *= 1 + latePhase * 0.62 * bodyEnvelope;
+            if (v >= 0.76) {
+                profileR *= 1 + latePhase * 0.16 * big3rSmoothstep(0.76, 0.92, v);
+            }
+
+            const axialV = v <= 0.84
+                ? v
+                : 0.84 + (v - 0.84) * (1 - latePhase * 0.28);
             let centerY = 0;
             let centerZ = 0;
-            const steps = Math.max(1, Math.ceil(v * 32));
+            const steps = Math.max(1, Math.ceil(axialV * 32));
             for (let step = 0; step < steps; step++) {
-                const d = (step + 0.5) * v / steps;
-                const theta = thetaAt(d);
-                centerY -= Math.sin(theta) * totalHeight * v / steps;
-                centerZ += Math.cos(theta) * totalHeight * v / steps;
+                const d = (step + 0.5) * axialV / steps;
+                const theta = tangentAngleAt(d);
+                centerY -= Math.sin(theta) * totalHeight * axialV / steps;
+                centerZ += Math.cos(theta) * totalHeight * axialV / steps;
             }
-            const theta = thetaAt(v);
+            const theta = tangentAngleAt(axialV);
             wp = {
                 x: vt.cosT * profileR,
                 y: centerY + vt.sinT * Math.cos(theta) * profileR,
@@ -620,8 +644,12 @@ function renderBig3rSurge(
             const pouchPoint = trajectoryPreset === 'forward-to-north'
                 ? { x: pc.cx + pv.nx * pc.rx, y: pc.cz + pv.nz * pc.rz, z: pc.cy + pv.ny * pc.ry }
                 : { x: pc.cx + pv.nx * pc.rx, y: pc.cy + pv.ny * pc.ry, z: pc.cz + pv.nz * pc.rz };
-            const wp = trajectoryPreset === 'forward-to-north'
-                ? pouchPoint
+            const wp = forwardNorth
+                ? {
+                    x: pouchPoint.x,
+                    y: pouchPoint.y * Math.cos(rootPitchAngle) - pouchPoint.z * Math.sin(rootPitchAngle),
+                    z: pouchPoint.y * Math.sin(rootPitchAngle) + pouchPoint.z * Math.cos(rootPitchAngle),
+                }
                 : orientBig3rPoint(pouchPoint, growthDirection);
 
             pWorld.push(wp);
@@ -746,16 +774,14 @@ export class ProceduralVfxCanvas {
     public getBig3rTrajectorySnapshot(): Big3rTrajectorySnapshot {
         return {
             preset: this.config.big3rTrajectoryPreset,
-            bendStartProgress: 0.52,
-            bendEndProgress: 0.82,
-            bendStartDistance: 0.32,
-            bendEndDistance: 0.92,
+            bendStartProgress: 21 / 36,
+            bendEndProgress: 33 / 36,
+            bendStartDistance: 0,
+            bendEndDistance: 1,
             pathKeyframes: this.config.big3rTrajectoryPreset === 'forward-to-north'
                 ? [
-                    { distance: 0, direction: { x: 0, y: 0, z: 1 } },
-                    { distance: 0.32, direction: { x: 0, y: 0, z: 1 } },
-                    { distance: 0.92, direction: { x: 0, y: -1, z: 0 } },
-                    { distance: 1, direction: { x: 0, y: -1, z: 0 } },
+                    { distance: 0, direction: { x: 0, y: -Math.sin(Math.PI / 3), z: Math.cos(Math.PI / 3) } },
+                    { distance: 1, direction: { x: 0, y: -Math.sin(Math.PI / 3), z: Math.cos(Math.PI / 3) } },
                 ]
                 : [],
         };
