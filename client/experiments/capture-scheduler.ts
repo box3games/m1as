@@ -16,6 +16,7 @@ export class CaptureScheduler {
   private readonly buffer: PresentationSampleRecord[] = [];
   private readonly written = new Set<string>();
   private lastCandidateTime = -Infinity;
+  private lastCandidateFrame = -Infinity;
   private lastWrittenTime = -Infinity;
   private postCaptureUntil = -Infinity;
 
@@ -29,13 +30,18 @@ export class CaptureScheduler {
   }
 
   /** Whether the host should pay the cost of building a presentation sample. */
-  public shouldSample(simulationTimeSeconds: number): boolean {
+  public shouldSample(simulationTimeSeconds: number, frameNumber?: number): boolean {
     if (!Number.isFinite(simulationTimeSeconds) || simulationTimeSeconds < 0) return false;
     const needsPreEventBuffer = this.profile.preEventWindowSeconds > 0;
     const continuous = this.profile.mode === 'continuous';
     const inPostWindow = simulationTimeSeconds <= this.postCaptureUntil;
     if (!continuous && !needsPreEventBuffer && !inPostWindow) return false;
-    if (simulationTimeSeconds - this.lastCandidateTime + 1e-9 < this.intervalSeconds) return false;
+    if (this.profile.frameInterval !== undefined && frameNumber !== undefined) {
+      if (frameNumber - this.lastCandidateFrame < this.profile.frameInterval) return false;
+      this.lastCandidateFrame = frameNumber;
+    } else if (simulationTimeSeconds - this.lastCandidateTime + 1e-9 < this.intervalSeconds) {
+      return false;
+    }
     this.lastCandidateTime = simulationTimeSeconds;
     return true;
   }
@@ -53,8 +59,8 @@ export class CaptureScheduler {
   }
 
   /** Flushes the pre-event window and opens/extends a post-event capture window. */
-  public trigger(trigger: CaptureTrigger): void {
-    if (!this.profile.eventTriggers.includes(trigger.type)) return;
+  public trigger(trigger: CaptureTrigger): boolean {
+    if (!this.profile.eventTriggers.includes(trigger.type)) return false;
     const start = Math.max(0, trigger.simulationTimeSeconds - this.profile.preEventWindowSeconds);
     for (const sample of this.buffer) {
       const sampleTime = sample.time.simulationTimeSeconds;
@@ -64,6 +70,12 @@ export class CaptureScheduler {
       this.postCaptureUntil,
       trigger.simulationTimeSeconds + this.profile.postEventWindowSeconds,
     );
+    return true;
+  }
+
+  public hasSampleAt(simulationTimeSeconds: number): boolean {
+    return this.lastWrittenTime === simulationTimeSeconds ||
+      this.buffer.some(sample => sample.time.simulationTimeSeconds === simulationTimeSeconds);
   }
 
   /** Explicitly flushes any retained samples and clears scheduler state. */
