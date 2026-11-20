@@ -74,6 +74,11 @@ export class ExperimentRecorder {
     ).catch(error => { this.reportCaptureError(error, stream); });
   }
 
+  /** Reports adapter/provider failures through the same isolated capture-error channel. */
+  public reportExternalCaptureError(error: unknown, stream: string): void {
+    this.reportCaptureError(error, stream);
+  }
+
   public async flush(): Promise<void> { await this.writeChain; }
 
   public async stop(): Promise<void> {

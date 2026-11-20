@@ -67,8 +67,14 @@ evaluating perceptual sweet spots.
 
 ExperimentStorage is currently an interface; no concrete JSONL/file exporter,
 media packager, replay engine, or comparison runner is included in this
-foundation pass. Capture profiles declare sampling intent, but a scheduler
-with pre/post-event buffering and an experiment coordinator are not yet wired
-to the live simulation. The recorder serializes append operations and exposes
+foundation pass. Capture profiles are now consumed by CaptureScheduler, and ExperimentCoordinator provides an explicit lifecycle/tick/trigger facade. The host must still supply a read-only presentation provider and call tick/trigger from its existing simulation cadence; the current sandbox/engine does not yet instantiate the coordinator. The recorder serializes append operations and exposes
 capture/storage errors so callers can monitor failures without interrupting
 the simulation.
+
+
+## Coordinator and scheduler boundary
+
+- The host supplies simulation time; neither component starts a timer, RAF loop, or competing simulation.
+- CaptureScheduler retains a bounded pre-event sample buffer, flushes matching samples on configured triggers, extends overlapping post-event windows, and deduplicates sample IDs.
+- ExperimentCoordinator owns recorder lifecycle and invokes an injected read-only presentation provider. Provider failures are isolated into recorder capture errors.
+- The current M1ASVFXEngine exposes scene/camera/renderer/subject getters but does not expose its internal simulation clock. Live wiring therefore requires a deliberate host integration that passes the engine's actual elapsed simulation time; wall-clock time or a second clock must not be substituted.
