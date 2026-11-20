@@ -8,6 +8,8 @@ import {
     type Big3rAnchorState,
     type Big3rGrowthDirection,
     type Big3rCameraSnapshot,
+    type Big3rTrajectoryPreset,
+    type Big3rTrajectorySnapshot,
 } from './Proceedural-vfx.js';
 
 export interface VfxRecorderHooks {
@@ -41,11 +43,12 @@ interface Big3rCameraKeyframe {
 }
 
 interface Big3rRecordingMetadata {
-    schemaVersion: 3;
+    schemaVersion: 4;
     outputMode: 'foreground' | 'composite';
     recordingId: string;
     source: 'procedural-big3r-tube-ceiling';
     growthDirection: Big3rGrowthDirection;
+    trajectory: Big3rTrajectorySnapshot;
     anchor: Big3rAnchorState;
     startedAt: string;
     durationMs: number;
@@ -85,6 +88,7 @@ export class VfxRecorderController {
     private readonly viscosityValEl = document.getElementById('recViscosityVal') as HTMLElement | null;
     private readonly big3rAngleSelect = document.getElementById('recBig3rAngle') as HTMLSelectElement | null;
     private readonly big3rDirectionSelect = document.getElementById('recBig3rDirection') as HTMLSelectElement | null;
+    private readonly big3rTrajectorySelect = document.getElementById('recBig3rTrajectory') as HTMLSelectElement | null;
     private readonly big3rAnchorXInput = document.getElementById('recBig3rAnchorX') as HTMLInputElement | null;
     private readonly big3rAnchorYInput = document.getElementById('recBig3rAnchorY') as HTMLInputElement | null;
     private readonly big3rFramingSelect = document.getElementById('recBig3rFraming') as HTMLSelectElement | null;
@@ -168,6 +172,10 @@ export class VfxRecorderController {
         if (this.big3rLoadCameraBtn) this.big3rLoadCameraBtn.disabled = presets.length === 0;
     }
 
+    private getBig3rTrajectorySnapshot(): Big3rTrajectorySnapshot {
+        return this.advancedProcedural.getBig3rTrajectorySnapshot();
+    }
+
     private getBig3rCameraSnapshot(): Big3rCameraSnapshot {
         return {
             preset: 'big3r-tube-ceiling',
@@ -191,6 +199,7 @@ export class VfxRecorderController {
             preset: 'big3r-tube-ceiling',
             big3rAngle: snapshot.angle,
             big3rGrowthDirection: snapshot.growthDirection || 'north',
+            big3rTrajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
             big3rFramingMode: snapshot.framing,
         });
         this.advancedProcedural.setBig3rCameraState(snapshot.camera);
@@ -350,6 +359,7 @@ export class VfxRecorderController {
             loopDurationSec: 36,
             big3rAngle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
             big3rGrowthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+            big3rTrajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
             big3rFramingMode: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
         });
 
@@ -603,6 +613,13 @@ export class VfxRecorderController {
             this.advancedProcedural.resetBig3rCameraState();
         });
 
+        this.big3rTrajectorySelect?.addEventListener('change', () => {
+            this.advancedProcedural.setConfig({
+                preset: 'big3r-tube-ceiling',
+                big3rTrajectoryPreset: this.big3rTrajectorySelect!.value as Big3rTrajectoryPreset,
+            });
+        });
+
         this.big3rDirectionSelect?.addEventListener('change', () => {
             this.advancedProcedural.setConfig({
                 preset: 'big3r-tube-ceiling',
@@ -817,11 +834,12 @@ export class VfxRecorderController {
             if (mode === 'procedural-big3r-tube-ceiling' && this.big3rRecordingId && this.lastBig3rCameraSnapshot) {
                 const durationMs = Math.max(0, Math.round(performance.now() - this.big3rRecordingStartedPerf));
                 this.lastBig3rMetadata = {
-                    schemaVersion: 3,
+                    schemaVersion: 4,
                     outputMode: big3rOutputMode,
                     recordingId: this.big3rRecordingId,
                     source: 'procedural-big3r-tube-ceiling',
                     growthDirection: this.lastBig3rCameraSnapshot.growthDirection,
+                    trajectory: this.getBig3rTrajectorySnapshot(),
                     anchor: this.lastBig3rCameraSnapshot.anchor,
                     startedAt: this.big3rRecordingStartedAt,
                     durationMs,
