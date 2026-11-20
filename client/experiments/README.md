@@ -47,3 +47,18 @@ separately owned and unchanged.
 12. Capture/storage errors cannot interrupt or modify simulation behavior.
 13. Replay and comparison remain later capabilities; bit-exact replay is not
     implied by these contracts.
+
+## First adapter limits
+
+The initial Three.js adapter records a perspective camera's effective runtime
+projection and transform, generic character/world bounds, and projected
+screen-space bounding rectangles. It does not yet capture bone/region-specific
+deformation, posture semantics, pixel-accurate silhouette occupancy, material
+visibility, or occlusion. Those fields remain explicitly unsupported or
+unpopulated until rig-aware and renderer-aware adapters are added. The
+camera adapter is intentionally typed for the current PerspectiveCamera path;
+orthographic runtime support is not implied by the broader schema.
+
+The generic projection is a bounding-box estimate, not a pixel mask. Treat it
+as a repeatable geometric indicator and pair it with tester annotations when
+evaluating perceptual sweet spots.
