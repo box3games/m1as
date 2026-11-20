@@ -45,8 +45,8 @@ new VfxRecorderController({
     getCcsaCanvas: () => ccsaStage.getCanvas(),
     setCcsaTransparentBg: (enabled) => ccsaStage.setTransparentBackground(enabled),
     bindCcsaClickVfxWebm: (blobUrl) => ccsaStage.setClickVfx(blobUrl),
-    getM1asSignedAssetUrl: (assetId) => api.getSignedAssetUrl(assetId),
-    getM1asApiBaseUrl: () => api.getBaseUrl()
+    getM1asApiBaseUrl: () => api.getBaseUrl(),
+    getM1asUserId: () => api.getUserId()
 });
 
 async function signAndDisplayUrl(asset: M1asAsset): Promise<string> {
