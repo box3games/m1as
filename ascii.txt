@@ -12,3 +12,956 @@
  /   | |   | /   \   <-- Rear Base Sphere (Top Down)
  \   | |   | \   /
   '-'         '-'
+
+      .-----.
+    .'       '.
+   /   .---.   \
+  |   /     \   |   <-- Base
+   \  |  o  |  /
+    '.\     /.'
+      |'---'|
+      |     |
+      |     |       <-- 1. Tube starts pointing south
+      ( ~~~ )
+       '---'
+
+      .-------.
+    .'  .---.  '.
+   /  .'     '.  \
+  |  /  (~~~)  \  |
+  |  |  (~O~)  |  |  <-- 2. Tube is half full pointing at the camera
+  |  \  (~~~)  /  |
+   \  '.     .'  /
+    '.  '---'  .'
+      '-------'
+
+        .---.
+      .'(~~~)'.
+     /  (~O~)  \
+    | .-------. |
+   /.'         '.\
+  | |           | |
+   \'.         .'/
+    '-.       .-'
+    |  '-----'  | <-- 3. Tube is half full and growing north / up toward character head
+    |           |
+    |           |
+
+  |  (Sheet)
+  |  .---.
+  | /     \
+  ||       |
+  ||       |
+  ||   |   |
+  ||   |   |
+  | \  v  /
+  |  '---'
+
+      .-----.
+    .'       '.
+   /   /   \   \
+  |   |     |   |
+  |   |     |   |
+   \  |  |  |  /
+    '.|  v  |.'
+      |     |
+      |     |
+       '---'
+  |     .---------.
+  |   .'           '.
+  |  /    =======>   \
+  | |    ( Bulky )    |
+  |  \    =======>   /
+  |   '.           .'
+  |     '---------'
+
+
+  |         .---.
+  |        /  ^  \
+  |       /  /   /
+  |      /  /   /   <-- Straight 60° slope
+  |     /  /   /        (No curve toward head)
+  |    /  /   /
+  |   '-------'
+
+        .-------.
+      .'         '.
+     /    ( O )    \
+    |   .'     '.   |
+   /  .'         '.  \
+  | .'             '. |
+  |'-----------------'|
+
+       .---.  <-- Sheet resting over base
+      /     \
+     /       \
+
+    /   .---. \
+   /   /     \ \   <-- Deflated tube drooping down
+  /   |       | \
+ /     \     /   \
+        '---'
+        .---.
+      .'     '.
+     /         \
+
+    |     |     |
+   /      |      \
+  /       v       \  <-- Narrow downward droop
+ /                 \
+         .-------.
+       .'         '.   <-- Sheet lifted into a rounded dome
+      /   .-----.   \
+     /  .'       '.  \
+    /  |  =======> |  \ <-- Thickening & pushing forward
+   /    '.       .'    \
+  /       '-----'       \
+       .-----------.
+     .'   .-----.   '.
+    /   .'       '.   \
+   /   /   ( O )   \   \  <-- Bulky tip pushing at camera
+  /   |   =======   |   \
+ /     \           /     \
+/       '.       .'       \
+            .---.
+           /  ^  \     <-- High tent peak (60° upward pitch)
+          /  /    \
+         /  /      \   <-- Straight shaft (no back-curl)
+        /  /        \
+       /  /          \ <-- Sheet hanging/tenting down
+      /  '---'        \
+     /                 \
+           .-----.
+         .'   ^   '.   <-- Elevated tip tenting the sheet
+        /   .' '.   \
+       /  .' (O) '.  \
+      /  /         \  \
+     /  /           \  \ <-- Long tented fabric slopes
+    /  /             \  \
+   /  '---------------'  \
+
+      (''''')       <--------charcter head facing camera in tpose
+      /     \
+<-----|     |-----> <--------character arm
+      |  ^ <----------------tube growing up
+      | | | |
+      /-----\
+     /       \      <----------character legs
+
+
+
+  /'''\
+ |     | < ------ character head profile
+ \     /
+   | | 
+  (   ) / < ==== tube growing up at 60 degrees
+   | | /
+   | |/
+   | |
+   -----  <------- characrter feet
+
+   SHOT / POSE ID: [e.g., Growth_Surge_Tier3_LowAngle]
+1. SUBJECT ANCHOR: Origin at floor (Y = 0.0m), facing +Z (toward camera), Yaw 15° Stage-Right (+X).
+2. SKELETAL POSE: Torso Pitch -10° (leaning back), Chest/Shoulder scale 1.35x, Head Pitch -15° (looking down at camera).
+3. CAMERA RIG: Position (X: 0.4m, Y: 0.6m, Z: 2.2m) | Target: Chest Bone (Y: 1.8m) | FOV: 65° (Wide-angle worm's-eye kick).
+4. 2.5D / VFX LAYER: .webm aura plane placed at Z = -0.2m behind subject; Cylindrical Billboard (Yaw-locked).
+5. QA PASS CRITERIA: Subject head clears ceiling threshold without clipping; camera pitch stays < +35°; zero Z-fighting between subject back and .webm plane.
+                        +Y (UP / Skyward)
+                         ▲
+                         │
+                         │        -Z (FORWARD / Into Scene)
+                         │       ╱
+                         │      ╱
+                         │     ╱
+    -X (Stage Left) ◄────┼────┼────► +X (Stage Right)
+                        ╱│
+                       ╱ │
+                      ╱  │
+                     ▼   ▼
+         +Z (BACKWARD /  -Y (DOWN / Floor)
+          Toward Camera)
+  PITCH (Rotate around X)       YAW (Rotate around Y)        ROLL (Rotate around Z)
+    "Nodding Yes"                 "Shaking Head No"            "Dutch Angle / Tilt"
+
+        +Pitch (Up)                     ▲ +Y                         │ +Y
+          ╱                             │                            │
+    [CAM] ───► -Z (Level)        -Yaw ◄─┼─► +Yaw               ╲     │     ╱
+          ╲                      (Left) │ (Right)               ╲ [CAM] ╱
+        -Pitch (Down)                   ▼ -Y                     ╲   │   ╱
+                                                              -Roll  │  +Roll
+A. SCREEN-ALIGNED BILLBOARD (True 2D Overlay)
+   - Plane Normal always points straight into the Camera Lens.
+   - Zero perspective skew, even when camera pitches up/down.
+
+   Side View:
+        [CAM] ───(Look Vector)───► │ [2D .webm Plane]
+        (Pitched +30° Up)          │ (Tilts +30° to stay flat to lens)
+
+
+B. Y-LOCKED CYLINDRICAL BILLBOARD (2.5D Doom-Style)
+   - Rotates horizontally (Yaw) to face camera, but stays strictly upright (Pitch = 0°).
+   - Prevents tall props/auras from looking like flat pancakes during low-angle growth shots.
+
+   Top-Down View:                 Side View (Camera Pitched Up):
+         [CAM]                         │ [2.5D Plane stays vertical]
+           ╲                           │
+            ╲ (Tracks Yaw)             │  ◄── Normal stays horizontal
+             ▼                         │
+          [Plane]                    [CAM] (Looking up at +45°)
+
+
+C. PARALLAX DEPTH PLANES (2.5D Diorama Stack)
+   - Parallel flat planes spaced along -Z; background layers shift slower than foreground.
+
+   Top-Down View:
+                     [CAM]
+                    ╱  │  ╲   (Camera translates Left/Right on X)
+                   ╱   │   ╲
+   Z = -1.0m   [─── Foreground ───]  (Moves 1.0x camera speed)
+   Z = -3.0m   [───── Midground ────] (Moves 0.6x camera speed)
+   Z = -6.0m   [──── Background ────] (Moves 0.2x camera speed - scales/shrinks)
+  Side Profile (Y / Z Plane):
+
+  +Y = 3.0m  ────────────────── [CEILING COLLISION LIMIT] ──────────────────
+                                      (O)  ◄── Head (Pitch -15°, looking down)
+                                     / │ \
+                                    /  │  \ ◄── Chest (Target Bone, Y = 1.8m)
+                                      ╱ ╲
+  +Y = 0.6m   [CAM] ───────────►     ╱   ╲   │ [2.5D .webm Aura Plane]
+              (Z = +2.2m,           ╱     ╲  │ (Placed at Z = -0.2m,
+               FOV = 65°)                    │  Y-Locked Cylindrical)
+  Y = 0.0m   ═══════════════════════╩═════╩══╧══════════════════════════════
+                                  Subject Origin
+                                  (0.0, 0.0, 0.0)
+               +Y (UP)
+                ▲
+                │         [315°]  Head tilting forward (-Z),
+                │           \O    feet trailing behind (+Z)
+                │            │\
+  [270°]        │           / \         [0° / 360°]
+  Head (+Z)     │                        O  (Upright, facing +Z camera)
+  Feet (-Z)     │                       /│\
+  (Face Down)   │                       / \
+ ──\═══O ───────┼─────────(HIP)──────────┼─────────► +Z (TOWARD CAMERA)
+  -Z (Back)     │       (X-Axis)         │
+                │                        │       [45°]
+  [225°]        │           \ /          │        \O   Head leaning back (-Z)
+  Upside down,  │           /│           │         │\  Feet rising (+Z)
+  tilting up    │          O/            │        / \
+                │                        │
+               [180°]                  [90°]
+               / \ (Feet UP)            O═══/──  Head in background (-Z)
+              / │ \                     (Face Up) Feet in foreground (+Z)
+                O  (Head DOWN,
+                ▼   Back facing +Z)
+               -Y (DOWN)
+STAGE 1: 0° (Start)                 STAGE 2: 45° (Leaning Back)
+Upright, facing camera (+Z).        Head recedes (-Z); torso foreshortens.
+
+         (O)                                  (o) ◄─ Head smaller/further
+       ──┼─┼──                              ──┼─┼──
+         │ │                                  │ │
+        /   \                                /   \ ◄─ Feet closer (+Z)
+
+
+STAGE 3: 90° (Flat / Supine)        STAGE 4: 135° (Inverting)
+Feet in foreground; head hidden     Back of legs/torso visible; head
+behind torso in background.         dropping below hip line (-Y).
+
+        [FEET]                               /   \ ◄─ Heels/calves high
+       ──[═]── ◄─ Body in middle            ──┼─┼── ◄─ Back facing lens
+         (o)   ◄─ Head far (-Z)               (o)   ◄─ Back of head low
+
+
+STAGE 5: 180° (Full Inverted)       STAGE 6: 225° (Rising Inverted)
+Upside down; back facing camera.    Feet swinging back (-Z); back of
+                                    head rising toward center.
+        \   /
+         │ │                                 \   /  ◄─ Feet receding (-Z)
+       ──┼─┼── ◄─ Back of torso             ──┼─┼──
+         (O)   ◄─ Back of head                (O)   ◄─ Back of head closer
+
+
+STAGE 7: 270° (Flat / Prone)        STAGE 8: 315° -> 360° (Landing)
+Head in foreground (+Z); feet       Head rises to top (+Y); face
+receding into background (-Z).      returns to camera (+Z) at 360°.
+
+         (O)   ◄─ Head close (+Z)             (O)   ◄─ Head near top (+Y)
+       ──[═]── ◄─ Body in middle            ──┼─┼──
+        [FEET] ◄─ Feet far (-Z)               │ │
+                                             /   \  ◄─ Feet dropping to floor
+STAGE 1: 0° (12 o'clock)            STAGE 2: 45° (10:30)
+Upright T-pose facing camera.       Tilting left (-X); left arm dips down.
+
+           (O)                             (O)
+         ──┼─┼──                         ╲  │  ╱
+           │ │                            ╲ │ ╱
+          /   \                            ╱ ╲
+
+
+STAGE 3: 90° (9 o'clock)            STAGE 4: 135° (7:30)
+Horizontal cartwheel; head at       Past horizontal; head dropping below
+Stage Left (-X), feet at (+X).      hip line (-Y), feet rising above (+Y).
+
+            │                              ╲ ╱
+     (O)────┼────<                          │ ╲
+            │                              ╱│  ╲
+                                            (O)
+
+
+STAGE 5: 180° (6 o'clock)           STAGE 6: 225° (4:30)
+Upside down, still facing camera    Head swinging toward Stage Right (+X),
+(front of body visible).            feet swinging toward Stage Left (-X).
+
+          \   /                            ╱ ╲
+           │ │                            ╱ │ ╲
+         ──┼─┼──                         ╱  │  ╲
+           (O)                             (O)
+
+
+STAGE 7: 270° (3 o'clock)           STAGE 8: 315° -> 360° (1:30 -> 12:00)
+Horizontal cartwheel; head at       Head rising back toward top (+Y);
+Stage Right (+X), feet at (-X).     returns upright at 360°.
+
+            │                              (O)
+      >────┼────(O)                      ╱  │  ╲
+            │                           ╱   │   ╲
+                                           ╱ ╲
+               +Y (UP)
+                ▲
+                │     [RACK BACKREST] (Tilted ~60° back from vertical)
+                │          ╲
+                │           ╲ (O) ◄── Head in background (-Z, elevated +Y)
+                │            ╲ │
+                │             ╲│  ◄── Torso & T-Pose Arms (along X-axis)
+                │              ╲
+  -Z (BACK) ◄───┼───────────────(HIP)────────────────────► +Z (TOWARD CAM)
+                │                │ ╲
+                │            [SEAT] ╲  ◄── Legs pitched forward (+Z)
+                │                    ╲     and spread wide (X-axis)
+                │                     [FEET] ◄── Closest to camera (+Z)
+                │
+                │                          [CAM] (Looking toward -Z)
+               -Y (DOWN)
+                         (o)  ◄── Head (Background -Z, highest Y)
+                        / │ \
+       -X ◄───────══════╬═╬═╬══════───────► +X   (T-Pose Arms full width)
+    (Stage Left)         \│/                    (Stage Right)
+                          │   ◄── Foreshortened Torso
+                         (H)  ◄── Pelvis / Seat Pivot
+                        ╱   ╲
+                       ╱     ╲  ◄── Legs angled forward (+Z) & wide (±X)
+                      ╱       ╲
+                   [FOOT]   [FOOT] ◄── Feet in foreground (+Z, largest scale)
+SHOT / POSE ID: [RackChair_Reclined_StarPose_01]
+1. PROP / CHAIR ANCHOR: Rack chair origin at floor (0, 0, 0), facing +Z; backrest reclined at Pitch -60° (tilted toward -Z).
+2. SUBJECT ROOT & ORIENTATION: Pelvis/Hip anchored at chair seat pivot (X: 0.0m, Y: 0.65m, Z: 0.0m), facing +Z, root Pitch -60°.
+3. LIMB POSE (STAR / X-POSE):
+   - Arms: T-Pose abduct 90° along ±X (perpendicular to torso).
+   - Legs: Abducted 35°–45° outward along ±X ("jumping jack" spread); knees straight; toes pointing +Z/+Y toward camera.
+4. CAMERA RIG: Position (X: 0.0m, Y: 1.1m, Z: 2.5m) | Target: Pelvis/Solar Plexus | FOV: 55°–65° (enhances foreground foot-to-background head foreshortening).
+5. QA PASS CRITERIA: Back of torso and head rest cleanly on tilted rack plane without Z-fighting; full star silhouette (both hands + both feet) stays inside viewport margins.
+
+
+Pelvic Landmark Key (Used in Diagrams Below)
+
+• [F] (Front / Anterior): Pubic symphysis / belt buckle (starts facing +Z toward camera).
+• [B] (Back / Posterior): Sacrum / tailbone (starts facing -Z away from camera).
+• (L) / (R) (Left / Right): Left and Right hip joints (-X Stage Left / +X Stage Right when facing camera).
+• [T] (Top / Superior): Waist / spine connection (+Y).
+• [P] (Base / Inferior): Pelvic floor / saddle center (-Y).
+  Camera View (+Z) across 45° increments (Tilting backward: [F] goes UP, [P] comes FORWARD):
+
+  0° (Neutral)        45° (Posterior Tilt)  90° (Base Forward)   135° (Inverting)
+      [T]                    [F]                   [F]                  [B]
+   (L)─┼─(R)              (L)─┼─(R)             (L)─[P]─(R)          (L)─┼─(R)
+      [P]                    [P]                   [B]                  [T]
+   (Front [F]            (Base [P] tilting     (Pelvic floor [P]    (Tailbone [B] &
+   faces lens)            toward +Z lens)       aimed straight +Z)   base [P] visible)
+
+  180° (Inverted)     225° (Rising Back)    270° (Waist Forward) 315° -> 360°
+      [P]                    [P]                   [B]                  [T]
+   (L)─┼─(R)              (L)─┼─(R)             (L)─[T]─(R)          (L)─┼─(R)
+      [T]                    [B]                   [F]                  [P]
+   (Upside down;         (Tailbone [B]         (Waist/Spine [T]     (Returning to
+   Back [B] faces +Z)     receding to -Z)       aimed straight +Z)   neutral upright)
+  Camera View (+Z) across 45° increments (Spinning counter-clockwise):
+
+  0° (Front)          45° (3/4 Stage Right) 90° (Left Profile)   135° (Rear 3/4)
+      [T]                    [T]                   [T]                  [T]
+   (L)─[F]─(R)            (L)──[F](R)             (L)──[B]           [B]──(R)
+      [P]                    [P]                   [P]                  [P]
+   (Belt buckle [F]       (Right hip (R)        (Left hip (L) in     (Tailbone [B]
+   centered on +Z)        recedes to -Z)        foreground +Z)       entering view)
+
+  180° (Rear)         225° (Rear 3/4 Left)  270° (Right Profile) 315° -> 360°
+      [T]                    [T]                   [T]                  [T]
+   (R)─[B]─(L)            (R)[B]──(L)             [B]──(R)           (L)[F]──(R)
+      [P]                    [P]                   [P]                  [P]
+   (Sacrum/Back [B]       (Left hip (L)         (Right hip (R) in    (Front [F]
+   centered on +Z)        recedes to -Z)        foreground +Z)       returning to +Z)
+  Camera View (+Z) across 45° increments (Counter-clockwise `+Z` roll):
+
+  0° (Level Hips)     45° (Hip Hike Right)  90° (Sideways Left)  135° (Inverted Tilt)
+      [T]                  ╲ [T]                 (R)                  (R) ╱
+   (L)─[F]─(R)              (L)[F](R)             │─[F]               [F](L)
+      [P]                    [P] ╲               (L)                 ╱ [P]
+   (Hips horizontal)      ((L) dips -Y,         ((R) at top +Y,     (Pelvic floor [P]
+                           (R) hikes +Y)         (L) at bottom -Y)   tilting upward)
+
+  180° (Inverted)     225° (Rising Right)   270° (Sideways Right)315° -> 360°
+      [P]                  ╱ [P]                 (L)                 ╲ [T]
+   (R)─[F]─(L)              (R)[F](L)             │─[F]               (L)[F](R)
+      [T]                    [T] ╱               (R)                 [P] ╱
+   (Upside down;          ((R) dipping -Y,      ((L) at top +Y,     (Leveling out
+   Front [F] still +Z)     (L) rising +Y)        (R) at bottom -Y)   back to 0°)
+                        -Z (Background / Away from Cam)
+                                     ▲
+                                     │
+                     [315°]          │          [45°]
+                   (L)╲ [P]          │          [P] ╱(R)
+                       ╲│            │            │╱
+                        (R)          │          (L)
+                                     │
+  -X (Stage Left) ◄────[270°]────────┼────────[90°]─────► +X (Stage Right)
+                     (L)─[P]─(R)     │     (R)─[P]─(L)
+                    (Base points -X) │    (Base points +X)
+                                     │
+                     [225°]          │          [135°]
+                       ╱│            │            │╲
+                   (L)╱ [P]          │          [P] ╲(R)
+                                     │
+                                     ▼
+                        +Z (TOWARD CAMERA LENS)
+                     [0° / 360°]: (L)─[P]─(R)
+                     (Pelvic floor [P] aimed straight at camera)
+  A. FRONT CAMERA VIEW (+Z Lens, Low Floor Angle)
+     - Torso/chest rests near Y = 0.15m (forearms on floor).
+     - Knees flare wide along ±X; shins trail straight back along -Z (hidden behind thighs).
+
+                        (O)   ◄── Head looking +Z (or resting on hands)
+                      ╱──┼──╲ ◄── Elbows/forearms planted on floor (Y = 0)
+        [KNEE L] ◄═══(L)─[F]─(R)═══► [KNEE R]  (Thighs abducted 90° along ±X)
+        (X = -0.55m)  (Pelvis Y = 0.25m)  (X = +0.55m)
+  Y = 0 ══════════════════════════════════════════════════════════════════════
+
+
+  B. TOP-DOWN VIEW (Looking down from +Y Ceiling)
+     - Shows the classic 90°/90° "box" geometry of thighs and shins.
+
+                       -Z (BACKGROUND)
+                             ▲
+                             │
+           [FOOT L] ◄───┐    │    ┌───► [FOOT R]  (Ankles flexed; inner arches
+            (-X,-Z)     │    │    │      (+X,-Z)   resting on floor Y = 0)
+                        │   [B]   │
+                        │    │    │  ◄── Shins run parallel to Z-axis (90° knee bend)
+                        │    │    │
+           [KNEE L] ◄═══(L)──┼──(R)═══► [KNEE R]  ◄── Thighs perpendicular to spine (±X)
+                             │
+                            (O) ◄── Head & Forearms
+                             │
+                             ▼
+                       +Z (TOWARD CAMERA)
+  CAMERA VIEW (+Z Lens):
+                        (o)   ◄── Head in background (-Z, elevated +Y)
+                       / │ \
+                     ─┘  │  └─ ◄── Arms resting on floor/support (±X)
+        [KNEE L] ◄═══╱  (H)  ╲═══► [KNEE R]  (Knees flared wide ±X, elevated +Y)
+                    ╱   [P]   ╲
+                   [FOOT L]-[FOOT R] ◄── Heels tucked together in foreground (+Z, Y = 0)
+SHOT / POSE ID: [Pose_Frog_Prone_01]
+1. ROOT / PELVIS:
+   - Position: (X: 0.0m, Y: 0.25m, Z: 0.0m) above floor plane.
+   - Orientation: Pitch +90° (face-down prone, front [F] aimed at -Y floor), Yaw 0° (head toward +Z).
+2. HIP / THIGH BONES (thigh.L & thigh.R):
+   - Abduction (Local Z/Roll): ±85° to ±90° outward along ±X (knees aligned horizontally with hips).
+   - Flexion (Local X/Pitch): 0° relative to pelvis plane (thighs parallel to Y = 0 floor).
+3. KNEE / SHIN BONES (shin.L & shin.R):
+   - Flexion (Local X/Pitch): +90° bend so shins extend straight backward along -Z.
+   - Foot/Ankle: Dorsiflexed 90° so inner edges of feet rest flat on Y = 0 floor.
+4. SPINE & ARMS:
+   - Spine: Slight extension (Pitch -15° upward) propping chest on forearms at Y = 0.15m.
+5. QA PASS CRITERIA:
+   - Inner knees, shins, and inner foot arches make flush contact with Y = 0 floor (no floating or floor clipping).
+   - Hip socket mesh maintains smooth quad volume at 90° abduction without pinching at the groin/saddle seam.
+               +Y (UP)
+                ▲
+                │     [RACK BACKREST] (Reclined ~60° back toward -Z)
+                │          ╲
+                │           ╲ (O) ◄── Head resting on backrest (-Z, +Y)
+                │            ╲ │  ◄── Chest/Belly facing UP & FORWARD (+Y / +Z)
+                │             ╲│
+  -Z (BACK) ◄───┼───────────────(HIP)────────────────────► +Z (TOWARD CAM)
+                │                │ ╲  ◄── Thighs lifted & flared wide (±X)
+                │            [SEAT] ╲
+                │                    ╲ [KNEE] (Elevated & flared outward ±X)
+                │                     ╲
+                │                      [FEET] ◄── Heels tucked together (+Z)
+                │
+                │                          [CAM] (Looking toward -Z)
+               -Y (DOWN)
+                         (o)  ◄── Head in background (-Z, highest +Y)
+                        / │ \
+       -X ◄───────══════╬═╬═╬══════───────► +X   (T-Pose / Spread Arms)
+    (Stage Left)         \│/                    (Stage Right)
+                          │   ◄── Belly-Up Torso (Supine, facing +Z/+Y)
+                         (H)  ◄── Pelvis anchored on rack seat
+                        ╱   ╲
+       [KNEE L] ◄══════╱     ╲══════► [KNEE R]   (Knees flared wide along ±X)
+                      ╲       ╱
+                       ╲     ╱  ◄── Shins angling back inward toward center
+                        ╲   ╱
+                     [FOOT L][FOOT R] ◄── Soles/heels pressed together (+Z)
+SHOT / POSE ID: [RackChair_Supine_Frog_01]
+1. ORIENTATION & CHAIR: Rack chair pitched backward at X = -60° (facing +Z). Subject is SUPINE (belly-up, back flush against backrest).
+2. PELVIS / ROOT: Anchored at seat pivot (0.0, 0.65, 0.0), facing +Z, root Pitch -60°.
+3. LEG POSE (SUPINE BUTTERFLY / FROG):
+   - Thighs: Flexed ~45° toward torso and ABDUCTED ±75° to ±85° outward along ±X (knees flared wide).
+   - Knees: Bent ~100°–110° so shins angle inward toward center line (X = 0).
+   - Feet: Soles/heels touching at center line in foreground (+Z), resting on lower rack footrest.
+4. ARMS: T-Pose abducted ±90° along ±X (or strapped/aligned to rack crossbeam).
+5. QA PASS CRITERIA: Back of torso and pelvis stay flush with reclined rack surface (no air gap or mesh clipping); hip abduction creates symmetric diamond negative space between thighs and shins.
+• Prone: Belly-down (Front [F] aimed toward -Y floor).
+• Supine: Belly-up (Front [F] aimed toward +Y ceiling or +Z camera).
+• Abducted / Adducted: Limbs pulled away from the center spine (±X wide) vs. pulled inward toward the center line (X = 0).
+
+SUSPINE HAPPY BABY POSE
+               +Y (UP)
+                ▲
+                │     [RACK BACKREST] (Reclined ~60° back toward -Z)
+                │          ╲
+                │           ╲ (O) ◄── Head resting on backrest (-Z, +Y)
+                │            ╲ │  ◄── Belly-Up Torso (Supine, facing +Y/+Z)
+                │             ╲│      [FEET] ◄── Soles facing +Y/+Z (elevated)
+                │              ╲       │
+  -Z (BACK) ◄───┼───────────────(HIP)──[KNEE]────────────► +Z (TOWARD CAM)
+                │                │  ▲  (Knees flexed back & wide ±X)
+                │            [SEAT] └── Thighs pulled toward torso
+                │
+                │                          [CAM] (Looking toward -Z)
+               -Y (DOWN)
+                         (o)  ◄── Head in background (-Z, highest +Y)
+                        / │ \
+       -X ◄───────══════╬═╬═╬══════───────► +X   (T-Pose / Spread Arms)
+    (Stage Left)         \│/                    (Stage Right)
+                          │   ◄── Belly-Up Torso (Supine)
+                   [FOOT L] [FOOT R] ◄── Soles facing camera/ceiling (+Z/+Y)
+                      │   │   │
+                      │  (H)  │  ◄── Pelvis anchored on rack seat
+                      ▼   │   ▼
+                   [KNEE L] [KNEE R] ◄── Knees flared wide (±X) & bent 90°
+
+3. Side-by-Side Comparison: Butterfly vs. Open-Knee ("Happy Baby")
+
+Use this quick reference table when deciding which pose fits your shot framing or rack prop geometry best:
+
+Pose Feature	Supine Butterfly (Bound Angle)	Supine Open-Knee ("Happy Baby")
+Knee Bend	Deep acute bend (~110°–120°)	Right-angle bend (90°)
+Shin Direction	Angles inward toward center line (X = 0)	Points upward/forward (+Y / +Z) parallel to spine
+Foot Position	Heels/soles pressed together at center	Feet wide apart (±X), aligned directly over knees
+Silhouette Shape	Closed diamond below pelvis	Open U-frame / goalpost flanking torso
+SHOT / POSE ID: [RackChair_Supine_OpenKnee_01]
+1. ORIENTATION & CHAIR: Rack chair pitched backward at X = -60° (facing +Z). Subject is SUPINE (belly-up, back flush against backrest).
+2. PELVIS / ROOT: Anchored at seat pivot (0.0, 0.65, 0.0), facing +Z, root Pitch -60°.
+3. LEG POSE (SUPINE OPEN-KNEE / HAPPY BABY):
+   - Thighs: Flexed ~90°–100° toward torso and ABDUCTED ±55° to ±65° outward along ±X.
+   - Knees: Bent at 90° so shins project straight along torso-normal (+Y/+Z) without angling inward.
+   - Feet: Ankles neutral (0°); soles of feet facing +Y/+Z camera plane at shoulder/knee width (±X).
+4. ARMS: T-Pose abducted ±90° along ±X (or hands gripping outer ankles/rack rails if bound).
+5. QA PASS CRITERIA: Shins remain parallel to sagittal plane (no inward knee cave); pelvic floor/saddle topology maintains clean quad spacing under deep hip flexion + abduction.
+                                     +Y (UP)
+                                      ▲
+                                      │
+          [RACK BACKREST]             │           [FOOT R] (Foreground +Z)
+          (Reclined ~60°              │            [FOOT L] (Background -Z)
+           toward -X)                 │              │  ▲ (Soles face +X/+Y)
+               ╲                      │              │  │
+                ╲ (O) ◄── Head (-X)   │   [KNEE R] ══╝  │ ◄── Right Leg (Closer +Z)
+                 ╲ │                  │    [KNEE L] ════╝ ◄── Left Leg (Further -Z)
+                  ╲│ ◄── Right Arm    │       ▲
+                   ╬═══► (+Z toward   │       │ (Thighs pulled toward chest
+                    ╲     camera)     │       │  & flared wide along ±Z)
+  -X (LEFT) ◄────────(H)──────────────┼───────┼────────────────► +X (RIGHT)
+  (Head Side)        │                │                         (Feet/Front Side)
+                 [SEAT]               │
+                                      ▼
+                                     -Y (DOWN)
+SHOT / POSE ID: [RackChair_Supine_OpenKnee_RightProfile_01]
+1. WORLD ORIENTATION: Rack chair + subject rotated Yaw -90° around Y-axis so subject's RIGHT FLANK faces the +Z camera.
+   - Head / Backrest direction: -X (Stage Left).
+   - Chest / Pelvic front direction: +X (Stage Right) and +Y (Upward).
+2. RACK RECLINE: Backrest pitched 60° backward toward -X (30° above horizontal floor plane).
+3. LEG DEPTH LAYERING (Z-AXIS):
+   - Right Leg (thigh.R / shin.R): Abducted toward +Z (foreground, closest to lens), knee bent 90°, sole facing +X/+Y.
+   - Left Leg (thigh.L / shin.L): Abducted toward -Z (background, behind torso/pelvis), knee bent 90°, sole facing +X/+Y.
+4. ARM ORIENTATION (T-POSE):
+   - Right Arm (arm.R): Extends along +Z directly toward camera (foreshortened).
+   - Left Arm (arm.L): Extends along -Z directly away from camera.
+5. CAMERA RIG: Position (X: 0.0m, Y: 0.9m, Z: 2.6m) | Target: Right Hip / Pelvis | FOV: 50° (orthographic-style profile clarity).
+6. QA PASS CRITERIA: Flush back contact along tilted backrest; clean 90° L-bend visible on foreground right leg; unobstructed view of pelvic saddle between foreground and background thighs.
+                        -Z (Background / Rack Backrest)
+                                     ▲
+                                     │
+                                   [HEAD]
+                                     │
+  -X (Stage Left) ◄──────────────[PELVIS]──────────────► +X (Stage Right)
+                                 ╱   │   ╲
+                         [KNEE L]    │    [KNEE R]
+                                     │       ╲
+                                     │        ╲  [45°] 3/4 Front-Right
+                                     │         ╲
+                                     │          [CAM 3]
+                                     │       ╱
+                                     │     ╱  [22.5°] Slight Offset
+                                     ▼   ╱
+                              [CAM 1] [CAM 2] ───────► [CAM 4] (67.5°)
+                              (0° Front +Z)               │
+                                                          ▼
+                                                       [CAM 5] (90° Right Profile +X)
+STAGE 1: 0° Yaw (Direct Front View)
+- Symmetric U-frame; knees & feet equidistant from camera; head centered behind torso.
+
+                         (o)
+                       ═══╬═══
+                    [FOOT L] [FOOT R]
+                       │ (H) │
+                    [KNEE L] [KNEE R]
+
+
+STAGE 2: 22.5° Yaw (Slight Right Offset)
+- Right knee/foot shift slightly closer (+Z); torso centerline offsets left; left side foreshortens.
+
+                        (o)
+                      ═══╬══
+                  [FOOT L]  [FOOT R] ◄─ Closer/larger
+                     │  (H)   │
+                  [KNEE L]  [KNEE R]
+
+
+STAGE 3: 45° Yaw (3/4 Front-Right Hero Angle)
+- Classic cinematic 3/4 depth: Right leg frames foreground right; rack backrest angle becomes visible;
+  Left leg tucks partially behind torso centerline.
+
+                       (o)
+                      ╱═╬═╲
+                [FOOT L]  [FOOT R] ◄─ Foreground right
+                   │  (H)    │
+                [KNEE L]   [KNEE R]
+
+
+STAGE 4: 67.5° Yaw (Steep 3/4 Profile)
+- Rack backrest tilt (~60°) clearly readable; Right arm points nearly at lens; Left leg mostly occluded
+  behind pelvis/right thigh except foot/knee edge.
+
+                     ╲ (o)
+                      ╲═╬═► (Right arm aiming toward lens)
+                  [FOOT L][FOOT R]
+                     │  (H)  │
+                  [KNEE L][KNEE R]
+
+
+STAGE 5: 90° Yaw (True Right Profile)
+- Full side silhouette: Backrest forms clean 60° diagonal on left (-X); Right leg & foot form crisp
+  90° L-bend in foreground (+Z); Left leg layered directly behind it (-Z).
+
+                     ╲ (o)           [FOOT R] (Foreground)
+                      ╲ │             [FOOT L] (Background)
+                       ╲╬══►           │  │
+                        (H)──────[KNEE R]─┘
+                        [SEAT]
+SHOT / TRANSITION ID: [Orbit_FrontToRightProfile_90]
+1. PIVOT ANCHOR: CameraPivot Node3D placed at Subject Pelvis (X: 0.0m, Y: 0.75m, Z: 0.0m).
+2. CAMERA OFFSET (LOCAL): Camera3D child at (X: 0.0m, Y: 0.20m, Z: 2.60m), Pitch -5° aimed at Pelvis origin.
+3. YAW TRANSITION (WORLD Y-AXIS):
+   - Start (0.0s): CameraPivot.RotationDegrees.Y = 0.0° (Direct Front View).
+   - Midpoint (50%): CameraPivot.RotationDegrees.Y = 45.0° (3/4 Front-Right Depth Angle).
+   - End (1.0s): CameraPivot.RotationDegrees.Y = 90.0° (True Right Profile View).
+4. EASING: Smooth Cubic Ease-In-Out (prevents jarring start/stop snap on foreshortened foreground limbs).
+5. QA PASS CRITERIA:
+   - Foreground Right Foot/Knee clears camera near-clip plane throughout 0°–90° arc (minimum 0.8m clearance at 45°–67.5°).
+   - Any 2.5D Cylindrical Billboard VFX attached to rack stays locked or tracks smoothly without Z-clipping through the reclined backrest.
+
+
+notes - common traps
+The "Weightlessness" Trap (Animation Speed vs. Scale)
+
+ If a character scales 5x larger, but their breathing, head turns, and posture shifts play at the exact same speed (1.0x animation playback), they immediately look like a weightless plastic toy rather than a colossal entity.
+• animation playback speed and easing (AnimSpeed ≈ 1.0 / Sqrt(Scale)). Larger scale = slower, heavier, more deliberate movement with longer ease-out settling.
+Camera Near/Far Clipping & Z-Fighting at Extremes
+• At micro scale (or tight close-ups to measure tiny 2% growth gains), a standard camera Near Clip (0.1m) slices right through the character's nose or chest. Conversely, at macro scale (when shrinking the background or pulling the camera way back), distant walls flicker (Z-fighting) or vanish past the Far Clip plane.
+• The Fix: Dynamically interpolate Camera3D.Near and Camera3D.alongside character scale (e.g., Near = 0.01f * currentScale), and avoid scaling non-uniformly (X != Y != Z) on parent nodes, which breaks physics colliders and normal maps.
+
+Dynamic Focal Length (FOV) vs. Physical Dolly (The "Dolly Zoom" Effect)
+•  Simply moving the camera backward (+Z) as the character grows keeps the character the same apparent size on screen, which accidentally cancels out the emotional feeling of growth.
+• For subtle micro-gains: Keep the camera locked to an environmental doorframe or prop reference for 1–2 seconds so the player visually sees the character's head/shoulders rise past a fixed marker before the camera smoothly compensates.
+• For colossal macro-surges: Combine a low-angle camera pitch (+Pitch looking up) with a wider FOV (50° -> 75°) as the camera pulls back—this exaggerates vertical perspective lines so the upper body towers over the lens.
+
+Pivot Point Drift (Scaling from Pelvis vs. Scaling from Floor)
+• Earlier we noted rotating around the Pelvis works great for airborne/chair spins. However, if you scale a standing or seated character from their Pelvis instead of their Floor Contact Point (Y = 0), their feet will push straight down through the floor (-Y) as they grow.
+• Maintain a two-tier pivot:
+	• Scale Anchor: Always at the surface contact point (the soles of the feet on the floor, or the bottom of the chair cushion at Y = 0).
+	• Rotation/Orbit Pivot: A child node at the Pelvis / Center of Mass for camera tracking and mid-air spins.
+
+Environmental Scale Anchors ("Banana for Scale")
+• The Blind Spot: If the background room shrinks continuously at the exact same rate the character grows, the player's brain loses all sense of absolute size—it just looks like nothing is changing.
+• The Fix: Keep small, recognizable micro-details (floor tiles, chair rivets, a coffee mug, doorway trim, or 2.5D dust motes) at fixed proportions during each growth tier, and swap/scale the room in distinct architectural milestones (e.g., Room -> Warehouse -> Courtyard) rather than infinitely shrinking one room.
+
+---
+  [1. EXPLORE & GATHER]         [2. INITIATE REST / TRIGGER]       [3. GROWTH QUEUE + AUTO CAMERA]
+  Player consumes items,  ───►  Fires GrowthEventQueue in C# ───►  Camera Director auto-frames:
+  uses tools/amplifiers         (Micro gains -> Colossal surges)   - Delayed Y-catchup for subtle gains
+  (Earns Growth Points)                                            - Eye-line & NPC reaction shots
+                                                                   - 2.5D room shrink & FOV shift
+
+Player Control vs. Game Director Responsibilities
+
+Keeping a strict boundary between what the player controls and what your C# Director automates makes the game intuitive and stress-free:
+• What the Player Controls (Simple & Rewarding):
+	• Exploration & Item/Amplifier Use: Gathering points passively or actively across the level.
+	• Initiating Rest / Triggering Events: Choosing when and where to rest (e.g., in an open lab corner vs. near a doorframe or resting chair) to cash in queued growth points.
+	• Stealth / Navigation Choices: Moving through the level, ducking/hiding behind cover, or choosing escape routes once they become too big to blend in.
+ What Your Camera & NPC Director Automates (Zero Player Micromanagement):
+	• Automated Framing During Rest / Queue Execution: When GrowthEventQueue fires, the camera smoothly glides to the optimal measuring angle (e.g., framing a nearby wall marker, doorway, or Adult NPC in the background) so the player clearly sees whether they grew "just a tiny bit" or "tripled in size."
+	• Automatic Eye-Line & Reaction Cuts: As the character's scale crosses key thresholds (like matching or passing the Adult NPC's height), the camera automatically prioritizes two-shot framing (capturing both the Adult's shifting gaze/intimidated posture and the Child's growing silhouette) without the player touching the camera stick/mouse.
+	• Adaptive Gameplay Camera Compensation: Once the rest event finishes and the player resumes exploring, the camera automatically recalculates its follow distance (+Z), elevation (+Y), FOV, and Near/Far clipping planes to match the character's new size—so movement always feels natural, heavy, and unobstructed.
+
+
+1. Colossal Body Morph Silhouettes (End-State Framing at +Z Lens)
+
+Shows how the skeletal rest offsets (Arm Abduction, Pelvic Tilt, Knee Valgus) change by body type so meshes never clip and every build reads immediately.
+  A. NORMAL / ATHLETIC              B. HYPER-BUFF (1980s He-Man)     C. HEAVY / SOFT (Doughboy)
+     (Adonis / Aphrodite)              (Mr. Universe / Hulking)         (Proud, Bouncy, Knock-Kneed)
+
+            (O)                               \ (O) /                          (O)
+          ──┼─┼──                           ╭──┴─┴──╮                         ╭─┼─╮
+            │ │                             │ \V/ V │ ◄─ Veiny Chest         (  ●  ) ◄─ Belly Thrust (+Z)
+           /   \                            ╰─┬───┬─╯    (Abduct ±35°)       ╰─┬─┬─╯
+          /     \                             │   │                           ╱   ╲  ◄─ Knee Valgus
+
+         |       |                           /     \                         |     |    (Inward ±6°)
+       (Neutral 0° Alignment)            (Wide Power Stance)              (Bouncy Puppy Stance)
+  TIER 1: SMALL PULSE  ──►  TIER 2: MEDIUM PULSE  ──►  TIER 3: LARGE PULSE   ──►  TIER 4: EXTREME / COLOSSAL
+  (Subtle Stretch)          (Stops & Heaves)           (Nervous Surge)            (Euphoric Peak)
+
+  [SHY PERSONALITY: Anxious + Blushing + Secretly Loves It]
+         (o)?                      (O)!                      (>_<)                      (///)
+       ──┼─┼──                   ──┼─┼──                    ╭─┼─╮                      ╭─┼─╮ ◄─ Hands over
+         │▼│ ◄─ Tugs shirt         │ │ ◄─ Hands on chest     /│ │\ ◄─ Hunching          │ │     blushing face
+        /   \   & glances         /   \   & heavy breath    /   \    & shivering       /   \    (peeking up)
+
+  [AGGRESSIVE PERSONALITY: Boastful + Proud + Show-Off]
+         (O)^                      (O)D                      \ (O) /                    \ (O) /
+       ──┼─┼──                   ╭─┼─┼─╮                   ╭─┴─┴─╮                    ╭─┴─┴─╮ ◄─ Full Star /
+         │▲│ ◄─ Snaps collar       │ │ ◄─ Hands on hips      │ V │ ◄─ Cobra chest       │  V  │    Most Muscular
+        /   \   & smirks          /   \   & deep laugh      /     \   & roaring        /     \   (slow, heavy)
+  [GROWTH EVENT QUEUE] (Magnitude: 1..4  |  Scale: 1.0x -> 10.0x+)
+         │
+         ├──► LAYER 1: Base Escalation Timeline (Small -> Medium -> Large -> Extreme)
+         │
+         ├──► LAYER 2: Personality BlendSpace (-1.0 Shy  ◄──────►  +1.0 Aggressive)
+         │             ├── Drives Spine Pitch (Hunch -15° vs. Arch +20°)
+         │             └── Drives Face BlendShapes (Blush/Peek vs. Grin/Roar)
+         │
+         ├──► LAYER 3: Body Morph Profile (Normal / HyperBuff / SoftHeavy)
+         │             ├── BlendShapes: [Muscle_Mass] [Body_Fat] [Vein_Detail]
+         │             └── Bone Offsets: [Arm_Abduct_Min] [Knee_Valgus] [Belly_Spring]
+         │
+         └──► LAYER 4: Procedural Clothes-Tug IK (SkeletonIK3D)
+                       └── Pins Left/Right Hands to [Waist_Hem] / [Collar] sockets at ANY scale
+  Camera View (+Z Lens, Reclined Rack / Floor Supine):
+
+                         (O)  ◄── Head tilted back (+Pitch), big proud grin
+                       ╭──┼──╮
+      -X ◄───────══════(  ●  )══════───────► +X   (Arms wide, chest/belly puffed +Y/+Z)
+                        ╰─┬─╯
+                         (H)  ◄── Pelvis tilted forward (belly proud)
+                        ╱   ╲
+                 [KNEE L]   [KNEE R]  ◄── Knees angled slightly inward (Valgus)
+                    │           │         while feet kick/wiggle playfully in air (+Y)
+                 [FOOT L]   [FOOT R]
+
+  PATH A: EXPLORATION TRIGGER (Non-Rest Event)
+  [Exploring Level] ──► [Event Trigger Fires] ──────────────────────────┐
+                                                                        ▼
+  PATH B: REST INITIATED (Outgrowing Rest Space)               ┌──────────────────┐
+  [Resting/Curled] ──► [Scale > Bed/Chair Bounds] ──► [Wakes   │  COLOSSAL GROWTH │
+                        & Stands/Spills Out] ───────────►      │  ANIMATION CHAIN │
+                                                               └────────┬─────────┘
+                                                                        │
+        ┌───────────────────────────────────────────────────────────────┘
+        ▼
+  [STAGE 1] ──► [STAGE 2] ──► [STAGE 3] ──► [STAGE 4] ──► [STAGE 5] ──► [SETTLE AT NEW SCALE]
+  Neck/Shoulder Body Check    Pelvic Curl   Squat Thrust  Colossal Peak  (Player strategy
+  Stretch & Sigh & Belly Pat  & Snap-Back   & Mr. Universe (Loop/Hold)   recalculates for exit)
+
+  ═══════════════════════════════════════════════════════════════════════════════════════════
+  CONTINUOUS UNDERLYING DRIVERS (Running Across All 5 Stages):
+  • Scale Curve:   Smooth exponential climb + rhythmic pulse spikes (+3% bulge -> -1% settle)
+  • Vascular/Bulk: BlendShapes [Muscle_Mass], [Body_Fat], [Vein_Detail] throb on heartbeat
+  • Weight Shift:  Animation playback speed gradually slows (1.0x -> 0.55x) as mass increases
+
+  STAGE 1: THE "NORMAL" STRETCH & SIGH (Player thinks it's just a good growth event)
+  - Bones: Shoulders roll forward (+Z) -> drop down (-Y); neck extends up/forward (+Y/+Z);
+           head tilts Yaw ±15° left/right with a relaxed sigh & deep exhale.
+  
+    Side View (+X):       (O) ◄─ Neck stretches +Y/+Z, head relaxes left/right
+                         / │
+                        │  │  ◄── Shoulders push forward (+Z) then drop (-Y)
+                        │  │
+                       /    \
+
+
+  STAGE 2: BODY CHECK, FLEX & BELLY PAT (Wait—it's still going...)
+  - Bones/IK: Hands touch/squeeze biceps (flexing arms); hands pat sides of tummy (±X) while
+              anterior pelvic tilt pushes belly forward (+Z); throbbing pulse intensifies.
+
+    Front View (+Z):      (O)? ◄─ Raised eyebrows ("Still growing?")
+                        ╭─┼─╮
+                       (  ●  ) ◄─ Hands patting sides of belly; belly pushed +Z
+                        ╰─┬─╯
+                         / \
+
+
+  STAGE 3: SURPRISED LOOK & SPINE CURL -> PELVIC SNAP-BACK (Intensity spikes)
+  - Bones: Head snaps Yaw ±35° looking around surprised; glutes tighten; thoracic/lumbar spine
+           curls forward (Flexion) thrusting pelvis (+Z), then SNAPS back into deep arch
+           (Extension) pushing belly/chest out (+Z).
+
+    Side View (2-Beat Snap):
+       Beat A (Curl/Thrust):       Beat B (Snap-Back Arch):
+            (O)!  (Surprised)          \ (O)! (Head back, wide eyes)
+           ╭─┘                          ╰─┐
+          (H)──► (+Z Pelvis Thrust)       (H) ◄── (Glutes tight, belly/chest +Z)
+          / \                            / \
+
+
+  STAGE 4: DEEP SQUAT THRUST & MR. UNIVERSE FLEX (Full-body surge)
+  - Bones: Wide stance (±X) knee flexion (Squat); rhythmic pelvic thrust + chest pump;
+           arms pull into Most Muscular / Crab flex; head darts left/right watching limbs bulge.
+
+    Front View (+Z):     \ (O)! / ◄─ Looking around surprised at swelling arms
+                        ╭──┴─┴──╮
+                        │ \V/ V │ ◄── Veins throbbing, biceps/pecs pulsing
+                        ╰─┬───┬─╯
+                         ╱     ╲  ◄── Wide squat + pelvic thrust rhythm
+
+                        |       |
+
+
+  STAGE 5: COLOSSAL PEAK & HEAVY SETTLE (Queue finishes draining)
+  - Bones: Full axial extension to max height; massive slow exhale; body settles into Personality
+           end-pose (Shy blushing peek vs. Aggressive Star/Doughboy pride) at new room-filling scale.
+
+    Front View (+Z):      (O)     ◄── Towering near ceiling / doorframes
+                        /  │  \
+                       /   │   \  ◄── Heavy, slow breathing (1 / Sqrt(Scale))
+                          ╱ ╲
+                         ╱   ╲
+
+Stage	Key Bones Animated	BlendShapes & Shaders Pulsing	Camera Director ($CD) Behavior
+1. Stretch & Sigh	Clavicle.L/R, Neck, Head	Gentle chest breath (0.2 -> 0.4)	Medium-tight framing; locks static background anchor so initial +Y neck stretch reads clearly.
+2. Body Check	UpperArm, Forearm, Hand IK (Bicep/Belly sockets), Pelvis	Muscle_Mass / Body_Fat begin rhythmic pulse wave (sin(time))	Pulls back slightly (+Z) as hands pat widening sides (±X).
+3. Curl & Snap	Spine_01..03 (Flexion <-> Extension), Pelvis (Pitch), Head (Fast Yaw)	Vein_Detail & Blush_Flush surge on every pelvic snap-back	Subtle camera shake impulse on the snap-back beat; FOV widens 5°.
+4. Squat & Flex	Thigh.L/R, Shin.L/R (Squat), Clavicle + Arm (Most Muscular)	Max throb amplitude (+4% bone scale bulge per beat)	Drops to Low Worm's-Eye Angle looking up past squatting knees toward flexing torso.
+5. Colossal Settle	Full Skeleton3D axial reach + Personality end-pose blend	Slow, heavy breathing cycle; dust/shockwave .webm settles	Auto-recalibrates gameplay Near/Far clip planes & follow distance for new player scale.
+
+Stage-by-Stage Pose & Anatomical Alignment Map
+
+Colossal Sequence Beat	Yoga Pose Archetype	Medical / Clinical Term	Exact Skeletal & Joint Action (Y-Up)
+Stage 1: Neck & Shoulder Stretch + Sigh	Neck Rolls & Seated Mountain (Tadasana upper body)	Cervical Protraction/Extension + Scapular Elevation-to-Depression	Shoulders roll forward (+Z protraction) -> drop down (-Y depression); cervical spine extends (+Y/+Z); head rotates (Yaw ±15°) on exhale.
+Stage 2: Bicep Squeeze & Belly Pat	Standing Belly-Breath Pose (Dirga Pranayama stance)	Anterior Pelvic Tilt + Bilateral Shoulder Adduction/Flexion	Pelvis tilts anteriorly (+Pitch) pushing abdomen forward (+Z); hands cross midline (SkeletonIK3D) to palpate biceps and lateral abdomen (±X).
+Stage 3: Spine Curl -> Pelvic Snap-Back	Standing Cat-Cow (Marjaryasana–Bitilasana)	Thoracolumbar Flexion/Posterior Pelvic Tilt -> Rapid Hyper-Extension	Beat A (Cat): Thoracic/lumbar spine rounds forward (Flexion), glutes contract, pelvis tucks/thrusts (+Z).
+Beat B (Cow): Spine snaps into deep arch (Hyper-Extension), chest/belly thrust forward (+Z), head snaps Yaw ±35° surprised.
+Stage 4: Deep Squat Thrust & Mr. Universe Flex	Goddess Squat (Utkata Konasana) + Eagle/Garuda Upper Contraction	Deep Hip/Knee Flexion with External Hip Rotation + Isometric Upper-Body Adduction	Hips abduct wide (±X) and externally rotate (±35°) into a deep squat (Knee Flexion ~70°–90°); pelvis pulses rhythmically (+Z); shoulders protract & adduct inward for the Most Muscular / Crab flex.
+Stage 5: Colossal Settle (End-State by Build)	• Normal: Extended Mountain (Urdhva Tadasana)
+• Buff: Upward Salute / Warrior II
+• Doughboy: Supine Happy Baby (Ananda Balasana)	• Axial Extension (0° alignment)
+• Scapular Retraction + Abduction
+• Genu Valgum (knock-kneed ±6°) or Supine Hip Abduction	Body settles at AnimSpeed = 1 / Sqrt(Scale):
+• Buff: Wide lats force arms out ±25°–35°.
+• Doughboy: Slight inward knee valgus (±6°) with bouncy pelvic tilt—or supine proud puppy kick.
+
+1. Camel Pose (Ustrasana — Standing/Kneeling Variant):
+	• When to use: During Stage 3 or 4 if the character leans sharply backward (Spine Hyper-Extension, Head Pitch +45° toward ceiling) while gripping their own thighs/hips as their torso surges upward.
+2. Garland / Deep Yogi Squat (Malasana):
+	• When to use: If a Rest-Initiated growth event happens on the floor and the character wakes up by pressing themselves upward from a low, knees-wide crouch (Deep Dorsiflexion + Hip Abduction) before standing into Stage 4.
+3. Contralateral / Asymmetric Contrapposto:
+	• When to use: At Stage 5 for the Aggressive/Confident personality—weight shifted onto one hip (Pelvic Roll ±5°), one arm raised or flexing while the other rests on the hip, preventing the character from looking like a stiff symmetrical statue.
+
+
+  A. W-SIT: HANDS ON THIGHS (Shy / Early Micro-Growth)
+     - Camera View (+Z Lens): Hands rest on mid-thighs/knees; pelvic center stays clear.
+
+                         (O)    ◄── Head slightly tilted / peeking (+Z)
+                       ╭──┼──╮
+                      ╱   │   ╲
+                     [H] (P) [H] ◄── Hands on thighs ([H]), groin/pelvis [P] unobstructed
+            [FOOT L] ╲  ╱   ╲  ╱ [FOOT R]
+  Y = 0 ══════════════╩╝═════╚╩═════════════════════════════════════════════
+                     [KNEE L/R]
+
+
+  B. W-SIT: HANDS BEHIND + HEAD TILTED BACK (Moderate Growth Pelvic Thrust)
+     - Arms brace on floor behind hips (-Z); spine arches (Extension); pelvis thrusts forward (+Z).
+
+     FRONT CAMERA VIEW (+Z):                    SIDE PROFILE VIEW (+X Stage Right):
+             \ (O) / ◄─ Head tilted back (+Pitch)           \ (O) ◄─ Head back (+Pitch)
+             ╭──┼──╮                                         ╲ │
+            ╱   │   ╲ ◄─ Arms angled back (-Z)                ╲│  ◄─ Chest/Belly arched (+Z)
+           ╱   [P]   ╲   (Zero pelvic occlusion)               ├─► [P] Pelvis thrusts +Z
+  [FOOT L] ╲  ╱   ╲  ╱ [FOOT R]                  Y = 0 ═════[H]═╩══[KNEE]══► +Z
+            ╩╝═════╚╩                                    (Hand braced -Z)
+  A. BUTTERFLY SIT: HANDS ON THIGHS / KNEES (Upright / Composed)
+     - Camera View (+Z Lens): Hands rest on knees/shins; open diamond groin region stays clear.
+
+                         (O)    ◄── Upright spine, curious / confident gaze
+                       ╭──┼──╮
+                      ╱   │   ╲
+       [KNEE L] ◄═══[H]  [P]  [H]═══► [KNEE R]  ◄── Hands on outer thighs/knees ([H])
+                     ╲    │    ╱                    Pelvic diamond [P] completely clear
+  Y = 0 ══════════════╲═══╧═══╱═════════════════════════════════════════════
+                    [SOLES TOGETHER] (+Z)
+
+
+  B. BUTTERFLY SIT: HANDS BEHIND + HEAD BACK (Moderate Growth Pelvic Thrust)
+     - Arms planted behind hips (-Z); chest & pelvis thrust forward (+Z) as knees drop toward Y = 0.
+
+     FRONT CAMERA VIEW (+Z):                    SIDE PROFILE VIEW (+X Stage Right):
+             \ (O) / ◄─ Head tilted back (+Pitch)           \ (O) ◄─ Head back (+Pitch)
+             ╭──┼──╮                                         ╲ │
+            ╱   │   ╲ ◄─ Arms planted behind (-Z)             ╲│  ◄─ Chest open (+Y/+Z)
+       [KNEE L] ◄═[P]═► [KNEE R]                               ├─► [P] Pelvis thrusts +Z
+            ╲     │     ╱                        Y = 0 ═════[H]═╩══[KNEE]══► +Z
+  Y = 0 ═════╲════╧════╱═════════════════════            (Hand braced -Z)
+           [SOLES TOGETHER]
+POSE RULE: [FloorSit_PelvicClearance_01]
+1. HAND PLACEMENT ZONES (STRICT):
+   - Zone A (Passive / Micro): Hands pinned via IK to [Thigh_Mid.L/R] or [Knee_Cap.L/R] sockets.
+   - Zone B (Active / Moderate Surge): Hands pinned via IK to floor plane (Y = 0) at Z = -0.25m to -0.35m behind Pelvis root.
+   - FORBIDDEN ZONE: Never place hands, forearms, or elbows inside the central pelvic triangle (X: ±0.15m, Z: +0.05m to +0.30m) to prevent mesh clipping and visual occlusion during scale/bulge pulses.
+2. MODERATE PULSE MECHANIC (HANDS-BEHIND FULCRUM):
+   - When hands are locked to Zone B (-Z floor), a moderate growth pulse drives Anterior Pelvic Tilt (+15° Pitch) + Pelvis forward translation (+0.08m * Scale along +Z) + Cervical Extension (+25° Head Pitch upward).
+
+[MSG 1/3 - HOLD RESPONSE UNTIL MSG 3/3 ARRIVES]
+DICT: $13=13163R|$B3=BIG3R|$M1=M1AS|$GB=golden-boy|$GD=Godot4_C#|$BL=Blender|$3J=ThreeJS|$GEQ=GrowthEventQueue|$CD=CameraDirector|$RC=RackChair_Rig|$SK=Skeleton3D|$AT=AnimationTree|$BM=BodyMorph_Profile|$25=2.5D_VFX
+PROTO: EngineSpace=Y_Up_RightHanded(+X=StageRight,+Y=Up,-Z=Forward,+Z=CamLens)|Blender=Z_Up_ConvertTo_Y_Up|Rotations:X=Pitch(Flip),Y=Yaw(Turntable),Z=Roll(Wheel)|ScaleAnchor=SurfaceContact(Y=0);OrbitPivot=PelvisCenter|NoPlayerCamMicromanagement($CD_automates)|PelvicClearanceRule:NoHandsInCentralPelvicTriangle(onlyOnThighsOrBehindHips)|Trigger="msgAI"->audit_latest,dedupe,flag_conflicts,pack_into_min_blocks(<1150chars_each)_with_[MSG_X/N]_headers_preserving_this_Trigger
+EPICS:
+1.Spatial_QA_Pipeline:Y-Up specs, normal-vector 2.5D billboards(Screen-Aligned,Y-Locked Cylindrical,Parallax Depth), & 360deg pelvic/character rotation verification.
+2.Seated_&_Chair_Poses:$RC(Parent_Yaw/Pitch/Roll)->Chair_Mesh(.Visible=false)->Character_Pivot(0,0.65,0)->GLB(Supine Butterfly & Open-Knee "Happy Baby",90deg L-bend,±55-65deg abduction,Pitch -60deg). Floor Sitting:W-Sitting(internal hip rot ±45-55deg,140deg knee bend,feet ±X) & Butterfly Sitting(BaddhaKonasana,soles together), each with Hands-On-Thighs(shy/micro) & Hands-Behind-Hips(-Z fulcrum + head back +Pitch for moderate pelvic thrust +Z).
+
+[MSG 2/3 - HOLD RESPONSE UNTIL MSG 3/3 ARRIVES]
+3.Emotional_Growth_Arc(10_Tiers)&Rest_Loop:Explore/gather->Rest/EventTrigger->fires $GEQ->$CD auto-frames static baseline, Eye-Level Flip(Child.EyeY>Adult.EyeY,0.3s hitstop,Dutch Roll ±6deg,Adult +Pitch), 2.0s delayed Y-catchup, AnimSpeed=1/Sqrt(Scale), Worm's-Eye FOV70-80, & $25 room shrink(0.65x)+DOF.
+4.4Layer_Morph_Escalation($AT):L1_BaseTimeline; L2_Personality(-1.0_Shy:shrug/tug hem/cover blushing face+peek <-> +1.0_Aggressive:chin up/tug collar/Cobra/Star/MostMuscular); L3_$BM(Normal,HyperBuff:Arm_Abduct ±25-35deg+Veins,SoftHeavy:Doughboy Knee_Valgus ±5-8deg+Belly_Spring+Supine "Proud Puppy"); L4_ClothesTug_IK([Waist_Hem]/[Collar]).
+5.Colossal_5Stage_Chain(Yoga/Medical_Aligned):Exploration or Rest-WakeUp(Malasana/scale>bed bounds). Continuous scale + +3-4% pulse throb + BlendShape throb across 5 stages: S1_CervicalExtension+ScapularDepression(Tadasana neck roll/sigh)->S2_AnteriorPelvicTilt+Palpation(DirgaPranayama bicep squeeze/belly pat)->S3_StandingCatCow(Marjaryasana flexion glute-tight thrust -> Bitilasana hyper-extension snap-back,Yaw ±35deg surprise)->S4_GoddessSquat(UtkataKonasana wide external hip rotation + MostMuscular flex)->S5_ColossalSettle(ExtendedMountain/WarriorII/Contrapposto/SupineHappyBaby).
+
+[MSG 3/3 - INGEST COMPLETE. SURFACE FLAGS FIRST.]
+NOW:
+-Prototypes active for $13 & $B3 ($GD/$BL) + $M1 .glb streaming; preparing $GB C# integration into $13.
+-Defined Y-Up spatial specs, 360deg ASCII diagrams, Supine $RC hierarchy, Unobstructed W-Sit & Butterfly floor poses, 10-stage $CD emotional arc, 4-Layer $BM/Personality/IK rig, & Yoga/Medical-aligned 5-Stage Colossal Growth chain.
+-No C# scripts, .tscn scenes, or .glb exports written/audited in repo yet.
+FLAGS:
+-[CHECK] Confirm $BL .glb export naming for BlendShapes ([Muscle_Mass],[Body_Fat],[Vein_Detail],[Facial_Blush_Euphoria]) & IK sockets ([Waist_Hem],[Collar],[Bicep_Touch],[Belly_Side],[Thigh_Mid.L/R]) in $GB rigs.
+-[CHECK] Confirm exact $SK bone names (Pelvis/Hips, Spine_01..03, Clavicle, thigh.L/R, shin.L/R, Head) & whether $RC needs nested Yaw_Pivot->Pitch_Pivot nodes in $GD to prevent gimbal lock.
+-[MISSING] Concrete numeric scale multipliers per tier (Tiers 1-10) & $M1 .glb streaming preload triggers for $GEQ transitions.
+-[MISSING] Specific $25 overlay assets (.webm auras, sightline cones, height-ruler UI) ready for $13 integration.
