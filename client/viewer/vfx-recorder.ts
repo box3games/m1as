@@ -20,6 +20,8 @@ export interface VfxRecorderHooks {
     getCcsaCanvas: () => HTMLCanvasElement | null;
     setCcsaTransparentBg: (enabled: boolean) => void;
     bindCcsaClickVfxWebm: (blobUrl: string) => Promise<void>;
+    getM1asSignedAssetUrl: (assetId: string) => Promise<string>;
+    getM1asApiBaseUrl: () => string;
 }
 
 interface VfxParticle {
@@ -44,7 +46,7 @@ interface Big3rCameraKeyframe {
 }
 
 interface Big3rRecordingMetadata {
-    schemaVersion: 5;
+    schemaVersion: 6;
     outputMode: 'foreground' | 'composite';
     recordingId: string;
     source: 'procedural-big3r-tube-ceiling';
@@ -61,7 +63,7 @@ interface Big3rRecordingMetadata {
     mimeType: string;
     camera: Big3rCameraSnapshot;
     cameraKeyframes: Big3rCameraKeyframe[];
-    backdrop: { kind: 'url' | 'file' | 'none'; source: string | null };
+    backdrop: { kind: 'm1as-signed' | 'url' | 'file' | 'none'; source: string | null };
 }
 
 const BIG3R_CAMERA_STORAGE_KEY = 'm1as.big3r.camera-presets.v1';
@@ -130,8 +132,9 @@ export class VfxRecorderController {
     private big3rPanMode = false;
     private big3rRecordingId: string | null = null;
     private backdropObjectUrl: string | null = null;
-    private backdropDescriptor: { kind: 'url' | 'file' | 'none'; source: string | null } = { kind: 'none', source: null };
-    private recordingBackdrop: { kind: 'url' | 'file' | 'none'; source: string | null } = { kind: 'none', source: null };
+    private backdropDescriptor: { kind: 'm1as-signed' | 'url' | 'file' | 'none'; source: string | null } = { kind: 'none', source: null };
+    private recordingBackdrop: { kind: 'm1as-signed' | 'url' | 'file' | 'none'; source: string | null } = { kind: 'none', source: null };
+    private backdropLoadRequestId = 0;
     private lastBig3rCameraSnapshot: Big3rCameraSnapshot | null = null;
     private lastBig3rMetadata: Big3rRecordingMetadata | null = null;
     private big3rRecordingStartedAt = '';
@@ -524,12 +527,45 @@ export class VfxRecorderController {
         }
     }
 
-    private loadBackdropUrl(): void {
+    private async loadBackdropUrl(): Promise<void> {
         const raw = this.backdropUrlInput?.value.trim();
         if (!raw || !this.backdropVideo) {
             this.statusEl.textContent = 'Enter a valid streamed video URL first.';
             return;
         }
+
+        const requestId = ++this.backdropLoadRequestId;
+        let playbackUrl = raw;
+        let descriptor: { kind: 'm1as-signed' | 'url'; source: string } = {
+            kind: 'url',
+            source: this.sanitizeBackdropUrl(raw),
+        };
+
+        try {
+            const parsed = new URL(raw, window.location.href);
+            const pathParts = parsed.pathname.split('/').filter(Boolean);
+            const m1asApiOrigin = new URL(this.hooks.getM1asApiBaseUrl(), window.location.href).origin;
+            const isM1asSignedAssetPath =
+                parsed.origin === m1asApiOrigin &&
+                pathParts.length === 4 &&
+                pathParts[0] === 'assets' &&
+                pathParts[2] === 'file' &&
+                pathParts[3] === 'signed';
+
+            if (isM1asSignedAssetPath) {
+                const assetId = decodeURIComponent(pathParts[1]);
+                playbackUrl = await this.hooks.getM1asSignedAssetUrl(assetId);
+                descriptor = { kind: 'm1as-signed', source: assetId };
+            }
+        } catch (error) {
+            if (requestId === this.backdropLoadRequestId) {
+                const message = error instanceof Error ? error.message : String(error);
+                this.statusEl.textContent = `M1AS backdrop signing failed: ${message}`;
+            }
+            return;
+        }
+
+        if (requestId !== this.backdropLoadRequestId) return;
         this.releaseBackdropObjectUrl();
         this.backdropVideo.pause();
         if (this.big3rOutputModeSelect?.value === 'composite') {
@@ -537,21 +573,26 @@ export class VfxRecorderController {
         } else {
             this.backdropVideo.removeAttribute('crossorigin');
         }
-        this.backdropVideo.src = raw;
-        this.backdropVideo.load();
         this.backdropVideo.onloadeddata = () => {
-            this.backdropDescriptor = { kind: 'url', source: this.sanitizeBackdropUrl(raw) };
+            if (requestId !== this.backdropLoadRequestId) return;
+            this.backdropDescriptor = descriptor;
             void this.backdropVideo?.play().catch(() => {
                 this.statusEl.textContent = 'Backdrop loaded. Browser autoplay was blocked; start playback in the preview.';
             });
-            this.statusEl.textContent = 'Streamed backdrop loaded behind the isolated alpha VFX canvas.';
+            this.statusEl.textContent = descriptor.kind === 'm1as-signed'
+                ? 'M1AS signed backdrop loaded. Stable asset identity retained; temporary signature excluded from metadata.'
+                : 'Streamed backdrop loaded behind the isolated alpha VFX canvas.';
         };
         this.backdropVideo.onerror = () => {
-            this.statusEl.textContent = 'Backdrop could not be loaded. Check the URL, media format, and server access.';
+            if (requestId !== this.backdropLoadRequestId) return;
+            this.statusEl.textContent = 'Backdrop could not be loaded. Check the URL, media format, signature expiry, and server access.';
         };
+        this.backdropVideo.src = playbackUrl;
+        this.backdropVideo.load();
     }
 
     private loadBackdropFile(): void {
+        const requestId = ++this.backdropLoadRequestId;
         const file = this.backdropFileInput?.files?.[0];
         if (!file || !this.backdropVideo) return;
         if (!file.type.startsWith('video/')) {
@@ -565,11 +606,13 @@ export class VfxRecorderController {
         this.backdropVideo.src = this.backdropObjectUrl;
         this.backdropVideo.load();
         this.backdropVideo.onloadeddata = () => {
+            if (requestId !== this.backdropLoadRequestId) return;
             this.backdropDescriptor = { kind: 'file', source: file.name };
             void this.backdropVideo?.play().catch(() => undefined);
             this.statusEl.textContent = `Backdrop loaded: ${file.name}. Alpha recording remains isolated.`;
         };
         this.backdropVideo.onerror = () => {
+            if (requestId !== this.backdropLoadRequestId) return;
             this.statusEl.textContent = 'Selected backdrop video could not be decoded by this browser.';
         };
     }
@@ -582,6 +625,7 @@ export class VfxRecorderController {
     }
 
     private clearBackdrop(): void {
+        this.backdropLoadRequestId++;
         if (this.backdropVideo) {
             this.backdropVideo.pause();
             this.backdropVideo.removeAttribute('src');
@@ -663,10 +707,10 @@ export class VfxRecorderController {
         this.big3rLoadCameraBtn?.addEventListener('click', () => this.loadBig3rCameraPreset());
         this.big3rDeleteCameraBtn?.addEventListener('click', () => this.deleteBig3rCameraPreset());
         this.big3rMotionStartBtn?.addEventListener('click', () => this.startBig3rMotionCapture());
-        this.backdropLoadBtn?.addEventListener('click', () => this.loadBackdropUrl());
+        this.backdropLoadBtn?.addEventListener('click', () => void this.loadBackdropUrl());
         this.backdropClearBtn?.addEventListener('click', () => this.clearBackdrop());
         this.big3rOutputModeSelect?.addEventListener('change', () => {
-            if (this.backdropDescriptor.kind === 'url') this.loadBackdropUrl();
+            if (this.backdropDescriptor.kind === 'url' || this.backdropDescriptor.kind === 'm1as-signed') void this.loadBackdropUrl();
             else if (this.backdropDescriptor.kind === 'file') this.loadBackdropFile();
         });
         this.backdropFileInput?.addEventListener('change', () => this.loadBackdropFile());
