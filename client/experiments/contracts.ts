@@ -441,3 +441,22 @@ export interface ExperimentManifest {
   };
   artifactHashes?: Record<string, string>;
 }
+
+/** Normalized top-left-origin rectangle in viewport coordinates. */
+export interface NormalizedRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Union of every appendable record currently supported by the experiment recorder. */
+export type ExperimentRecord =
+  | GrowthRequestRecord
+  | GrowthDecisionRecord
+  | ApprovedGrowthEventRecord
+  | GrowthExecutionRecord
+  | PresentationSampleRecord
+  | PerceptionAnnotationRecord
+  | ExperimentHypothesisRecord
+  | SweetSpotEvidenceRecord;

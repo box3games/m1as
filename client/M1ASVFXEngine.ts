@@ -151,14 +151,14 @@ export class M1ASVFXEngine {
         this.onFrame = options.onFrame;
         this.onGrowthQueued = options.onGrowthQueued;
         this.onGrowthReleased = options.onGrowthReleased;
-        this.growthQueue.onEventReleased = (event) => {
-            try { this.onGrowthReleased?.({ ...event }, this.simulationTimeSeconds, this.simulationFrameNumber); }
-            catch { /* observers cannot affect queue scheduling or character response */ }
-        };
 
         const startScale = options.baseScale ?? 1.0;
         this.projectedTargetScale = startScale;
         this.growthQueue = new GrowthEventQueue(startScale);
+        this.growthQueue.onEventReleased = (event) => {
+            try { this.onGrowthReleased?.({ ...event }, this.simulationTimeSeconds, this.simulationFrameNumber); }
+            catch { /* observers cannot affect queue scheduling or character response */ }
+        };
         this.growthQueue.onCascadeBurst = (burst) => this.handleCascadeBurst(burst);
 
         this.init();

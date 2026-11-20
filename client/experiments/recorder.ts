@@ -1,16 +1,11 @@
 import {
   EXPERIMENT_SCHEMA_VERSION,
   type ApprovedGrowthEventRecord, type ExperimentId, type ExperimentManifest,
-  type ExperimentRecordBase, type ExperimentTime, type ExperimentHypothesisRecord,
+  type ExperimentRecord, type ExperimentTime,
   type GrowthDecisionRecord, type GrowthExecutionRecord, type GrowthRequestRecord,
   type PerceptionAnnotationRecord, type PresentationSampleRecord, type SweetSpotEvidenceRecord,
 } from './contracts.js';
 import { validateExperimentManifest } from './validation.js';
-
-export type ExperimentRecord =
-  | GrowthRequestRecord | GrowthDecisionRecord | ApprovedGrowthEventRecord
-  | GrowthExecutionRecord | PresentationSampleRecord | PerceptionAnnotationRecord
-  | ExperimentHypothesisRecord | SweetSpotEvidenceRecord;
 
 export interface ExperimentStorage {
   createManifest(manifest: ExperimentManifest): Promise<void>;
