@@ -65,7 +65,7 @@ export class ExperimentCoordinator {
       throw new RangeError('Coordinator simulation time must be finite and monotonic.');
     }
     this.lastSimulationTime = simulationTimeSeconds;
-    if (!this.scheduler.shouldSample(simulationTimeSeconds)) return;
+    if (!this.scheduler.shouldSample(simulationTimeSeconds, frameNumber)) return;
     this.capture(simulationTimeSeconds, frameNumber);
   }
 
@@ -76,9 +76,10 @@ export class ExperimentCoordinator {
       throw new RangeError('Coordinator event time must be finite and monotonic.');
     }
     this.lastSimulationTime = simulationTimeSeconds;
-    this.scheduler.trigger({ type, simulationTimeSeconds });
-    const latestBufferedTime = this.scheduler.lastWrittenSimulationTime;
-    if (latestBufferedTime !== simulationTimeSeconds) this.capture(simulationTimeSeconds, frameNumber);
+    const configured = this.scheduler.trigger({ type, simulationTimeSeconds });
+    if (configured && !this.scheduler.hasSampleAt(simulationTimeSeconds)) {
+      this.capture(simulationTimeSeconds, frameNumber);
+    }
   }
 
   private capture(simulationTimeSeconds: number, frameNumber?: number): void {
