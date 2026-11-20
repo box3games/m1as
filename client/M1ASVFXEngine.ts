@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
     GrowthEventQueue,
     GrowthStimulusType,
+    GrowthEvent,
     CascadeBurstPayload,
 } from './GrowthEventQueue.js';
 
@@ -57,6 +58,7 @@ export interface M1ASVFXEngineOptions {
     /** Passive experiment observers; callback failures never affect simulation. */
     onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
     onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
+    onGrowthReleased?: (event: GrowthEvent, simulationTimeSeconds: number, frameNumber: number) => void;
 }
 
 export class M1ASVFXEngine {
@@ -73,6 +75,7 @@ export class M1ASVFXEngine {
     private simulationFrameNumber = 0;
     private onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
     private onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
+    private onGrowthReleased?: (event: GrowthEvent, simulationTimeSeconds: number, frameNumber: number) => void;
     private frameId: number | null = null;
 
     // Core Growth Queue (C# Port)
@@ -147,6 +150,11 @@ export class M1ASVFXEngine {
         this.onPropsChanged = options.onPropsChanged;
         this.onFrame = options.onFrame;
         this.onGrowthQueued = options.onGrowthQueued;
+        this.onGrowthReleased = options.onGrowthReleased;
+        this.growthQueue.onEventReleased = (event) => {
+            try { this.onGrowthReleased?.({ ...event }, this.simulationTimeSeconds, this.simulationFrameNumber); }
+            catch { /* observers cannot affect queue scheduling or character response */ }
+        };
 
         const startScale = options.baseScale ?? 1.0;
         this.projectedTargetScale = startScale;
