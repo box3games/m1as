@@ -496,7 +496,7 @@ function renderBig3rSurge(
 
             const axialV = v <= 0.84
                 ? v
-                : 0.84 + (v - 0.84) * (1 - latePhase * 0.28);
+                : 0.84 + (v - 0.84) * (1 - latePhase * 0.12);
             let centerY = 0;
             let centerZ = 0;
             const steps = Math.max(1, Math.ceil(axialV * 32));
