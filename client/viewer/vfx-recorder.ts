@@ -181,6 +181,7 @@ export class VfxRecorderController {
             preset: 'big3r-tube-ceiling',
             angle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
             growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+            trajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
             anchor: this.advancedProcedural.getBig3rAnchorState(),
             framing: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
             camera: this.advancedProcedural.getBig3rCameraState(),
@@ -190,6 +191,7 @@ export class VfxRecorderController {
     private restoreBig3rCameraSnapshot(snapshot: Big3rCameraSnapshot): void {
         if (this.big3rAngleSelect) this.big3rAngleSelect.value = snapshot.angle;
         if (this.big3rDirectionSelect) this.big3rDirectionSelect.value = snapshot.growthDirection || 'north';
+        if (this.big3rTrajectorySelect) this.big3rTrajectorySelect.value = snapshot.trajectoryPreset || 'legacy-cardinal';
         const anchor = snapshot.anchor || { offsetX: 0, offsetY: 0 };
         this.advancedProcedural.setBig3rAnchorState(anchor);
         if (this.big3rAnchorXInput) this.big3rAnchorXInput.value = String(anchor.offsetX);
@@ -199,7 +201,7 @@ export class VfxRecorderController {
             preset: 'big3r-tube-ceiling',
             big3rAngle: snapshot.angle,
             big3rGrowthDirection: snapshot.growthDirection || 'north',
-            big3rTrajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
+            big3rTrajectoryPreset: (snapshot.trajectoryPreset || 'legacy-cardinal') as Big3rTrajectoryPreset,
             big3rFramingMode: snapshot.framing,
         });
         this.advancedProcedural.setBig3rCameraState(snapshot.camera);
