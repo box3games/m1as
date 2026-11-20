@@ -607,6 +607,7 @@ export class VfxRecorderController {
             this.backdropImage.onload = () => {
                 if (requestId !== this.backdropLoadRequestId) return;
                 this.backdropDescriptor = descriptor;
+                this.proceduralPreviewStage?.classList.remove('is-hidden');
                 this.statusEl.textContent = descriptor.kind === 'm1as-signed'
                     ? 'M1AS signed image backdrop loaded through the authenticated stream.'
                     : 'Image backdrop loaded.';
@@ -620,6 +621,7 @@ export class VfxRecorderController {
             this.backdropVideo.onloadeddata = () => {
                 if (requestId !== this.backdropLoadRequestId) return;
                 this.backdropDescriptor = descriptor;
+                this.proceduralPreviewStage?.classList.remove('is-hidden');
                 void this.backdropVideo?.play().catch(() => {
                     this.statusEl.textContent = 'Backdrop loaded. Browser autoplay was blocked; start playback in the preview.';
                 });
