@@ -757,7 +757,7 @@ export class ProceduralVfxCanvas {
                     { distance: 0.92, direction: { x: 0, y: -1, z: 0 } },
                     { distance: 1, direction: { x: 0, y: -1, z: 0 } },
                 ]
-                : [{ distance: 0, direction: { x: 0, y: -1, z: 0 } }, { distance: 1, direction: { x: 0, y: -1, z: 0 } }],
+                : [],
         };
     }
 
