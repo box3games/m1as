@@ -6,6 +6,8 @@ import {
 import { CaptureScheduler } from './capture-scheduler.js';
 import { ExperimentRecorder, type ExperimentStorage } from './recorder.js';
 import { ExperimentTimeline } from './timeline.js';
+import type { GrowthEvent } from '../GrowthEventQueue.js';
+import { observeLegacyQueueRelease, legacyReleaseToExecutionObservation } from './legacy-adapters.js';
 
 export type PresentationSamplePayload = Omit<
   PresentationSampleRecord,
@@ -46,6 +48,7 @@ export class ExperimentCoordinator {
   }
 
   private lastSimulationTime = 0;
+  private readonly pendingRelatedEventIds: string[] = [];
   public get experimentId(): string { return this.manifest.experimentId; }
   public get isRecording(): boolean { return this.started && !this.stopped && this.recorder.isRecording; }
   public get captureErrors(): ReadonlyArray<{ stream: string; error: unknown }> {
@@ -83,13 +86,51 @@ export class ExperimentCoordinator {
     }
   }
 
+  /** Records a legacy queue release as an observation, not a fabricated native event identity. */
+  public recordLegacyQueueRelease(
+    event: GrowthEvent,
+    simulationTimeSeconds: number,
+    frameNumber?: number,
+  ): void {
+    if (!this.isRecording) return;
+    if (!Number.isFinite(simulationTimeSeconds) || simulationTimeSeconds < this.lastSimulationTime) {
+      this.recorder.reportExternalCaptureError(
+        new RangeError('Legacy queue observation time must be finite and monotonic.'),
+        'growth-executions',
+      );
+      return;
+    }
+    this.lastSimulationTime = simulationTimeSeconds;
+    try {
+      const time = this.timeline.next(simulationTimeSeconds, frameNumber);
+      const observationId = `${this.experimentId}:legacy-queue-observation:${time.sequenceNumber}`;
+      const observation = observeLegacyQueueRelease({
+        recordId: observationId,
+        experimentId: this.experimentId,
+        observedEventId: observationId,
+        time,
+        event,
+      });
+      this.recorder.append(
+        'growth-executions',
+        legacyReleaseToExecutionObservation(observation),
+      );
+      this.pendingRelatedEventIds.push(observation.observedEventId);
+    } catch (error) {
+      this.recorder.reportExternalCaptureError(error, 'growth-executions');
+    }
+  }
+
   private capture(simulationTimeSeconds: number, frameNumber?: number): void {
     try {
       const time = this.timeline.next(simulationTimeSeconds, frameNumber);
       const payload = this.capturePresentation();
+      const relatedEventIds = [...new Set([...payload.relatedEventIds, ...this.pendingRelatedEventIds])];
+      this.pendingRelatedEventIds.length = 0;
       const sampleId = `${this.experimentId}:sample:${time.sequenceNumber}`;
       this.scheduler.pushSample({
         ...payload,
+        relatedEventIds,
         recordId: sampleId,
         sampleId,
         experimentId: this.experimentId,
