@@ -9,6 +9,7 @@ import {
     type Big3rGrowthDirection,
     type Big3rCameraSnapshot,
     type Big3rTrajectoryPreset,
+    type Big3rMorphologyStyle,
     type Big3rTrajectorySnapshot,
 } from './Proceedural-vfx.js';
 
@@ -43,7 +44,7 @@ interface Big3rCameraKeyframe {
 }
 
 interface Big3rRecordingMetadata {
-    schemaVersion: 4;
+    schemaVersion: 5;
     outputMode: 'foreground' | 'composite';
     recordingId: string;
     source: 'procedural-big3r-tube-ceiling';
@@ -89,6 +90,7 @@ export class VfxRecorderController {
     private readonly big3rAngleSelect = document.getElementById('recBig3rAngle') as HTMLSelectElement | null;
     private readonly big3rDirectionSelect = document.getElementById('recBig3rDirection') as HTMLSelectElement | null;
     private readonly big3rTrajectorySelect = document.getElementById('recBig3rTrajectory') as HTMLSelectElement | null;
+    private readonly big3rMorphologySelect = document.getElementById('recBig3rMorphology') as HTMLSelectElement | null;
     private readonly big3rAnchorXInput = document.getElementById('recBig3rAnchorX') as HTMLInputElement | null;
     private readonly big3rAnchorYInput = document.getElementById('recBig3rAnchorY') as HTMLInputElement | null;
     private readonly big3rFramingSelect = document.getElementById('recBig3rFraming') as HTMLSelectElement | null;
@@ -182,6 +184,7 @@ export class VfxRecorderController {
             angle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
             growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
             trajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
+            morphologyStyle: (this.big3rMorphologySelect?.value || 'elongated') as Big3rMorphologyStyle,
             anchor: this.advancedProcedural.getBig3rAnchorState(),
             framing: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
             camera: this.advancedProcedural.getBig3rCameraState(),
@@ -192,6 +195,7 @@ export class VfxRecorderController {
         if (this.big3rAngleSelect) this.big3rAngleSelect.value = snapshot.angle;
         if (this.big3rDirectionSelect) this.big3rDirectionSelect.value = snapshot.growthDirection || 'north';
         if (this.big3rTrajectorySelect) this.big3rTrajectorySelect.value = snapshot.trajectoryPreset || 'legacy-cardinal';
+        if (this.big3rMorphologySelect) this.big3rMorphologySelect.value = snapshot.morphologyStyle || 'elongated';
         const anchor = snapshot.anchor || { offsetX: 0, offsetY: 0 };
         this.advancedProcedural.setBig3rAnchorState(anchor);
         if (this.big3rAnchorXInput) this.big3rAnchorXInput.value = String(anchor.offsetX);
@@ -202,6 +206,7 @@ export class VfxRecorderController {
             big3rAngle: snapshot.angle,
             big3rGrowthDirection: snapshot.growthDirection || 'north',
             big3rTrajectoryPreset: (snapshot.trajectoryPreset || 'legacy-cardinal') as Big3rTrajectoryPreset,
+            big3rMorphologyStyle: (snapshot.morphologyStyle || 'elongated') as Big3rMorphologyStyle,
             big3rFramingMode: snapshot.framing,
         });
         this.advancedProcedural.setBig3rCameraState(snapshot.camera);
@@ -362,6 +367,7 @@ export class VfxRecorderController {
             big3rAngle: (this.big3rAngleSelect?.value || 'ceiling') as Big3rCameraAngle,
             big3rGrowthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
             big3rTrajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
+            big3rMorphologyStyle: (this.big3rMorphologySelect?.value || 'elongated') as Big3rMorphologyStyle,
             big3rFramingMode: (this.big3rFramingSelect?.value || 'hybrid') as Big3rFramingMode,
         });
 
@@ -622,6 +628,13 @@ export class VfxRecorderController {
             });
         });
 
+        this.big3rMorphologySelect?.addEventListener('change', () => {
+            this.advancedProcedural.setConfig({
+                preset: 'big3r-tube-ceiling',
+                big3rMorphologyStyle: this.big3rMorphologySelect!.value as Big3rMorphologyStyle,
+            });
+        });
+
         this.big3rDirectionSelect?.addEventListener('change', () => {
             this.advancedProcedural.setConfig({
                 preset: 'big3r-tube-ceiling',
@@ -836,7 +849,7 @@ export class VfxRecorderController {
             if (mode === 'procedural-big3r-tube-ceiling' && this.big3rRecordingId && this.lastBig3rCameraSnapshot) {
                 const durationMs = Math.max(0, Math.round(performance.now() - this.big3rRecordingStartedPerf));
                 this.lastBig3rMetadata = {
-                    schemaVersion: 4,
+                    schemaVersion: 5,
                     outputMode: big3rOutputMode,
                     recordingId: this.big3rRecordingId,
                     source: 'procedural-big3r-tube-ceiling',
@@ -934,6 +947,8 @@ export class VfxRecorderController {
                     loopDurationSec: isBig3r ? 36 : 2,
                     big3rAngle,
                     big3rGrowthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+                    big3rTrajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
+                    big3rMorphologyStyle: (this.big3rMorphologySelect?.value || 'elongated') as Big3rMorphologyStyle,
                     big3rFramingMode,
                 });
 
@@ -950,6 +965,7 @@ export class VfxRecorderController {
                         angle: big3rAngle,
                         growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
                         trajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
+                        morphologyStyle: (this.big3rMorphologySelect?.value || 'elongated') as Big3rMorphologyStyle,
                         anchor: this.advancedProcedural.getBig3rAnchorState(),
                         framing: big3rFramingMode,
                         camera: this.advancedProcedural.getBig3rCameraState(),
