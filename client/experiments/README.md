@@ -65,9 +65,7 @@ evaluating perceptual sweet spots.
 
 ## Persistence and scheduling status
 
-ExperimentStorage is currently an interface; no concrete JSONL/file exporter,
-media packager, replay engine, or comparison runner is included in this
-foundation pass. Capture profiles are now consumed by CaptureScheduler, and ExperimentCoordinator provides an explicit lifecycle/tick/trigger facade. The host must still supply a read-only presentation provider and call tick/trigger from its existing simulation cadence; the current sandbox/engine does not yet instantiate the coordinator. The recorder serializes append operations and exposes
+ExperimentStorage remains an interface with a browser-local JSON package implementation for the sandbox. The browser implementation stages records in memory and creates a downloadable JSON experiment package when finalized; it is not remote persistence or a JSONL/media packager. Replay and comparison runners remain future capabilities. Capture profiles are now consumed by CaptureScheduler, and ExperimentCoordinator provides an explicit lifecycle/tick/trigger facade. The BIG3R sandbox now exposes a lightweight/detailed/discovery profile selector plus Start Experiment Capture and Stop & Finalize controls. Finalization produces a downloadable JSON package containing the manifest and captured presentation stream. Its existing engine frame delta supplies the simulation clock, passive frame and growth-queued callbacks feed the coordinator. A queue-release observer records legacy GrowthExecutionRecord observations and correlates their observation IDs with presentation samples; it never pops or mutates ready queue entries. The presentation provider reads the live perspective camera and subject bounds. Authored camera configuration, registered world landmarks, pixel occlusion, and regional rig metrics remain explicitly unpopulated. The recorder serializes append operations and exposes
 capture/storage errors so callers can monitor failures without interrupting
 the simulation.
 

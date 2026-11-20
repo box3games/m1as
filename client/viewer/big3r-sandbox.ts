@@ -14,6 +14,12 @@ import type { FaceAssetType } from "../M1ASFaceSurfaceResolver.js";
 import type { JSONLevelManifest } from "../big3r/streaming/manifest-types.js";
 import type { CameraRigMode } from "../big3r/camera/CameraRig5Mode.js";
 import type { Big3rStagePreset, FaceSlotKey } from "./types.js";
+import { EXPERIMENT_SCHEMA_VERSION } from "../experiments/contracts.js";
+import type { ExperimentManifest } from "../experiments/contracts.js";
+import { DEFAULT_CAPTURE_PROFILES } from "../experiments/capture-profiles.js";
+import { ExperimentCoordinator, type PresentationSamplePayload } from "../experiments/coordinator.js";
+import { BrowserDownloadExperimentStorage } from "../experiments/browser-download-storage.js";
+import { captureCharacterPresentation, capturePerspectiveCamera } from "../experiments/three-adapters.js";
 
 
 const BOX_TIER_NAMES = [
@@ -45,6 +51,11 @@ export class Big3rSandboxController {
     private activeEngine: IVfxEngine | null = null;
 
     private coordinator: Big3rStageCoordinator | null = null;
+    private experimentCoordinator: ExperimentCoordinator | null = null;
+    private experimentStorage: BrowserDownloadExperimentStorage | null = null;
+    private experimentControls: HTMLElement | null = null;
+    private experimentStatus: HTMLElement | null = null;
+    private experimentExportLink: HTMLAnchorElement | null = null;
     private currentBoxTier = 1;
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
@@ -143,6 +154,11 @@ export class Big3rSandboxController {
 
         this.glbUrlInput.value = glbSignedUrl;
 
+        if (this.experimentCoordinator) {
+            await this.experimentCoordinator.stop();
+            this.experimentCoordinator = null;
+        }
+
         if (this.coordinator) {
             this.coordinator.destroy();
             this.coordinator = null;
@@ -176,6 +192,15 @@ export class Big3rSandboxController {
                 initialRoomCeiling: initialCeiling,
                 cinematicCamera: this.cinematicCamToggle.checked,
                 onPropsChanged: (props) => this.renderActivePropsUI(props),
+                onFrame: (simulationTimeSeconds, frameNumber) => {
+                    this.experimentCoordinator?.tick(simulationTimeSeconds, frameNumber);
+                },
+                onGrowthQueued: (simulationTimeSeconds, frameNumber) => {
+                    this.experimentCoordinator?.trigger("growth_queued", simulationTimeSeconds, frameNumber);
+                },
+                onGrowthReleased: (event, simulationTimeSeconds, frameNumber) => {
+                    this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
+                },
                 onStateChange: (state) => {
                     this.currentBoxTier = state.boxTier;
                     this.updateTelemetry(state)
@@ -186,6 +211,8 @@ export class Big3rSandboxController {
                     this.ceilingVal.textContent = `${newCeiling.toFixed(1)}m`;
                 }
             });
+
+            this.installExperimentControls(this.activeEngine as unknown as M1ASVFXEngine);
 
             this.coordinator = new Big3rStageCoordinator(
                 this.activeEngine as unknown as M1ASVFXEngine,
@@ -207,6 +234,158 @@ export class Big3rSandboxController {
             this.stageContainer.innerHTML = `<div class="vfx-error-box">⚠️ M1ASVFXEngine Error: ${message}</div>`;
         }
     }
+
+    private installExperimentControls(engine: M1ASVFXEngine): void {
+        const previousExport = this.experimentExportLink && !this.experimentExportLink.hidden
+            ? { href: this.experimentExportLink.href, download: this.experimentExportLink.download }
+            : null;
+        if (this.experimentControls) this.experimentControls.remove();
+        const panel = document.createElement("div");
+        panel.className = "m1as-experiment-controls";
+        panel.style.display = "flex";
+        panel.style.flexWrap = "wrap";
+        panel.style.alignItems = "center";
+        panel.style.gap = "8px";
+        panel.style.margin = "8px 0";
+
+        const profileSelect = document.createElement("select");
+        for (const profileName of ["lightweight", "detailed", "discovery"] as const) {
+            const option = document.createElement("option");
+            option.value = profileName;
+            option.textContent = profileName;
+            profileSelect.appendChild(option);
+        }
+        const start = document.createElement("button");
+        start.type = "button";
+        start.textContent = "Start Experiment Capture";
+        const stop = document.createElement("button");
+        stop.type = "button";
+        stop.textContent = "Stop & Finalize";
+        stop.disabled = true;
+        const status = document.createElement("span");
+        status.textContent = "Experiment capture idle";
+        const exportLink = document.createElement("a");
+        exportLink.hidden = true;
+        exportLink.textContent = "Download Experiment JSON";
+        exportLink.style.marginLeft = "8px";
+
+        start.addEventListener("click", async () => {
+            if (this.experimentCoordinator?.isRecording) return;
+            this.experimentStorage?.dispose();
+            const profileName = profileSelect.value as keyof typeof DEFAULT_CAPTURE_PROFILES;
+            const profile = { ...DEFAULT_CAPTURE_PROFILES[profileName] };
+            const experimentId = `13163r-${Date.now()}`;
+            const manifest: ExperimentManifest = {
+                experimentId,
+                schemaVersion: EXPERIMENT_SCHEMA_VERSION,
+                createdAtISO: new Date().toISOString(),
+                title: "13163R Sandbox Growth Experiment",
+                description: "Live observational capture from the BIG3R sandbox.",
+                buildVersion: "runtime",
+                configurationVersion: "sandbox-default",
+                worldUnit: "meters",
+                screenCoordinateConvention: "normalized_top_left_origin",
+                captureProfile: profile,
+                configurationRefs: {
+                    character: "active-glb",
+                    growth: "legacy-growth-queue",
+                    camera: "runtime-perspective-camera",
+                    world: "sandbox-stage",
+                },
+            };
+            const storage = new BrowserDownloadExperimentStorage((url, fileName) => {
+                exportLink.href = url;
+                exportLink.download = fileName;
+                exportLink.hidden = false;
+                status.textContent = "Experiment finalized and ready to download.";
+            });
+            const coordinator = new ExperimentCoordinator({
+                manifest,
+                storage,
+                capturePresentation: (): PresentationSamplePayload => {
+                    const canvas = engine.getCanvas();
+                    const viewport = {
+                        widthPixels: Math.max(1, canvas.clientWidth || canvas.width),
+                        heightPixels: Math.max(1, canvas.clientHeight || canvas.height),
+                        aspectRatio: engine.getCamera().aspect,
+                    };
+                    const camera = capturePerspectiveCamera(engine.getCamera(), viewport, {
+                        target: engine.getControls().target,
+                        cameraMode: "sandbox",
+                    });
+                    const character = captureCharacterPresentation(
+                        engine.getSubjectRoot(), engine.getCamera(), manifest.worldUnit,
+                    );
+                    return {
+                        cameraConfiguration: {
+                            status: "not_captured",
+                            reason: "The sandbox does not yet expose its authored camera configuration separately.",
+                        },
+                        cameraRuntime: camera,
+                        character,
+                        worldLandmarks: [],
+                        screen: {
+                            viewport,
+                            characterBounds: character.screenBounds,
+                            characterOccupancy: character.screenOccupancy,
+                            viewportEdgeContact: {
+                                status: "not_captured",
+                                reason: "Viewport-edge contact is not yet derived from the projected bounds.",
+                            },
+                            occlusion: {
+                                status: "unsupported",
+                                reason: "Pixel-accurate occlusion capture is not implemented.",
+                            },
+                            landmarkRatios: {},
+                        },
+                        relatedRequestIds: [],
+                        relatedDecisionIds: [],
+                        relatedEventIds: [],
+                    };
+                },
+                onCaptureError: (error) => {
+                    status.textContent = `Capture warning: ${String(error)}`;
+                },
+            });
+            this.experimentStorage = storage;
+            this.experimentCoordinator = coordinator;
+            try {
+                await coordinator.start();
+                start.disabled = true;
+                stop.disabled = false;
+                exportLink.hidden = true;
+                status.textContent = `Recording ${experimentId} · ${profile.name} profile`;
+            } catch (error) {
+                this.experimentCoordinator = null;
+                status.textContent = `Could not start capture: ${String(error)}`;
+            }
+        });
+
+        stop.addEventListener("click", async () => {
+            const coordinator = this.experimentCoordinator;
+            if (!coordinator) return;
+            stop.disabled = true;
+            try {
+                await coordinator.stop();
+                start.disabled = false;
+            } catch (error) {
+                status.textContent = `Finalize warning: ${String(error)}`;
+                start.disabled = false;
+            }
+        });
+
+        if (previousExport) {
+            exportLink.href = previousExport.href;
+            exportLink.download = previousExport.download;
+            exportLink.hidden = false;
+        }
+        panel.append(profileSelect, start, stop, status, exportLink);
+        this.controlBar.appendChild(panel);
+        this.experimentControls = panel;
+        this.experimentStatus = status;
+        this.experimentExportLink = exportLink;
+    }
+
     private bindEvents(): void {
         this.propRoleSelect.addEventListener("change", () => {
             const role = this.propRoleSelect.value as PropRole;
