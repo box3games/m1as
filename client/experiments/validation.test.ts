@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { GrowthOutcome, GrowthRequestRecord } from './contracts.js';
 import { validateGrowthOutcome, validateGrowthRequest, validateNormalizedRect } from './validation.js';
+import { ExperimentTimeline } from './timeline.js';
 
 const validOutcome: GrowthOutcome = {
   components: [
@@ -42,8 +43,6 @@ test('screen-space rectangles are normalized and contained by the viewport', () 
   assert.deepEqual(validateNormalizedRect({ x: 0.1, y: 0.2, width: 0.5, height: 0.5 }), []);
   assert.ok(validateNormalizedRect({ x: 0.8, y: 0.2, width: 0.5, height: 0.5 }).length > 0);
 });
-
-import { ExperimentTimeline } from './timeline.js';
 
 test('opportunity requests remain distinct from outcome requests', () => {
   const request: GrowthRequestRecord = {
