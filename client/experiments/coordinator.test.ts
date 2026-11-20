@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type {
-  CaptureProfile, ExperimentManifest, ExperimentRecord, PresentationSampleRecord,
+  CaptureProfile, ExperimentManifest, PresentationSampleRecord,
 } from './contracts.js';
 import { ExperimentCoordinator } from './coordinator.js';
 import { GrowthStimulusType } from '../GrowthEventQueue.js';
+import type { ExperimentRecord } from './recorder.js';
 import type { ExperimentStorage } from './recorder.js';
 
 const profile: CaptureProfile = {
