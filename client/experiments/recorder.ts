@@ -30,6 +30,7 @@ export class ExperimentRecorder {
   private readonly clock: ExperimentClock;
   private readonly onCaptureError?: (error: unknown, stream: string) => void;
   private started = false;
+  private starting = false;
   private stopped = false;
   private writeChain: Promise<void> = Promise.resolve();
 
@@ -46,9 +47,14 @@ export class ExperimentRecorder {
   public get isRecording(): boolean { return this.started && !this.stopped; }
 
   public async start(): Promise<void> {
-    if (this.started) throw new Error('Experiment recorder has already been started.');
-    await this.storage.createManifest(this.manifest);
-    this.started = true;
+    if (this.started || this.starting) throw new Error('Experiment recorder has already been started.');
+    this.starting = true;
+    try {
+      await this.storage.createManifest(this.manifest);
+      this.started = true;
+    } finally {
+      this.starting = false;
+    }
   }
 
   public append(stream: string, record: ExperimentRecord): void {
