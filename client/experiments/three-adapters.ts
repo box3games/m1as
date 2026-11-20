@@ -32,6 +32,15 @@ function worldTransform(object: THREE.Object3D): Transform3 {
   };
 }
 
+function hierarchyVisible(object: THREE.Object3D): boolean {
+  let current: THREE.Object3D | null = object;
+  while (current) {
+    if (!current.visible) return false;
+    current = current.parent;
+  }
+  return true;
+}
+
 function worldBounds(object: THREE.Object3D, worldUnit: string): Bounds3 | null {
   const bounds = new THREE.Box3().setFromObject(object);
   if (bounds.isEmpty()) return null;
@@ -129,7 +138,7 @@ export function captureCharacterPresentation(
     screenOccupancy: measured(screen.occupancy, 'viewport_fraction'),
     posture: unavailable('Posture is not exposed by the generic Object3D adapter.'),
     orientation: measured(euler),
-    visible: measured(root.visible && screen.intersectsViewport),
+    visible: measured(hierarchyVisible(root) && screen.intersectsViewport),
     regions: [],
   };
 }
@@ -160,6 +169,6 @@ export function captureWorldLandmark(
     worldTransform: measured(worldTransform(object)),
     worldBounds: measured(bounds, worldUnit),
     screenBounds: measured(screen.bounds),
-    visible: measured(object.visible && screen.intersectsViewport),
+    visible: measured(hierarchyVisible(object) && screen.intersectsViewport),
   };
 }
