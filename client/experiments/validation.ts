@@ -1,9 +1,10 @@
 import type {
   CaptureProfile, ExperimentManifest, GrowthOutcome, GrowthRequestRecord,
-  NormalizedRect, SweetSpotRecipe,
+  SweetSpotRecipe,
 } from './contracts.js';
 
 export interface ValidationIssue { path: string; message: string }
+export interface NormalizedRect { x: number; y: number; width: number; height: number }
 export type ValidationResult =
   | { valid: true; issues: [] }
   | { valid: false; issues: ValidationIssue[] };

@@ -320,3 +320,22 @@ NOW: $GB original monolithic Godot 4.6.3 C# Player.cs pasted/read in full; autho
 [MSG 10/10 - INGEST COMPLETE. SURFACE FLAGS FIRST.]
 NOW: Code observations (not design verdicts): G repeats per frame; R resets delayed timer per frame; initial delayed amount range reversed; duplicate/unused paths; competing scale assignments. $GB C# remains $B3-owned.
 FLAGS: [CHECK] Audit $T implementation/interfaces/assets/gaps; $ASCII doesn't prove features exist. [MISSING] Equations, fuel-consumption timing, unused potential persistence, $INT regulation/NPC influence math, trigger priority, scale bands, $WP schema, $CA API, numeric thresholds. [CONFLICT] Minigame-only growth superseded: exploration also accumulates resources; rest/environment/read/minigame can trigger. Immediate growth on ordinary consumable superseded by deferred fuel conversion. $PB remains separate, not replaced by $GB. [CHECK] $GB/$CA/$VFX boundary is proposed, not implemented/approved. Next: dependency map, $T audit, detailed growth spec; no implementation until authorized.
+
+Illustrative presentation telemetry
+Character viewport occupancy
+68%
+
+Visible body coverage
+91%
+
+Landmarks visible
+4
+
+Frame clipping
+12%
+
+
+Example values for illustrating the record structure, not actual measurements from 13163R.
+
+Idea - growth is just time growing, longerest grow time >> colossal growth event >> multiple grow events grow clock starts again
+players build grow time rather than points, grow clock starts with rest or other growth event trigger

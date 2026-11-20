@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type {
-  CaptureProfile, ExperimentManifest, ExperimentRecord, PresentationSampleRecord,
+  CaptureProfile, ExperimentManifest, ExperimentRecordBase, PresentationSampleRecord,
 } from './contracts.js';
 import { ExperimentCoordinator } from './coordinator.js';
 import type { ExperimentStorage } from './recorder.js';
@@ -21,9 +21,9 @@ const manifest: ExperimentManifest = {
 };
 
 class MemoryStorage implements ExperimentStorage {
-  records: ExperimentRecord[] = [];
+  records: ExperimentRecordBase[] = [];
   async createManifest(): Promise<void> {}
-  async appendRecords(_id: string, _stream: string, records: readonly ExperimentRecord[]): Promise<void> {
+  async appendRecords(_id: string, _stream: string, records: readonly ExperimentRecordBase[]): Promise<void> {
     this.records.push(...records);
   }
 }
