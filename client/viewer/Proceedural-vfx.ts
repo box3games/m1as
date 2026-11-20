@@ -750,12 +750,14 @@ export class ProceduralVfxCanvas {
             bendEndProgress: 0.82,
             bendStartDistance: 0.32,
             bendEndDistance: 0.92,
-            pathKeyframes: [
-                { distance: 0, direction: { x: 0, y: 0, z: 1 } },
-                { distance: 0.32, direction: { x: 0, y: 0, z: 1 } },
-                { distance: 0.92, direction: { x: 0, y: -1, z: 0 } },
-                { distance: 1, direction: { x: 0, y: -1, z: 0 } },
-            ],
+            pathKeyframes: this.config.big3rTrajectoryPreset === 'forward-to-north'
+                ? [
+                    { distance: 0, direction: { x: 0, y: 0, z: 1 } },
+                    { distance: 0.32, direction: { x: 0, y: 0, z: 1 } },
+                    { distance: 0.92, direction: { x: 0, y: -1, z: 0 } },
+                    { distance: 1, direction: { x: 0, y: -1, z: 0 } },
+                ]
+                : [{ distance: 0, direction: { x: 0, y: -1, z: 0 } }, { distance: 1, direction: { x: 0, y: -1, z: 0 } }],
         };
     }
 
