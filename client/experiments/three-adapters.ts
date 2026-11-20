@@ -32,8 +32,9 @@ function worldTransform(object: THREE.Object3D): Transform3 {
   };
 }
 
-function worldBounds(object: THREE.Object3D, worldUnit: string): Bounds3 {
+function worldBounds(object: THREE.Object3D, worldUnit: string): Bounds3 | null {
   const bounds = new THREE.Box3().setFromObject(object);
+  if (bounds.isEmpty()) return null;
   return {
     min: { x: bounds.min.x, y: bounds.min.y, z: bounds.min.z },
     max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z },
@@ -104,6 +105,19 @@ export function captureCharacterPresentation(
   worldUnit: string,
 ): CharacterPresentationSample {
   const bounds = worldBounds(root, worldUnit);
+  if (!bounds) {
+    const worldPose = worldTransform(root);
+    return {
+      rootTransform: measured(localTransform(root)),
+      worldBounds: unavailable('The character has no measurable geometry bounds.'),
+      screenBounds: unavailable('Screen bounds require measurable character geometry.'),
+      screenOccupancy: unavailable('Screen occupancy requires measurable character geometry.'),
+      posture: unavailable('Posture is not exposed by the generic Object3D adapter.'),
+      orientation: measured(worldPose.rotation as Euler3),
+      visible: measured(false),
+      regions: [],
+    };
+  }
   camera.updateWorldMatrix(true, false);
   const screen = projectBounds(bounds, camera);
   const worldPose = worldTransform(root);
@@ -129,6 +143,15 @@ export function captureWorldLandmark(
   worldUnit: string,
 ): WorldLandmarkSample {
   const bounds = worldBounds(object, worldUnit);
+  if (!bounds) {
+    return {
+      landmarkId, kind,
+      worldTransform: measured(worldTransform(object)),
+      worldBounds: unavailable('Landmark has no measurable geometry bounds.'),
+      screenBounds: unavailable('Screen bounds require measurable landmark geometry.'),
+      visible: measured(false),
+    };
+  }
   camera.updateWorldMatrix(true, false);
   const screen = projectBounds(bounds, camera);
   return {
