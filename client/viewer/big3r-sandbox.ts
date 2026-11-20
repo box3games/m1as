@@ -198,6 +198,9 @@ export class Big3rSandboxController {
                 onGrowthQueued: (simulationTimeSeconds, frameNumber) => {
                     this.experimentCoordinator?.trigger("growth_queued", simulationTimeSeconds, frameNumber);
                 },
+                onGrowthReleased: (event, simulationTimeSeconds, frameNumber) => {
+                    this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
+                },
                 onStateChange: (state) => {
                     this.currentBoxTier = state.boxTier;
                     this.updateTelemetry(state)
