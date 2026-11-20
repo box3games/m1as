@@ -58,6 +58,8 @@ export class GrowthEventQueue {
   private growthVelocity = 0.0;
 
   public onCascadeBurst?: (burst: CascadeBurstPayload) => void;
+  /** Passive observer; receives a copy and cannot consume or mutate queued events. */
+  public onEventReleased?: (event: GrowthEvent) => void;
 
   constructor(initialScale = 1.0) {
     this.visualScale = initialScale;
@@ -176,6 +178,7 @@ export class GrowthEventQueue {
 
       if (t.timeLeft <= 0.0) {
         this.ready.push(t.event);
+        try { this.onEventReleased?.({ ...t.event }); } catch { /* observers cannot affect queue execution */ }
         this.releasedSinceLog++;
 
         totalPressureInPulse += t.event.growthPressure;
