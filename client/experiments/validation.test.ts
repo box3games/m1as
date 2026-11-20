@@ -42,3 +42,27 @@ test('screen-space rectangles are normalized and contained by the viewport', () 
   assert.deepEqual(validateNormalizedRect({ x: 0.1, y: 0.2, width: 0.5, height: 0.5 }), []);
   assert.ok(validateNormalizedRect({ x: 0.8, y: 0.2, width: 0.5, height: 0.5 }).length > 0);
 });
+
+import { ExperimentTimeline } from './timeline.js';
+
+test('opportunity requests remain distinct from outcome requests', () => {
+  const request: GrowthRequestRecord = {
+    recordId: 'r2', experimentId: 'e1', schemaVersion: 1,
+    time: { simulationTimeSeconds: 1.5, sequenceNumber: 2 },
+    requestId: 'q2', mode: 'opportunity', source: 'gameplay',
+    opportunity: { opportunityType: 'consumable_contact', sourceId: 'prop-1', context: { propRole: 'consumable' } },
+  };
+  assert.deepEqual(validateGrowthRequest(request), []);
+});
+
+test('experiment timeline keeps simulation time authoritative and sequence monotonic', () => {
+  const timeline = new ExperimentTimeline();
+  const first = timeline.next(0.25, 10);
+  const second = timeline.next(0.25, 10);
+  const third = timeline.next(0.5, 11);
+  assert.equal(first.simulationTimeSeconds, 0.25);
+  assert.equal(first.sequenceNumber, 0);
+  assert.equal(second.sequenceNumber, 1);
+  assert.equal(third.sequenceNumber, 2);
+  assert.throws(() => timeline.next(0.4), RangeError);
+});
