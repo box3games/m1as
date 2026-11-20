@@ -1,0 +1,129 @@
+import * as THREE from 'three';
+import type {
+  Bounds2, Bounds3, CameraRuntimeState, CameraViewport, CharacterPresentationSample,
+  Euler3, Measurement, Transform3, Vector3, WorldLandmarkSample,
+} from './contracts.js';
+
+const unavailable = <T>(reason: string): Measurement<T> => ({ status: 'not_captured', reason });
+const measured = <T>(value: T, unit?: string): Measurement<T> => ({
+  status: 'available', value, unit, provenance: 'measured',
+});
+
+function localTransform(object: THREE.Object3D): Transform3 {
+  return {
+    position: { x: object.position.x, y: object.position.y, z: object.position.z },
+    rotation: { x: object.rotation.x, y: object.rotation.y, z: object.rotation.z, unit: 'radians' },
+    scale: { x: object.scale.x, y: object.scale.y, z: object.scale.z },
+    coordinateSpace: 'local',
+  };
+}
+
+function worldBounds(object: THREE.Object3D, worldUnit: string): Bounds3 {
+  const bounds = new THREE.Box3().setFromObject(object);
+  return {
+    min: { x: bounds.min.x, y: bounds.min.y, z: bounds.min.z },
+    max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z },
+    coordinateSpace: 'world',
+    unit: worldUnit,
+  };
+}
+
+function projectBounds(bounds: Bounds3, camera: THREE.Camera): {
+  bounds: Bounds2; occupancy: number; intersectsViewport: boolean;
+} {
+  const corners = [
+    [bounds.min.x, bounds.min.y, bounds.min.z], [bounds.min.x, bounds.min.y, bounds.max.z],
+    [bounds.min.x, bounds.max.y, bounds.min.z], [bounds.min.x, bounds.max.y, bounds.max.z],
+    [bounds.max.x, bounds.min.y, bounds.min.z], [bounds.max.x, bounds.min.y, bounds.max.z],
+    [bounds.max.x, bounds.max.y, bounds.min.z], [bounds.max.x, bounds.max.y, bounds.max.z],
+  ];
+  const projected = corners.map(([x, y, z]) => new THREE.Vector3(x, y, z).project(camera));
+  const minX = Math.min(...projected.map(p => p.x));
+  const maxX = Math.max(...projected.map(p => p.x));
+  const minY = Math.min(...projected.map(p => p.y));
+  const maxY = Math.max(...projected.map(p => p.y));
+  const minZ = Math.min(...projected.map(p => p.z));
+  const maxZ = Math.max(...projected.map(p => p.z));
+  const left = THREE.MathUtils.clamp((minX + 1) * 0.5, 0, 1);
+  const right = THREE.MathUtils.clamp((maxX + 1) * 0.5, 0, 1);
+  const top = THREE.MathUtils.clamp((1 - maxY) * 0.5, 0, 1);
+  const bottom = THREE.MathUtils.clamp((1 - minY) * 0.5, 0, 1);
+  const intersectsViewport = maxX >= -1 && minX <= 1 && maxY >= -1 && minY <= 1 && maxZ >= -1 && minZ <= 1;
+  const width = intersectsViewport ? Math.max(0, right - left) : 0;
+  const height = intersectsViewport ? Math.max(0, bottom - top) : 0;
+  return {
+    bounds: { min: { x: left, y: top }, max: { x: right, y: bottom }, coordinateSpace: 'screen' },
+    occupancy: width * height,
+    intersectsViewport,
+  };
+}
+
+/** Read-only adapter for the current PerspectiveCamera engine contract. */
+export function capturePerspectiveCamera(
+  camera: THREE.PerspectiveCamera,
+  viewport: CameraViewport,
+  cameraMode?: string,
+): Measurement<CameraRuntimeState> {
+  if (viewport.widthPixels <= 0 || viewport.heightPixels <= 0) {
+    return { status: 'failed', reason: 'Camera viewport dimensions must be positive.' };
+  }
+  const transform = localTransform(camera);
+  return measured({
+    projection: {
+      projection: 'perspective',
+      fovRadians: THREE.MathUtils.degToRad(camera.fov),
+      nearPlane: camera.near,
+      farPlane: camera.far,
+    },
+    transform,
+    viewport: { ...viewport, aspectRatio: camera.aspect },
+    cameraMode,
+  });
+}
+
+/** Captures baseline character presentation metrics without changing scene transforms. */
+export function captureCharacterPresentation(
+  root: THREE.Object3D,
+  camera: THREE.Camera,
+  worldUnit: string,
+): CharacterPresentationSample {
+  const bounds = worldBounds(root, worldUnit);
+  camera.updateWorldMatrix(true, false);
+  const screen = projectBounds(bounds, camera);
+  const rotation = root.rotation;
+  const euler: Euler3 = { x: rotation.x, y: rotation.y, z: rotation.z, unit: 'radians' };
+  const visible = root.visible && screen.intersectsViewport;
+  const screenBounds = measured(screen.bounds);
+  const screenOccupancy = measured(screen.occupancy, 'viewport_fraction');
+  return {
+    rootTransform: measured(localTransform(root)),
+    worldBounds: measured(bounds, worldUnit),
+    screenBounds,
+    screenOccupancy,
+    posture: unavailable('Posture is not exposed by the generic Object3D adapter.'),
+    orientation: measured(euler),
+    visible: measured(visible),
+    regions: [],
+  };
+}
+
+/** Captures a registered environment landmark using the same world/screen convention. */
+export function captureWorldLandmark(
+  landmarkId: string,
+  kind: string,
+  object: THREE.Object3D,
+  camera: THREE.Camera,
+  worldUnit: string,
+): WorldLandmarkSample {
+  const bounds = worldBounds(object, worldUnit);
+  camera.updateWorldMatrix(true, false);
+  const screen = projectBounds(bounds, camera);
+  return {
+    landmarkId,
+    kind,
+    worldTransform: measured(localTransform(object)),
+    worldBounds: measured(bounds, worldUnit),
+    screenBounds: measured(screen.bounds),
+    visible: measured(object.visible && screen.intersectsViewport),
+  };
+}
