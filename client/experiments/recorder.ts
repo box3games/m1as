@@ -33,6 +33,7 @@ export class ExperimentRecorder {
   private starting = false;
   private stopped = false;
   private writeChain: Promise<void> = Promise.resolve();
+  private readonly captureErrors: Array<{ stream: string; error: unknown }> = [];
 
   constructor(options: ExperimentRecorderOptions) {
     const result = validateExperimentManifest(options.manifest);
@@ -45,6 +46,12 @@ export class ExperimentRecorder {
   }
   public get experimentId(): ExperimentId { return this.manifest.experimentId; }
   public get isRecording(): boolean { return this.started && !this.stopped; }
+  public get errors(): ReadonlyArray<{ stream: string; error: unknown }> { return this.captureErrors; }
+
+  private reportCaptureError(error: unknown, stream: string): void {
+    this.captureErrors.push({ stream, error });
+    try { this.onCaptureError?.(error, stream); } catch { /* observers cannot interrupt simulation */ }
+  }
 
   public async start(): Promise<void> {
     if (this.started || this.starting) throw new Error('Experiment recorder has already been started.');
@@ -58,15 +65,13 @@ export class ExperimentRecorder {
   }
 
   public append(stream: string, record: ExperimentRecord): void {
-    if (!this.isRecording) throw new Error('Experiment recorder is not active.');
-    if (record.experimentId !== this.experimentId) throw new Error('Record belongs to another experiment.');
-    if (record.schemaVersion !== EXPERIMENT_SCHEMA_VERSION) throw new Error('Record schema version does not match recorder.');
+    if (!this.isRecording) { this.reportCaptureError(new Error('Recorder is not active.'), stream); return; }
+    if (record.experimentId !== this.experimentId) { this.reportCaptureError(new Error('Record belongs to another experiment.'), stream); return; }
+    if (record.schemaVersion !== EXPERIMENT_SCHEMA_VERSION) { this.reportCaptureError(new Error('Record schema version does not match recorder.'), stream); return; }
     // The promise chain preserves emission order and isolates storage failures from simulation callbacks.
     this.writeChain = this.writeChain.then(() =>
       this.storage.appendRecords(this.experimentId, stream, [record])
-    ).catch(error => {
-      try { this.onCaptureError?.(error, stream); } catch { /* observers cannot interrupt simulation */ }
-    });
+    ).catch(error => { this.reportCaptureError(error, stream); });
   }
 
   public async flush(): Promise<void> { await this.writeChain; }
