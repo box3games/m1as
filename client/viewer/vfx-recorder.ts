@@ -949,6 +949,7 @@ export class VfxRecorderController {
                         preset: 'big3r-tube-ceiling',
                         angle: big3rAngle,
                         growthDirection: (this.big3rDirectionSelect?.value || 'north') as Big3rGrowthDirection,
+                        trajectoryPreset: (this.big3rTrajectorySelect?.value || 'legacy-cardinal') as Big3rTrajectoryPreset,
                         anchor: this.advancedProcedural.getBig3rAnchorState(),
                         framing: big3rFramingMode,
                         camera: this.advancedProcedural.getBig3rCameraState(),
