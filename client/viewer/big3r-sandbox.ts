@@ -268,6 +268,7 @@ export class Big3rSandboxController {
 
         start.addEventListener("click", async () => {
             if (this.experimentCoordinator?.isRecording) return;
+            this.experimentStorage?.dispose();
             const profileName = profileSelect.value as keyof typeof DEFAULT_CAPTURE_PROFILES;
             const profile = { ...DEFAULT_CAPTURE_PROFILES[profileName] };
             const experimentId = `13163r-${Date.now()}`;
