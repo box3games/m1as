@@ -65,6 +65,7 @@ export class ExperimentCoordinator {
       throw new RangeError('Coordinator simulation time must be finite and monotonic.');
     }
     this.lastSimulationTime = simulationTimeSeconds;
+    if (this.scheduler.hasSampleAt(simulationTimeSeconds)) return;
     if (!this.scheduler.shouldSample(simulationTimeSeconds, frameNumber)) return;
     this.capture(simulationTimeSeconds, frameNumber);
   }
