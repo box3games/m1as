@@ -292,7 +292,8 @@ body {
     border-radius: 6px;
 }
 
-.procedural-backdrop-video {
+.procedural-backdrop-video,
+.procedural-backdrop-image {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -302,7 +303,8 @@ body {
     display: none;
 }
 
-.procedural-backdrop-video[src] {
+.procedural-backdrop-video[src],
+.procedural-backdrop-image[src] {
     display: block;
 }
 
