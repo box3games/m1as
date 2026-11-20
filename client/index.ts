@@ -29,3 +29,25 @@ export type {
   IFaceLayerEngine,
   FaceLayerEngineFactory,
 } from './viewer/types.js';
+
+export type * from './experiments/contracts.js';
+export { ExperimentRecorder, type ExperimentRecord, type ExperimentStorage, type ExperimentClock, type ExperimentRecorderOptions } from './experiments/recorder.js';
+export { ExperimentTimeline } from './experiments/timeline.js';
+export { DEFAULT_CAPTURE_PROFILES } from './experiments/capture-profiles.js';
+export {
+  validateNormalizedRect,
+  validateGrowthOutcome,
+  validateGrowthRequest,
+  validateCaptureProfile,
+  validateExperimentManifest,
+  validateSweetSpotRecipe,
+  type ValidationIssue,
+  type ValidationResult,
+} from './experiments/validation.js';
+export {
+  observeLegacyQueueRelease,
+  createSyntheticHarnessRequest,
+  legacyReleaseToExecutionObservation,
+  type LegacyQueueReleaseObservation,
+} from './experiments/legacy-adapters.js';
+export { capturePerspectiveCamera, captureCharacterPresentation, captureWorldLandmark } from './experiments/three-adapters.js';
