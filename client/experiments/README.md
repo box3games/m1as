@@ -62,3 +62,13 @@ orthographic runtime support is not implied by the broader schema.
 The generic projection is a bounding-box estimate, not a pixel mask. Treat it
 as a repeatable geometric indicator and pair it with tester annotations when
 evaluating perceptual sweet spots.
+
+## Persistence and scheduling status
+
+ExperimentStorage is currently an interface; no concrete JSONL/file exporter,
+media packager, replay engine, or comparison runner is included in this
+foundation pass. Capture profiles declare sampling intent, but a scheduler
+with pre/post-event buffering and an experiment coordinator are not yet wired
+to the live simulation. The recorder serializes append operations and exposes
+capture/storage errors so callers can monitor failures without interrupting
+the simulation.
