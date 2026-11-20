@@ -99,3 +99,23 @@ test('capture-provider exceptions are isolated and reported', async () => {
   assert.equal(coordinator.captureErrors.length, 1);
   assert.match(String(coordinator.captureErrors[0].error), /adapter failure/);
 });
+
+test('overlapping event windows extend capture and do not duplicate prior samples', async () => {
+  const storage = new MemoryStorage();
+  const coordinator = new ExperimentCoordinator({
+    manifest, storage, capturePresentation: samplePayload,
+  });
+  await coordinator.start();
+  coordinator.tick(0, 0);
+  coordinator.tick(0.5, 30);
+  coordinator.trigger('growth_started', 0.5, 30);
+  coordinator.tick(0.6, 36);
+  coordinator.trigger('growth_started', 0.8, 48);
+  coordinator.tick(0.9, 54);
+  await coordinator.stop();
+
+  const samples = storage.records.filter((record): record is PresentationSampleRecord =>
+    'sampleId' in record);
+  assert.deepEqual(samples.map(sample => sample.time.simulationTimeSeconds), [0, 0.5, 0.6, 0.8, 0.9]);
+  assert.equal(new Set(samples.map(sample => sample.sampleId)).size, samples.length);
+});
