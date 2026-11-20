@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type {
   Bounds2, Bounds3, CameraRuntimeState, CameraViewport, CharacterPresentationSample,
-  Euler3, Measurement, Transform3, Vector3, WorldLandmarkSample,
+  Euler3, Measurement, Transform3, WorldLandmarkSample,
 } from './contracts.js';
 
 const unavailable = <T>(reason: string): Measurement<T> => ({ status: 'not_captured', reason });
@@ -15,6 +15,20 @@ function localTransform(object: THREE.Object3D): Transform3 {
     rotation: { x: object.rotation.x, y: object.rotation.y, z: object.rotation.z, unit: 'radians' },
     scale: { x: object.scale.x, y: object.scale.y, z: object.scale.z },
     coordinateSpace: 'local',
+  };
+}
+
+function worldTransform(object: THREE.Object3D): Transform3 {
+  object.updateWorldMatrix(true, false);
+  const position = object.getWorldPosition(new THREE.Vector3());
+  const quaternion = object.getWorldQuaternion(new THREE.Quaternion());
+  const scale = object.getWorldScale(new THREE.Vector3());
+  const rotation = new THREE.Euler().setFromQuaternion(quaternion, 'XYZ');
+  return {
+    position: { x: position.x, y: position.y, z: position.z },
+    rotation: { x: rotation.x, y: rotation.y, z: rotation.z, unit: 'radians' },
+    scale: { x: scale.x, y: scale.y, z: scale.z },
+    coordinateSpace: 'world',
   };
 }
 
@@ -62,12 +76,11 @@ function projectBounds(bounds: Bounds3, camera: THREE.Camera): {
 export function capturePerspectiveCamera(
   camera: THREE.PerspectiveCamera,
   viewport: CameraViewport,
-  cameraMode?: string,
+  options: { target?: THREE.Vector3; cameraMode?: string } = {},
 ): Measurement<CameraRuntimeState> {
   if (viewport.widthPixels <= 0 || viewport.heightPixels <= 0) {
     return { status: 'failed', reason: 'Camera viewport dimensions must be positive.' };
   }
-  const transform = localTransform(camera);
   return measured({
     projection: {
       projection: 'perspective',
@@ -75,9 +88,12 @@ export function capturePerspectiveCamera(
       nearPlane: camera.near,
       farPlane: camera.far,
     },
-    transform,
+    transform: worldTransform(camera),
+    target: options.target ? {
+      x: options.target.x, y: options.target.y, z: options.target.z,
+    } : undefined,
     viewport: { ...viewport, aspectRatio: camera.aspect },
-    cameraMode,
+    cameraMode: options.cameraMode,
   });
 }
 
@@ -90,19 +106,16 @@ export function captureCharacterPresentation(
   const bounds = worldBounds(root, worldUnit);
   camera.updateWorldMatrix(true, false);
   const screen = projectBounds(bounds, camera);
-  const rotation = root.rotation;
-  const euler: Euler3 = { x: rotation.x, y: rotation.y, z: rotation.z, unit: 'radians' };
-  const visible = root.visible && screen.intersectsViewport;
-  const screenBounds = measured(screen.bounds);
-  const screenOccupancy = measured(screen.occupancy, 'viewport_fraction');
+  const worldPose = worldTransform(root);
+  const euler = worldPose.rotation as Euler3;
   return {
     rootTransform: measured(localTransform(root)),
     worldBounds: measured(bounds, worldUnit),
-    screenBounds,
-    screenOccupancy,
+    screenBounds: measured(screen.bounds),
+    screenOccupancy: measured(screen.occupancy, 'viewport_fraction'),
     posture: unavailable('Posture is not exposed by the generic Object3D adapter.'),
     orientation: measured(euler),
-    visible: measured(visible),
+    visible: measured(root.visible && screen.intersectsViewport),
     regions: [],
   };
 }
@@ -121,7 +134,7 @@ export function captureWorldLandmark(
   return {
     landmarkId,
     kind,
-    worldTransform: measured(localTransform(object)),
+    worldTransform: measured(worldTransform(object)),
     worldBounds: measured(bounds, worldUnit),
     screenBounds: measured(screen.bounds),
     visible: measured(object.visible && screen.intersectsViewport),
