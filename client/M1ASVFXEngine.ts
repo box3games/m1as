@@ -54,6 +54,9 @@ export interface M1ASVFXEngineOptions {
     onStateChange?: (state: VFXEngineTelemetry) => void;
     onRoomCollapse?: (newBoxTier: number, newCeiling: number) => void;
     onPropsChanged?: (props: SpatialPropEntry[]) => void;
+    /** Passive experiment observers; callback failures never affect simulation. */
+    onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
+    onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
 }
 
 export class M1ASVFXEngine {
@@ -66,6 +69,10 @@ export class M1ASVFXEngine {
     private camera!: THREE.PerspectiveCamera;
     private controls!: OrbitControls;
     private clock = new THREE.Clock();
+    private simulationTimeSeconds = 0;
+    private simulationFrameNumber = 0;
+    private onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
+    private onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
     private frameId: number | null = null;
 
     // Core Growth Queue (C# Port)
@@ -138,6 +145,8 @@ export class M1ASVFXEngine {
         this.onStateChange = options.onStateChange;
         this.onRoomCollapse = options.onRoomCollapse;
         this.onPropsChanged = options.onPropsChanged;
+        this.onFrame = options.onFrame;
+        this.onGrowthQueued = options.onGrowthQueued;
 
         const startScale = options.baseScale ?? 1.0;
         this.projectedTargetScale = startScale;
@@ -297,6 +306,8 @@ export class M1ASVFXEngine {
     public getControls(): OrbitControls { return this.controls; }
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
     public getCurrentVisualScale(): number { return this.growthQueue.currentVisualScale; }
+    /** Elapsed simulation time accumulated from this engine's existing frame dt. */
+    public getSimulationTimeSeconds(): number { return this.simulationTimeSeconds; }
 
 
     public setTransparentBackground(transparent: boolean): void {
@@ -375,6 +386,7 @@ export class M1ASVFXEngine {
 
         const delay = this.mode === 'chaos-delayed' ? 1.8 + Math.random() * 1.2 : customDelay;
         this.growthQueue.push(oldScale, newScale, stimulus, delay);
+        try { this.onGrowthQueued?.(this.simulationTimeSeconds, this.simulationFrameNumber); } catch { /* observers cannot affect growth */ }
         this.emitTelemetry();
     }
 
@@ -934,6 +946,8 @@ export class M1ASVFXEngine {
       private animate(): void {
     this.frameId = requestAnimationFrame(this.animate);
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.simulationTimeSeconds += dt;
+    this.simulationFrameNumber += 1;
 
     if (this.isHolding) {
       this.holdDuration += dt;
@@ -984,6 +998,7 @@ export class M1ASVFXEngine {
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
     this.emitTelemetry();
+    try { this.onFrame?.(this.simulationTimeSeconds, this.simulationFrameNumber); } catch { /* observers cannot interrupt rendering */ }
   }
 
     public destroy(): void {
