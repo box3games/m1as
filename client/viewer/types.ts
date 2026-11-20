@@ -1,3 +1,4 @@
+import type { GrowthEvent } from "../GrowthEventQueue.js";
 import type { FaceAssetType } from "../M1ASFaceSurfaceResolver.js";
 
 export interface AssetCapabilities {
@@ -61,6 +62,7 @@ export interface VfxEngineOptions {
     onRoomCollapse: (newBoxTier: number, newCeiling: number) => void;
     onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
     onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
+    onGrowthReleased?: (event: GrowthEvent, simulationTimeSeconds: number, frameNumber: number) => void;
 }
 
 export type FaceSlotKey = "bg" | number;
