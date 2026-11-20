@@ -23,21 +23,20 @@
 
         <div class="rec-workspace">
             <div class="procedural-preview-stage is-hidden" id="proceduralPreviewStage">
-                <video id="recBackdropVideo" class="procedural-backdrop-video" muted loop playsinline></video>
+                <video id="recBackdropVideo" class="procedural-backdrop-video is-hidden" muted loop playsinline></video>
+                <img id="recBackdropImage" class="procedural-backdrop-image is-hidden" alt="M1AS streamed backdrop" />
                 <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
             </div>
             <div class="vfx-control-row vfx-backdrop-controls">
                 <input id="recBackdropUrl" class="playground-input" type="url"
-                    placeholder="Stream URL or M1AS signed WebM / MP4 URL…" />
+                    placeholder="Paste M1AS signed image, WebM, or MP4 stream URL…" />
                 <label class="control-inline-label">Recording Output
                     <select id="recBig3rOutputMode" class="m1as-select m1as-select--lg">
                         <option value="foreground" selected>Transparent foreground</option>
                         <option value="composite">Flattened backdrop + foreground</option>
                     </select>
                 </label>
-                <button id="recBackdropLoad" type="button" class="playground-btn btn--sky">Load URL / M1AS Signed Backdrop</button>
-                <label class="playground-btn btn--slate" for="recBackdropFile">Choose Video Backdrop</label>
-                <input id="recBackdropFile" type="file" accept="video/webm,video/mp4,video/*" class="is-hidden" />
+                <button id="recBackdropLoad" type="button" class="playground-btn btn--sky">Load M1AS Stream</button>
                 <button id="recBackdropClear" type="button" class="playground-btn btn--danger">Clear Backdrop</button>
             </div>
 
