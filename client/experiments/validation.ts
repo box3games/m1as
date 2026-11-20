@@ -1,6 +1,6 @@
 import type {
   CaptureProfile, ExperimentManifest, GrowthOutcome, GrowthRequestRecord,
-  NormalizedRect, SweetSpotRecipe,
+  Bounds2, SweetSpotRecipe,
 } from './contracts.js';
 
 export interface ValidationIssue { path: string; message: string }
@@ -11,7 +11,7 @@ export type ValidationResult =
 const finite = (value: number): boolean => Number.isFinite(value);
 const nonEmpty = (value: string): boolean => value.trim().length > 0;
 
-export function validateNormalizedRect(rect: NormalizedRect): ValidationIssue[] {
+export function validateNormalizedRect(rect: { x: number; y: number; width: number; height: number }): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   for (const key of ['x', 'y', 'width', 'height'] as const) {
     if (!finite(rect[key])) issues.push({ path: key, message: 'Must be finite.' });
