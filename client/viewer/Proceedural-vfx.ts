@@ -1,9 +1,16 @@
 
 export type Big3rGrowthDirection = 'north' | 'south' | 'east' | 'west';
 export type Big3rTrajectoryPreset = 'legacy-cardinal' | 'forward-to-north';
+export type Big3rMorphologyStyle = 'elongated' | 'compressed-crown';
+
+const BIG3R_MORPHOLOGY_COMPRESSION: Record<Big3rMorphologyStyle, number> = {
+    elongated: 0.12,
+    'compressed-crown': 0.28,
+};
 
 export interface Big3rTrajectorySnapshot {
     preset: Big3rTrajectoryPreset;
+    morphologyStyle: Big3rMorphologyStyle;
     bendStartProgress: number;
     bendEndProgress: number;
     bendStartDistance: number;
@@ -33,6 +40,7 @@ export interface Big3rCameraSnapshot {
     camera: Big3rCameraState;
     growthDirection: Big3rGrowthDirection;
     trajectoryPreset?: Big3rTrajectoryPreset;
+    morphologyStyle?: Big3rMorphologyStyle;
     anchor: Big3rAnchorState;
 }
 
@@ -55,6 +63,7 @@ export interface ProceduralVfxConfig {
     big3rAngle: Big3rCameraAngle;
     big3rGrowthDirection: Big3rGrowthDirection;
     big3rTrajectoryPreset: Big3rTrajectoryPreset;
+    big3rMorphologyStyle: Big3rMorphologyStyle;
     big3rFramingMode: Big3rFramingMode;
 }
 
@@ -388,6 +397,7 @@ function renderBig3rSurge(
     cameraState: Big3rCameraState,
     growthDirection: Big3rGrowthDirection,
     trajectoryPreset: Big3rTrajectoryPreset,
+    morphologyStyle: Big3rMorphologyStyle,
     anchorState: Big3rAnchorState,
 ): void {
     const preset = big3rCameraPresets[angleKey] ?? big3rCameraPresets.ceiling;
@@ -494,9 +504,10 @@ function renderBig3rSurge(
                 profileR *= 1 + latePhase * 0.16 * big3rSmoothstep(0.76, 0.92, v);
             }
 
+            const terminalCompression = BIG3R_MORPHOLOGY_COMPRESSION[morphologyStyle];
             const axialV = v <= 0.84
                 ? v
-                : 0.84 + (v - 0.84) * (1 - latePhase * 0.12);
+                : 0.84 + (v - 0.84) * (1 - latePhase * terminalCompression);
             let centerY = 0;
             let centerZ = 0;
             const steps = Math.max(1, Math.ceil(axialV * 32));
@@ -734,6 +745,7 @@ export class ProceduralVfxCanvas {
         big3rAngle: 'ceiling',
         big3rGrowthDirection: 'north',
         big3rTrajectoryPreset: 'legacy-cardinal',
+        big3rMorphologyStyle: 'elongated',
         big3rFramingMode: 'hybrid',
     };
 
@@ -775,6 +787,7 @@ export class ProceduralVfxCanvas {
     public getBig3rTrajectorySnapshot(): Big3rTrajectorySnapshot {
         return {
             preset: this.config.big3rTrajectoryPreset,
+            morphologyStyle: this.config.big3rMorphologyStyle,
             bendStartProgress: 21 / 36,
             bendEndProgress: 33 / 36,
             bendStartDistance: 0,
@@ -915,6 +928,7 @@ export class ProceduralVfxCanvas {
                     this.big3rCameraState,
                     this.config.big3rGrowthDirection,
                     this.config.big3rTrajectoryPreset,
+                    this.config.big3rMorphologyStyle,
                     this.big3rAnchorState,
                 );
                 break;
