@@ -54,3 +54,5 @@ export { capturePerspectiveCamera, captureCharacterPresentation, captureWorldLan
 
 export { CaptureScheduler, type CaptureTrigger } from './experiments/capture-scheduler.js';
 export { ExperimentCoordinator, type ExperimentCoordinatorOptions, type PresentationSamplePayload } from './experiments/coordinator.js';
+
+export { BrowserDownloadExperimentStorage } from './experiments/browser-download-storage.js';
