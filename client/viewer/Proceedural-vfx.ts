@@ -32,6 +32,7 @@ export interface Big3rCameraSnapshot {
     framing: Big3rFramingMode;
     camera: Big3rCameraState;
     growthDirection: Big3rGrowthDirection;
+    trajectoryPreset?: Big3rTrajectoryPreset;
     anchor: Big3rAnchorState;
 }
 
