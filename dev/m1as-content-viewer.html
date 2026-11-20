@@ -21,13 +21,14 @@
             generate a standalone transparent 2D VFX overlay.
         </p>
 
-                            <div class="rec-workspace">
+        <div class="rec-workspace">
             <div class="procedural-preview-stage is-hidden" id="proceduralPreviewStage">
                 <video id="recBackdropVideo" class="procedural-backdrop-video" muted loop playsinline></video>
                 <canvas id="proceduralVfxCanvas" width="512" height="512" class="is-hidden"></canvas>
             </div>
             <div class="vfx-control-row vfx-backdrop-controls">
-                <input id="recBackdropUrl" class="playground-input" type="url" placeholder="Optional streamed backdrop WebM / MP4 URL…" />
+                <input id="recBackdropUrl" class="playground-input" type="url"
+                    placeholder="Optional streamed backdrop WebM / MP4 URL…" />
                 <label class="control-inline-label">Recording Output
                     <select id="recBig3rOutputMode" class="m1as-select m1as-select--lg">
                         <option value="foreground" selected>Transparent foreground</option>
@@ -45,7 +46,8 @@
                 <video id="recPreviewVideo" class="rec-preview-video" controls loop muted playsinline></video>
                 <div class="rec-preview-actions">
                     <button id="downloadRecBtn" class="playground-btn">Download .webm</button>
-                    <button id="downloadRecMetadataBtn" class="playground-btn btn--sky" disabled>Download Recording JSON</button>
+                    <button id="downloadRecMetadataBtn" class="playground-btn btn--sky" disabled>Download Recording
+                        JSON</button>
                     <button id="bindRecClickVfxBtn" class="playground-btn btn--purple">⚡ Bind to Active .glb
                         Click</button>
                     <button id="bindRecBig3rVfxBtn" class="playground-btn btn--emerald">🍄 Bind to BIG3R Growth
@@ -108,32 +110,43 @@
                                 <option value="hybrid" selected>Hybrid</option>
                                 <option value="pullback">Pullback</option>
                                 <option value="locked">Locked</option>
-                                </select>
-                            </label>
-                        <span class="m1as-select m1as-select--lg">Drag: Orbit · Shift/right-drag: Pan · Wheel: Zoom</span>
+                            </select>
+                        </label>
+                        <span class="m1as-select m1as-select--lg">Drag: Orbit · Shift/right-drag: Pan · Wheel:
+                            Zoom</span>
                     </section>
                     </br>
- 
-                
+
+
                     <section class="playground-form playground-form--wrap">
-                    <div class="big3r-camera-actions">
-                        <button id="recBig3rResetCamera" type="button" class="playground-btn btn--slate">Reset Camera</button>
-                    </div>
-                    <div class="big3r-camera-motion vfx-control-row">
-                        <button id="recBig3rMotionStart" type="button" class="playground-btn btn--amber">● Record Camera Motion</button>
-                        <button id="recBig3rMotionStop" type="button" class="playground-btn btn--slate" disabled>■ Stop Motion Take</button>
-                        <button id="recBig3rMotionClear" type="button" class="playground-btn btn--danger">Clear Motion</button>
-                        <span class="m1as-select m1as-select--lg">A saved motion take replays on the next 36s recording.</span>
-                    </div>
-                    <div class="big3r-camera-saved vfx-control-row">
-                        <input id="recBig3rCameraName" class="playground-input playground-input--compact" type="text" maxlength="48" placeholder="Camera configuration name" aria-label="Camera configuration name" />
-                        <button id="recBig3rSaveCamera" type="button" class="playground-btn">Save Camera</button>
-                        <select id="recBig3rCameraPreset" class="m1as-select m1as-select--lg" aria-label="Saved camera configurations">
-                            <option value="">Saved camera configurations…</option>
-                        </select>
-                        <button id="recBig3rLoadCamera" type="button" class="playground-btn btn--sky">Restore</button>
-                        <button id="recBig3rDeleteCamera" type="button" class="playground-btn btn--danger">Delete</button>
-                    </div>
+                        <div class="big3r-camera-actions">
+                            <button id="recBig3rResetCamera" type="button" class="playground-btn btn--slate">Reset
+                                Camera</button>
+                        </div>
+                        <div class="big3r-camera-motion vfx-control-row">
+                            <button id="recBig3rMotionStart" type="button" class="playground-btn btn--amber">● Record
+                                Camera Motion</button>
+                            <button id="recBig3rMotionStop" type="button" class="playground-btn btn--slate" disabled>■
+                                Stop Motion Take</button>
+                            <button id="recBig3rMotionClear" type="button" class="playground-btn btn--danger">Clear
+                                Motion</button>
+                            <span class="m1as-select m1as-select--lg">A saved motion take replays on the next 36s
+                                recording.</span>
+                        </div>
+                        <div class="big3r-camera-saved vfx-control-row">
+                            <input id="recBig3rCameraName" class="playground-input playground-input--compact"
+                                type="text" maxlength="48" placeholder="Camera configuration name"
+                                aria-label="Camera configuration name" />
+                            <button id="recBig3rSaveCamera" type="button" class="playground-btn">Save Camera</button>
+                            <select id="recBig3rCameraPreset" class="m1as-select m1as-select--lg"
+                                aria-label="Saved camera configurations">
+                                <option value="">Saved camera configurations…</option>
+                            </select>
+                            <button id="recBig3rLoadCamera" type="button"
+                                class="playground-btn btn--sky">Restore</button>
+                            <button id="recBig3rDeleteCamera" type="button"
+                                class="playground-btn btn--danger">Delete</button>
+                        </div>
                     </section>
                 </div>
 
