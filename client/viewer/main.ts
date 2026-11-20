@@ -44,7 +44,9 @@ new VfxRecorderController({
     bindBig3rVfxWebm: (blobUrl) => big3rSandbox.setGrowthVfxOverlay(blobUrl),
     getCcsaCanvas: () => ccsaStage.getCanvas(),
     setCcsaTransparentBg: (enabled) => ccsaStage.setTransparentBackground(enabled),
-    bindCcsaClickVfxWebm: (blobUrl) => ccsaStage.setClickVfx(blobUrl)
+    bindCcsaClickVfxWebm: (blobUrl) => ccsaStage.setClickVfx(blobUrl),
+    getM1asSignedAssetUrl: (assetId) => api.getSignedAssetUrl(assetId),
+    getM1asApiBaseUrl: () => api.getBaseUrl()
 });
 
 async function signAndDisplayUrl(asset: M1asAsset): Promise<string> {
