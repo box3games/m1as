@@ -51,3 +51,6 @@ export {
   type LegacyQueueReleaseObservation,
 } from './experiments/legacy-adapters.js';
 export { capturePerspectiveCamera, captureCharacterPresentation, captureWorldLandmark } from './experiments/three-adapters.js';
+
+export { CaptureScheduler, type CaptureTrigger } from './experiments/capture-scheduler.js';
+export { ExperimentCoordinator, type ExperimentCoordinatorOptions, type PresentationSamplePayload } from './experiments/coordinator.js';
