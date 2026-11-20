@@ -1,5 +1,16 @@
 
 export type Big3rGrowthDirection = 'north' | 'south' | 'east' | 'west';
+export type Big3rTrajectoryPreset = 'legacy-cardinal' | 'forward-to-north';
+
+export interface Big3rTrajectorySnapshot {
+    preset: Big3rTrajectoryPreset;
+    bendStartProgress: number;
+    bendEndProgress: number;
+    bendStartDistance: number;
+    bendEndDistance: number;
+    /** Path direction keyframes in normalized tube-distance space. */
+    pathKeyframes: Array<{ distance: number; direction: Big3rWorldPoint }>;
+}
 export type Big3rCameraAngle = 'ceiling' | 'left45' | 'right45' | 'topDown';
 export type Big3rFramingMode = 'hybrid' | 'pullback' | 'locked';
 export interface Big3rAnchorState {
@@ -42,6 +53,7 @@ export interface ProceduralVfxConfig {
     loopDurationSec: number;
     big3rAngle: Big3rCameraAngle;
     big3rGrowthDirection: Big3rGrowthDirection;
+    big3rTrajectoryPreset: Big3rTrajectoryPreset;
     big3rFramingMode: Big3rFramingMode;
 }
 
@@ -374,6 +386,7 @@ function renderBig3rSurge(
     framingMode: Big3rFramingMode,
     cameraState: Big3rCameraState,
     growthDirection: Big3rGrowthDirection,
+    trajectoryPreset: Big3rTrajectoryPreset,
     anchorState: Big3rAnchorState,
 ): void {
     const preset = big3rCameraPresets[angleKey] ?? big3rCameraPresets.ceiling;
@@ -454,11 +467,32 @@ function renderBig3rSurge(
             );
         }
 
-        const wp = orientBig3rPoint({
-            x: vt.cosT * profileR,
-            y: -v * totalHeight,
-            z: vt.sinT * profileR,
-        }, growthDirection);
+        let wp: Big3rWorldPoint;
+        if (trajectoryPreset === 'forward-to-north') {
+            const bendProgress = big3rSmoothstep(0.52, 0.82, p);
+            const thetaAt = (distance: number) => bendProgress * big3rSmoothstep(0.32, 0.92, distance) * (Math.PI * 0.5);
+            let centerY = 0;
+            let centerZ = 0;
+            const steps = Math.max(1, Math.ceil(v * 32));
+            for (let step = 0; step < steps; step++) {
+                const d = (step + 0.5) * v / steps;
+                const theta = thetaAt(d);
+                centerY -= Math.sin(theta) * totalHeight * v / steps;
+                centerZ += Math.cos(theta) * totalHeight * v / steps;
+            }
+            const theta = thetaAt(v);
+            wp = {
+                x: vt.cosT * profileR,
+                y: centerY + vt.sinT * Math.cos(theta) * profileR,
+                z: centerZ + vt.sinT * Math.sin(theta) * profileR,
+            };
+        } else {
+            wp = orientBig3rPoint({
+                x: vt.cosT * profileR,
+                y: -v * totalHeight,
+                z: vt.sinT * profileR,
+            }, growthDirection);
+        }
 
         worldVerts.push(wp);
         projVerts.push(projectBig3rPoint(wp, cam, anchorX, anchorY, fov));
@@ -582,11 +616,12 @@ function renderBig3rSurge(
         const pProj: Big3rProjectedPoint[] = [];
 
         for (const pv of meshes.pouch.verts) {
-            const wp = orientBig3rPoint({
-                x: pc.cx + pv.nx * pc.rx,
-                y: pc.cy + pv.ny * pc.ry,
-                z: pc.cz + pv.nz * pc.rz,
-            }, growthDirection);
+            const pouchPoint = trajectoryPreset === 'forward-to-north'
+                ? { x: pc.cx + pv.nx * pc.rx, y: pc.cz + pv.nz * pc.rz, z: pc.cy + pv.ny * pc.ry }
+                : { x: pc.cx + pv.nx * pc.rx, y: pc.cy + pv.ny * pc.ry, z: pc.cz + pv.nz * pc.rz };
+            const wp = trajectoryPreset === 'forward-to-north'
+                ? pouchPoint
+                : orientBig3rPoint(pouchPoint, growthDirection);
 
             pWorld.push(wp);
             pProj.push(projectBig3rPoint(wp, cam, anchorX, anchorY, fov));
@@ -668,6 +703,7 @@ export class ProceduralVfxCanvas {
         loopDurationSec: 2.0,
         big3rAngle: 'ceiling',
         big3rGrowthDirection: 'north',
+        big3rTrajectoryPreset: 'legacy-cardinal',
         big3rFramingMode: 'hybrid',
     };
 
@@ -703,6 +739,22 @@ export class ProceduralVfxCanvas {
             distanceOffset: clamp(next.distanceOffset, -220, 500, 0),
             panX: clamp(next.panX, -256, 256, 0),
             panY: clamp(next.panY, -256, 256, 0),
+        };
+    }
+
+    public getBig3rTrajectorySnapshot(): Big3rTrajectorySnapshot {
+        return {
+            preset: this.config.big3rTrajectoryPreset,
+            bendStartProgress: 0.52,
+            bendEndProgress: 0.82,
+            bendStartDistance: 0.32,
+            bendEndDistance: 0.92,
+            pathKeyframes: [
+                { distance: 0, direction: { x: 0, y: 0, z: 1 } },
+                { distance: 0.32, direction: { x: 0, y: 0, z: 1 } },
+                { distance: 0.92, direction: { x: 0, y: -1, z: 0 } },
+                { distance: 1, direction: { x: 0, y: -1, z: 0 } },
+            ],
         };
     }
 
@@ -832,6 +884,7 @@ export class ProceduralVfxCanvas {
                     this.config.big3rFramingMode,
                     this.big3rCameraState,
                     this.config.big3rGrowthDirection,
+                    this.config.big3rTrajectoryPreset,
                     this.big3rAnchorState,
                 );
                 break;
