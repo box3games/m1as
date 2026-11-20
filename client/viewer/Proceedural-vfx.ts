@@ -472,6 +472,7 @@ function renderBig3rSurge(
             );
         }
 
+        let wp: Big3rWorldPoint;
         if (forwardNorth) {
             // The late phase is one continuous, root-pivoted shaft. The original
             // distributed bend is retained through 21s, then blended into a
