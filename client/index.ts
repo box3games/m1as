@@ -74,3 +74,5 @@ export { DiagnosticLogger, createBrowserDiagnosticLogger, type DiagnosticRecord,
 export { IndexedDbExperimentStorage } from "./experiments/indexeddb-storage.js";
 export { MultiTargetExperimentStorage } from "./experiments/multi-target-storage.js";
 export { type GrowthModel, type GrowthModelId, type GrowthModelDescriptor, type GrowthModelCapabilities, type GrowthModelSubject, type GrowthModelContext, type GrowthModelCommand, type GrowthModelResult, type GrowthModelTelemetry } from "./growth/model-contract.js";
+
+export { ThreeObjectScaleGrowthModel, M1ASVFXGrowthModel } from "./growth/model-adapters.js";
