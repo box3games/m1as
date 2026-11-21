@@ -434,7 +434,10 @@ export class M1ASVFXEngine {
         if (this.growthModelMode === 'baseline-scale') {
             const delay = customDelay ?? (this.mode === 'chaos-delayed' ? 1.8 + Math.random() * 1.2 : 0);
             if (delay > 0) this.baselineDelayedEvents.push({ dueAt: this.simulationTimeSeconds + delay, amount, stimulus });
-            else this.beginBaselineGrowth(amount);
+            else {
+                const transition = this.beginBaselineGrowth(amount);
+                if (transition) this.notifyBaselineGrowthReleased(amount, stimulus, transition);
+            }
             try { this.onGrowthQueued?.(this.simulationTimeSeconds, this.simulationFrameNumber); } catch { /* observer isolation */ }
             this.emitTelemetry();
             return;
@@ -1026,19 +1029,27 @@ export class M1ASVFXEngine {
         return { oldScale, newScale: this.baselineTargetScale };
     }
 
+    private notifyBaselineGrowthReleased(
+        amount: number,
+        stimulus: GrowthStimulusType,
+        transition: { oldScale: number; newScale: number },
+    ): void {
+        try {
+            this.onGrowthReleased?.({
+                oldScale: transition.oldScale, newScale: transition.newScale,
+                delta: amount, growthPressure: 0, type: stimulus,
+                entropyImpact: 0, delayWeight: 0,
+            }, this.simulationTimeSeconds, this.simulationFrameNumber);
+        } catch { /* observer isolation */ }
+    }
+
     private advanceBaselineGrowth(dt: number): void {
         this.baselineDelayedEvents.sort((a, b) => a.dueAt - b.dueAt);
         while (this.baselineDelayedEvents.length > 0 && this.simulationTimeSeconds >= this.baselineDelayedEvents[0].dueAt) {
             const event = this.baselineDelayedEvents.shift()!;
             const transition = this.beginBaselineGrowth(event.amount);
             if (!transition) continue;
-            try {
-                this.onGrowthReleased?.({
-                    oldScale: transition.oldScale, newScale: transition.newScale,
-                    delta: event.amount, growthPressure: 0, type: event.stimulus,
-                    entropyImpact: 0, delayWeight: 0
-                } as GrowthEvent, this.simulationTimeSeconds, this.simulationFrameNumber);
-            } catch { /* observer isolation */ }
+            this.notifyBaselineGrowthReleased(event.amount, event.stimulus, transition);
         }
         if (this.baselineDurationSeconds > 0 && this.baselineCurrentScale !== this.baselineTargetScale) {
             this.baselineElapsedSeconds = Math.min(this.baselineDurationSeconds, this.baselineElapsedSeconds + dt);
