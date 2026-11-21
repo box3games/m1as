@@ -69,3 +69,8 @@ export {
   type GrowTimeConsumptionPolicy,
   type GrowTimeConversionMode,
 } from "./growth/grow-time.js";
+
+export { DiagnosticLogger, createBrowserDiagnosticLogger, type DiagnosticRecord, type DiagnosticLevel } from "./experiments/diagnostic-logger.js";
+export { IndexedDbExperimentStorage } from "./experiments/indexeddb-storage.js";
+export { MultiTargetExperimentStorage } from "./experiments/multi-target-storage.js";
+export { type GrowthModel, type GrowthModelId, type GrowthModelDescriptor, type GrowthModelCapabilities, type GrowthModelSubject, type GrowthModelContext, type GrowthModelCommand, type GrowthModelResult, type GrowthModelTelemetry } from "./growth/model-contract.js";
