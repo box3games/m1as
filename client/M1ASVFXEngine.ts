@@ -91,6 +91,10 @@ export class M1ASVFXEngine {
     private baselineElapsedSeconds = 0;
     private baselineDurationSeconds = 0;
     private baselineDelayedEvents: Array<{ dueAt: number; amount: number; stimulus: GrowthStimulusType }> = [];
+    private growFlowRemainingSeconds = 0;
+    private growFlowMultiplier = 1;
+    private growFlowGrowthPerSupplySecond = 0.1;
+    private growFlowStimulus: GrowthStimulusType = GrowthStimulusType.Buff;
 
     // Subject, Rig & AnimationMixer
     private subjectRoot = new THREE.Group();
@@ -386,6 +390,52 @@ export class M1ASVFXEngine {
     /** Elapsed simulation time accumulated from this engine's existing frame dt. */
     public getSimulationTimeSeconds(): number { return this.simulationTimeSeconds; }
 
+    /** Begin or replace a sustained supply feed. Supply is measured in Grow Time seconds. */
+    public startGrowthFlow(
+        supplySeconds: number,
+        flowMultiplier = 1,
+        growthPerSupplySecond = 0.1,
+        stimulus: GrowthStimulusType = GrowthStimulusType.Buff,
+    ): boolean {
+        if (this.growthModelMode !== 'm1as-vfx') return false;
+        if (!Number.isFinite(supplySeconds) || supplySeconds <= 0 ||
+            !Number.isFinite(flowMultiplier) || flowMultiplier <= 0 ||
+            !Number.isFinite(growthPerSupplySecond) || growthPerSupplySecond < 0) return false;
+        this.growFlowRemainingSeconds = supplySeconds;
+        this.growFlowMultiplier = flowMultiplier;
+        this.growFlowGrowthPerSupplySecond = growthPerSupplySecond;
+        this.growFlowStimulus = stimulus;
+        try {
+            this.onDiagnostic?.('info', 'growth-flow', 'Sustained Grow Time supply started.', {
+                supplySeconds, flowMultiplier, growthPerSupplySecond, stimulus,
+            });
+        } catch { /* diagnostics cannot affect simulation */ }
+        return true;
+    }
+
+    public setGrowthFlowMultiplier(multiplier: number): boolean {
+        if (!Number.isFinite(multiplier) || multiplier <= 0 || this.growFlowRemainingSeconds <= 0) return false;
+        this.growFlowMultiplier = multiplier;
+        try { this.onDiagnostic?.('info', 'growth-flow', 'Sustained growth flow rate changed.', { flowMultiplier: multiplier, supplyRemainingSeconds: this.growFlowRemainingSeconds }); } catch { /* diagnostics cannot affect simulation */ }
+        return true;
+    }
+
+    public stopGrowthFlow(): void {
+        if (this.growFlowRemainingSeconds <= 0) return;
+        const remaining = this.growFlowRemainingSeconds;
+        this.growFlowRemainingSeconds = 0;
+        try { this.onDiagnostic?.('info', 'growth-flow', 'Sustained growth flow stopped.', { unusedSupplySeconds: remaining }); } catch { /* diagnostics cannot affect simulation */ }
+    }
+
+    public getGrowthFlowTelemetry(): { active: boolean; supplyRemainingSeconds: number; flowMultiplier: number; growthPerSupplySecond: number } {
+        return {
+            active: this.growFlowRemainingSeconds > 0,
+            supplyRemainingSeconds: this.growFlowRemainingSeconds,
+            flowMultiplier: this.growFlowMultiplier,
+            growthPerSupplySecond: this.growFlowGrowthPerSupplySecond,
+        };
+    }
+
 
     public setTransparentBackground(transparent: boolean): void {
         if (transparent) {
@@ -429,6 +479,9 @@ export class M1ASVFXEngine {
         this.baselineElapsedSeconds = 0;
         this.baselineDurationSeconds = 0;
         this.baselineDelayedEvents = [];
+        this.growFlowRemainingSeconds = 0;
+        this.growFlowMultiplier = 1;
+        this.growFlowGrowthPerSupplySecond = 0.1;
         this.upperBodyExcess = 0.0;
         this.storedGoldenBuffer = 0.0;
         this.posture = 'stand';
@@ -1114,6 +1167,20 @@ export class M1ASVFXEngine {
     this.updateMovement(dt);
     this.checkPropCollisionsAndBreaks();
 
+    if (this.growthModelMode === 'm1as-vfx' && this.growFlowRemainingSeconds > 0) {
+      const suppliedDelta = Math.min(this.growFlowRemainingSeconds, dt * this.growFlowMultiplier);
+      this.growFlowRemainingSeconds = Math.max(0, this.growFlowRemainingSeconds - suppliedDelta);
+      const growthDelta = suppliedDelta * this.growFlowGrowthPerSupplySecond;
+      if (growthDelta > 0) {
+        this.growthQueue.feedSustainedGrowth(growthDelta, this.growFlowStimulus);
+        this.projectedTargetScale += growthDelta;
+        this.upperBodyExcess += growthDelta * 0.25;
+        this.venousPulseEnergy = Math.min(1, this.venousPulseEnergy + suppliedDelta * 0.15);
+      }
+      if (this.growFlowRemainingSeconds === 0) {
+        try { this.onDiagnostic?.('info', 'growth-flow', 'Sustained Grow Time supply depleted.', { simulationTimeSeconds: this.simulationTimeSeconds, projectedTargetScale: this.projectedTargetScale }); } catch { /* diagnostics cannot affect simulation */ }
+      }
+    }
     const queueTelemetry = this.growthQueue.step(dt);
     let cameraScale = queueTelemetry.absoluteFinalScale;
     let cameraInstability = queueTelemetry.instabilityScore;
