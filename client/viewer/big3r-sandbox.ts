@@ -473,20 +473,12 @@ export class Big3rSandboxController {
         }
 
         const panel = document.createElement("section");
-        panel.className = "m1as-growth-model-selector";
-        panel.style.display = "flex";
-        panel.style.alignItems = "center";
-        panel.style.flexWrap = "wrap";
-        panel.style.gap = "10px";
-        panel.style.padding = "10px 12px";
-        panel.style.margin = "8px 0";
-        panel.style.borderRadius = "10px";
-        panel.style.background = "rgba(15, 23, 42, .72)";
-
+        panel.className = "m1as-growth-model-selector m1as-select vfx-control-row";
         const label = document.createElement("label");
-        label.textContent = "Growth Model";
-        label.style.fontWeight = "700";
+        label.textContent = "Growth Model               ";
+        label.style.color = "#10b981";
         const select = document.createElement("select");
+        select.style.paddingLeft = "10px";
         select.className = "m1as-select";
         const options = [
             { value: "m1as-vfx", label: "M1AS VFX Growth (Golden Boy direction)" },
@@ -503,8 +495,7 @@ export class Big3rSandboxController {
 
         const status = document.createElement("span");
         status.textContent = "Switch only when the current growth sequence is idle.";
-        status.style.fontSize = "12px";
-        status.style.opacity = ".8";
+        status.style.color = "#10b981";
         select.addEventListener("change", () => {
             const next = select.value as "m1as-vfx" | "baseline-scale";
             const previous = engine.getGrowthModel?.() ?? "m1as-vfx";
