@@ -195,7 +195,7 @@ export class M1ASVFXGrowthModel implements GrowthModel {
     // The engine has already loaded and normalized the GLB subject.
   }
 
-  apply(command: GrowthModelCommand, _context: GrowthModelContext): GrowthModelResult {
+  apply(command: GrowthModelCommand, context: GrowthModelContext): GrowthModelResult {
     if (command.kind === "flow") {
       return {
         commandId: command.commandId,
