@@ -110,3 +110,18 @@ test("flow multiplier rejects zero, negative, and non-finite values", () => {
   assert.throws(() => controller.setFlowMultiplier(-1), /greater than zero/);
   assert.throws(() => controller.setFlowMultiplier(Number.NaN), /greater than zero/);
 });
+
+
+test("cancelling growth refunds only unused supply and resets flow state", () => {
+  const controller = new GrowTimeController({ pointsPerPress: 10, growTimeSecondsPerPoint: 1 });
+  controller.pressStack(0);
+  controller.triggerRestAndGrow(0, { kind: "duration", seconds: 8 });
+  controller.setFlowMultiplier(2);
+  controller.advance(1);
+  assert.equal(controller.getState().activeGrowTimeSeconds, 6);
+  assert.equal(controller.cancelGrowth(6), 6);
+  assert.equal(controller.getState().availableGrowTimeSeconds, 8);
+  assert.equal(controller.getState().activeGrowTimeSeconds, 0);
+  assert.equal(controller.getState().clockState, "idle");
+  assert.equal(controller.getState().activeFlowMultiplier, 1);
+});
