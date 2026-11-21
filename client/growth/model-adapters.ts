@@ -183,7 +183,7 @@ export class M1ASVFXGrowthModel implements GrowthModel {
       meshDeformation: true,
       skeletalDeformation: true,
       proceduralVfx: true,
-      sustainedFlow: false,
+      sustainedFlow: true,
       deterministicReplay: "best_effort",
       supportedAssetKinds: ["glb", "gltf"],
     },
@@ -197,10 +197,18 @@ export class M1ASVFXGrowthModel implements GrowthModel {
 
   apply(command: GrowthModelCommand, context: GrowthModelContext): GrowthModelResult {
     if (command.kind === "flow") {
+      const growthPerSupplySecond = command.parameters?.growthPerSupplySecond;
+      const accepted = this.engine.startGrowthFlow(
+        command.supplySeconds,
+        command.flowMultiplier,
+        typeof growthPerSupplySecond === "number" ? growthPerSupplySecond : 0.1,
+        stimulusFor(command.stimulus ?? "Buff"),
+      );
       return {
         commandId: command.commandId,
-        accepted: false,
-        reason: "Sustained flow is not yet implemented by the legacy queue adapter; use discrete stimuli until the flow controller is integrated.",
+        accepted,
+        reason: accepted ? undefined : "The M1AS VFX engine rejected this flow command or the active model is not M1AS VFX.",
+        telemetry: accepted ? this.readTelemetry(context.simulationTimeSeconds) : undefined,
       };
     }
     if (command.kind === "hold") {
@@ -237,7 +245,7 @@ export class M1ASVFXGrowthModel implements GrowthModel {
       targetScale: state.targetScale,
       activeEventCount: state.pendingEvents,
       deformation: { instability: state.instability, goldenBuffer: state.goldenBuffer },
-      modelData: { posture: state.posture, isHolding: state.isHolding },
+      modelData: { posture: state.posture, isHolding: state.isHolding, ...this.engine.getGrowthFlowTelemetry() },
     };
   }
 
