@@ -16,6 +16,7 @@ export type {
   M1asAsset,
   SignedUrlResponse,
   GrowthMode,
+  GrowthModelMode,
   StimulusType,
   PropRole,
   PostureState,
