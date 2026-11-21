@@ -24,8 +24,9 @@ export class MultiTargetExperimentStorage implements ExperimentStorage {
     const outcomes = await Promise.allSettled(this.targets.map(operation));
     const failures = outcomes.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
     if (failures.length) {
-      throw new AggregateError(failures.map(failure => failure.reason),
-        `${failures.length} experiment storage target(s) failed.`);
+      const error = new Error(`${failures.length} experiment storage target(s) failed.`);
+      Object.assign(error, { failures: failures.map(failure => failure.reason) });
+      throw error;
     }
   }
 }
