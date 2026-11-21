@@ -21,6 +21,8 @@ export interface GrowTimeConfig {
   pointsPerHoldSecond: number;
   allowStackingDuringGrowth: boolean;
   maxReserveSeconds: number | null;
+  /** In restricted mode, only these named sources convert points globally. */
+  restrictedConversionSources: string[];
 }
 
 export interface GrowTimeState {
@@ -53,6 +55,7 @@ export const DEFAULT_GROW_TIME_CONFIG: GrowTimeConfig = {
   pointsPerHoldSecond: 2,
   allowStackingDuringGrowth: true,
   maxReserveSeconds: null,
+  restrictedConversionSources: [],
 };
 
 export const DEFAULT_GROW_TIME_INPUTS = {
@@ -66,7 +69,6 @@ export type GrowTimeInputAction = keyof typeof DEFAULT_GROW_TIME_INPUTS;
 export class GrowTimeController {
   private config: GrowTimeConfig;
   private state: GrowTimeState;
-  private holdStartedAt: number | null = null;
 
   constructor(config: Partial<GrowTimeConfig> = {}, snapshot?: GrowTimeSnapshot | null) {
     this.config = { ...DEFAULT_GROW_TIME_CONFIG, ...config };
@@ -111,14 +113,12 @@ export class GrowTimeController {
     this.observeTime(simulationTimeSeconds);
     if (!this.canStack() || this.state.holdActive) return;
     this.state.holdActive = true;
-    this.holdStartedAt = simulationTimeSeconds;
     this.state.lastTrigger = source;
   }
 
   endHold(simulationTimeSeconds: number): void {
     this.advance(simulationTimeSeconds);
     this.state.holdActive = false;
-    this.holdStartedAt = null;
   }
 
   /** Advance all time-dependent behavior using authoritative simulation time. */
@@ -197,7 +197,9 @@ export class GrowTimeController {
   private awardPoints(points: number, source: string): void {
     if (!Number.isFinite(points) || points <= 0) return;
     this.state.stackPointsEarned += points;
-    if (this.config.conversionMode === "continuous") {
+    const convertsGlobally = this.config.conversionMode === "continuous" ||
+      (this.config.conversionMode === "restricted" && this.config.restrictedConversionSources.includes(source));
+    if (convertsGlobally) {
       const converted = points * this.config.growTimeSecondsPerPoint;
       this.state.availableGrowTimeSeconds = this.clampReserve(
         this.state.availableGrowTimeSeconds + converted,
