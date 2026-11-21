@@ -88,3 +88,25 @@ test("restricted mode converts only allowlisted sources", () => {
   controller.pressStack(1, "rest_bonus");
   assert.equal(controller.getState().availableGrowTimeSeconds, 6);
 });
+
+
+test("flow multiplier changes real-time supply consumption without changing the reserve", () => {
+  const controller = new GrowTimeController({ pointsPerPress: 10, growTimeSecondsPerPoint: 1 });
+  controller.pressStack(0);
+  controller.triggerRestAndGrow(0, { kind: "duration", seconds: 5 });
+  controller.setFlowMultiplier(2);
+  controller.advance(1);
+  assert.equal(controller.getState().activeGrowTimeSeconds, 3);
+  assert.equal(controller.getState().availableGrowTimeSeconds, 5);
+  assert.equal(controller.getState().activeFlowMultiplier, 2);
+  controller.advance(2.5);
+  assert.equal(controller.getState().activeGrowTimeSeconds, 0);
+  assert.equal(controller.getState().activeFlowMultiplier, 1);
+});
+
+test("flow multiplier rejects zero, negative, and non-finite values", () => {
+  const controller = new GrowTimeController();
+  assert.throws(() => controller.setFlowMultiplier(0), /greater than zero/);
+  assert.throws(() => controller.setFlowMultiplier(-1), /greater than zero/);
+  assert.throws(() => controller.setFlowMultiplier(Number.NaN), /greater than zero/);
+});
