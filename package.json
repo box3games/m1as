@@ -6,7 +6,7 @@
     "build:vendor": "npx tsc core/utils/scripts/build-vendor.ts --target es2022 --module esnext --moduleResolution node && node core/utils/scripts/build-vendor.js && node -e \"fs.rmSync('core/utils/scripts/build-vendor.js', {force: true})\"",
     "build:viewer": "esbuild ./client/viewer/main.ts --bundle --format=esm --minify --sourcemap --outfile=dev/m1as-viewer.js",
     "build": "npm run build:vendor && npm run build:viewer && tsc",
-    "test:experiments": "npm run build && node --test dist/client/experiments/validation.test.js dist/client/experiments/coordinator.test.js dist/client/experiments/browser-download-storage.test.js dist/client/experiments/queue-observer.test.js dist/client/growth/grow-time.test.js",
+    "test:experiments": "npm run build && node --test dist/client/experiments/validation.test.js dist/client/experiments/coordinator.test.js dist/client/experiments/browser-download-storage.test.js dist/client/experiments/queue-observer.test.js dist/client/experiments/diagnostic-logger.test.js dist/client/growth/grow-time.test.js dist/client/growth/model-adapters.test.js",
     "makeM1asBig3r": "node dist/server/m1asServer.js"
   },
   "exports": {
