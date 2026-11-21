@@ -9,6 +9,7 @@ import {
 } from "../viewer/types.js";
 
 import type { M1ASVFXEngine } from "../M1ASVFXEngine.js";
+import { GrowthStimulusType } from "../GrowthEventQueue.js";
 import { Big3rStageCoordinator } from "../big3r/Big3rStageCoordinator.js";
 import type { FaceAssetType } from "../M1ASFaceSurfaceResolver.js";
 import type { JSONLevelManifest } from "../big3r/streaming/manifest-types.js";
@@ -66,6 +67,7 @@ export class Big3rSandboxController {
     private growTimeController: GrowTimeController | null = null;
     private growTimeStore: GrowTimeStore | null = null;
     private growTimeStatus: HTMLElement | null = null;
+    private growTimeControls: HTMLElement | null = null;
     private growTimeReadout: HTMLElement | null = null;
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
@@ -206,7 +208,6 @@ export class Big3rSandboxController {
                     this.experimentCoordinator?.tick(simulationTimeSeconds, frameNumber);
                     if (this.growTimeController) {
                         this.growTimeController.advance(simulationTimeSeconds);
-                        this.persistGrowTime();
                         this.renderGrowTimeState();
                     }
                 },
@@ -408,8 +409,10 @@ export class Big3rSandboxController {
      * M1ASVFXEngine; localStorage persists only the durable reserve/point totals.
      */
     private installGrowTimeControls(engine: M1ASVFXEngine): void {
+        this.growTimeControls?.remove();
         const panel = document.createElement("section");
         panel.className = "m1as-grow-time-controls";
+        this.growTimeControls = panel;
         panel.style.display = "grid";
         panel.style.gridTemplateColumns = "repeat(auto-fit, minmax(150px, 1fr))";
         panel.style.gap = "8px";
@@ -528,7 +531,7 @@ export class Big3rSandboxController {
             ) ?? 0;
             if (consumed > 0) {
                 const scaleRate = Math.max(0, Number((growthScaleRate.querySelector("input") as HTMLInputElement).value) || 0);
-                engine.enqueueGrowth(Math.max(0.05, consumed * scaleRate), "Buff" as never);
+                engine.enqueueGrowth(Math.max(0.05, consumed * scaleRate), GrowthStimulusType.Buff);
                 status.textContent = `Growth requested · consumed ${consumed.toFixed(2)}s · reserve retained`;
             } else {
                 status.textContent = "No Grow Time available, or a growth duration is already active.";
