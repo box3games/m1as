@@ -626,6 +626,7 @@ export class Big3rSandboxController {
         const aButton = button("A · Stack");
         const bButton = button("B · Hold to stack");
         const rButton = button("R · Rest / Grow");
+        const stopFlowButton = button("Stop Flow · Refund unused supply");
         const makeKeyInput = (label: string, value: string): HTMLLabelElement => {
             const wrapper = document.createElement("label");
             wrapper.className = "m1as-select"
@@ -708,6 +709,13 @@ export class Big3rSandboxController {
             saveAndRender();
         };
         rButton.addEventListener("click", runRestAndGrow);
+        stopFlowButton.addEventListener("click", () => {
+            const unused = engine.stopGrowthFlow();
+            const refunded = this.growTimeController?.cancelGrowth(unused) ?? 0;
+            status.textContent = `Growth flow stopped · ${refunded.toFixed(2)}s unused supply refunded`;
+            this.diagnostics.info("growth-flow", "User stopped sustained growth flow.", { unusedSupplySeconds: unused, refundedSupplySeconds: refunded });
+            saveAndRender();
+        });
 
         this.growTimeKeyDown = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement | null;
@@ -752,7 +760,7 @@ export class Big3rSandboxController {
         });
 
         panel.append(aButton, bButton, rButton, conversion, pressRate, holdRate, conversionRate,
-            spendDuration, growthScaleRate, flowRate, stacking, aKey, bKey, rKey, readout, status);
+            spendDuration, growthScaleRate, flowRate, stacking, aKey, bKey, rKey, readout, status, stopFlowButton);
         this.controlBar.appendChild(panel);
         this.renderGrowTimeState();
     }
@@ -816,7 +824,14 @@ export class Big3rSandboxController {
         this.resetBtn.addEventListener("click", () => {
             this.ceilingSlider.value = "3.2";
             this.ceilingVal.textContent = "3.2m";
-            this.activeEngine?.resetGrowth();
+            const engine = this.activeEngine as M1ASVFXEngine | null;
+            if (engine) {
+                const unused = engine.stopGrowthFlow();
+                this.growTimeController?.cancelGrowth(unused);
+                this.persistGrowTime();
+                this.renderGrowTimeState();
+                engine.resetGrowth();
+            }
         });
 
         this.boxPresetSelect.addEventListener("change", () => {
