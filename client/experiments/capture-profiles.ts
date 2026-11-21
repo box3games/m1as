@@ -4,7 +4,7 @@ import type { CaptureProfile, CaptureProfileName } from './contracts.js';
 export const DEFAULT_CAPTURE_PROFILES: Readonly<Record<CaptureProfileName, CaptureProfile>> = {
   lightweight: {
     name: 'lightweight', mode: 'snapshot',
-    eventTriggers: ['growth_queued', 'growth_started', 'growth_completed', 'camera_mode_changed', 'perception_annotation'],
+    eventTriggers: ['growth_queued', 'growth_started', 'growth_completed', 'growth_flow_sample', 'camera_mode_changed', 'perception_annotation'],
     preEventWindowSeconds: 0.5, postEventWindowSeconds: 1,
     includeCamera: true, includeCharacter: true, includeWorldLandmarks: false,
     includeScreenSpace: true, includePerception: true,
