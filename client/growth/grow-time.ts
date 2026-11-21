@@ -191,8 +191,6 @@ export class GrowTimeController {
   }
 
   private canStack(): boolean {
-    if (this.config.conversionMode === "disabled") return false;
-    if (this.config.conversionMode === "restricted") return false;
     return this.state.clockState !== "active" || this.config.allowStackingDuringGrowth;
   }
 
