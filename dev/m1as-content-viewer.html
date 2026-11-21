@@ -6,8 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>13163R Media Browser & Composable Component Playground</title>
     <link rel="stylesheet" href="./m1as-viewer.css">
-    <script type="module" id="m1as-runtime-engine"></script>
-    <script type="module" src="./m1as-viewer.js"></script>
+<script type="module" id="m1as-runtime-engine"></script>
+<script type="module" src="./m1as-viewer.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const notesBox = document.getElementById('teamNotes');
+        if (notesBox) {
+            notesBox.value = localStorage.getItem('m1as_team_notes') || '';
+        } else {
+            console.error('Could not find textarea with id="teamNotes"');
+        }
+    });
+</script>
 </head>
 
 <body>
@@ -203,157 +213,211 @@
             </button>
         </div>
 
-        <!-- start here -->
-        <div id="vfxControlBar" class="vfx-control-bar">
 
-            <!-- vfx props container -->
-            <div id="vfxPropListContainer" class="vfx-prop-list"></div>
 
-            <!-- big3r sanbox test env settings -->
-            <section className="sandbox-test-environment-control-group">
-                <div class="vfx-control-row">
-                    <label class="control-group-label">Mode:</label>
-                    <select id="vfxGrowthMode" class="m1as-select">
-                        <option value="click">Click / Tap Impulse</option>
-                        <option value="tap">Rapid Mash Cascade</option>
-                        <option value="hold">Hold-to-Charge Surge</option>
-                        <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
-                    </select>
+<!-- BIG3R SANDBOX -->
+<div id="vfxControlBar" class="vfx-control-bar">
 
-                    <label class="control-group-label">Stimulus:</label>
-                    <select id="vfxStimulusType" class="m1as-select">
-                        <option value="Consumption">Consumption (Proportional Height)</option>
-                        <option value="Exercise">Exercise (Upper Body → Golden Ratio Buffer)</option>
-                        <option value="Buff">Buff / Growth Tool (High Pressure)</option>
-                        <option value="Environmental">Environmental Surge</option>
-                    </select>
+    <!-- VFX PROP LIST -->
+    <div id="vfxPropListContainer" class="vfx-prop-list"></div>
 
-                    <button id="vfxPulseBtn" class="playground-btn">🌱 Queue Stimulus (Space)</button>
-                    <button id="vfxHoldBtn" class="playground-btn btn--amber">✊ Hold Charge</button>
-                    <button id="vfxChaosBtn" class="playground-btn btn--violet">🌀 Colossal Chaos</button>
-                    <button id="vfxResetBtn" class="playground-btn btn--slate">↺ Reset</button>
-                </div>
+    <!-- BIG3R TEST ENVIRONMENT CONTROLS -->
+    <section class="sandbox-test-environment-control-group">
 
-                <div class="vfx-control-row vfx-control-row--divided">
-                    <label class="control-group-label">Nested Box Stage:</label>
-                    <select id="vfxBoxPreset" class="m1as-select">
-                        <option value="1.6">1. Broken Jar (1.6m Ceiling)</option>
-                        <option value="2.4">2. Sewer Pipes (2.4m Ceiling)</option>
-                        <option value="3.2" selected>3. Lab Growth Tank (3.2m Ceiling)</option>
-                        <option value="5.0">4. Lab Viewing Room / Vent (5.0m Ceiling)</option>
-                        <option value="9.5">5. Escape: Street / Cars &amp; Houses (9.5m)</option>
-                    </select>
+        <div class="vfx-control-row">
+            <label class="control-group-label">Mode:</label>
+            <select id="vfxGrowthMode" class="m1as-select">
+                <option value="click">Click / Tap Impulse</option>
+                <option value="tap">Rapid Mash Cascade</option>
+                <option value="hold">Hold-to-Charge Surge</option>
+                <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
+            </select>
 
-                    <label class="control-inline-label">
-                        Ceiling: <input type="range" id="vfxCeilingSlider" class="ceiling-slider" min="1.5" max="12.0"
-                            step="0.1" value="3.2" />
-                        <span id="vfxCeilingVal" class="ceiling-readout">3.2m</span>
-                    </label>
+            <label class="control-group-label">Stimulus:</label>
+            <select id="vfxStimulusType" class="m1as-select">
+                <option value="Consumption">Consumption (Proportional Height)</option>
+                <option value="Exercise">Exercise (Upper Body → Golden Ratio Buffer)</option>
+                <option value="Buff">Buff / Growth Tool (High Pressure)</option>
+                <option value="Environmental">Environmental Surge</option>
+            </select>
 
-                    <label class="control-checkbox-label control-checkbox-label--sm">
-                        <input type="checkbox" id="vfxCinematicCamToggle" checked />
-                        🎥 Cinematic Low-Angle &amp; FOV Kick
-                    </label>
-                </div>
-                <div class="vfx-control-row vfx-control-row--divided-tight">
-                    <label class="control-group-label control-group-label--sky">CCSA Room Slot:</label>
-                    <select id="vfxRoomSlotSelect" class="m1as-select">
-                        <option value="bg">Slot: bg (Backdrop)</option>
-                        <option value="0">Face 0 (+X Right Wall)</option>
-                        <option value="1">Face 1 (-X Left Wall)</option>
-                        <option value="2">Face 2 (+Y Ceiling)</option>
-                        <option value="3">Face 3 (-Y Floor)</option>
-                        <option value="4">Face 4 (+Z Front Wall)</option>
-                        <option value="5">Face 5 (-Z Back Wall)</option>
-                    </select>
-
-                    <select id="vfxRoomAssetType" class="m1as-select">
-                        <option value="color">Type: Color Hex</option>
-                        <option value="image">Type: Image (.png/.webp/.jpg)</option>
-                        <option value="video">Type: Video (.webm/.mp4)</option>
-                        <option value="audio">Type: Audio Visualizer (.mp3)</option>
-                        <option value="svg-preview">Type: SVG</option>
-                        <option value="text">Type: JSON / Text</option>
-                    </select>
-
-                    <input type="text" id="vfxRoomValueInput" class="m1as-input-txt m1as-input-txt--wide"
-                        placeholder="#0f172a or signed URL..." />
-                    <button id="vfxPaintRoomBtn" class="playground-btn btn--purple">🎨 Paint Slot</button>
-
-                    <label class="control-checkbox-label control-checkbox-label--sm">
-                        <input type="checkbox" id="vfxDoubleSidedRoomToggle" />
-                        Double-Sided Room
-                    </label>
-
-                    <button id="vfxExportPresetBtn" class="playground-btn btn--slate-dark">⬇ Export Preset</button>
-                    <button id="vfxImportPresetBtn" class="playground-btn btn--slate-dark">⬆ Import Preset</button>
-                    <input type="file" id="vfxPresetFileInput" accept=".json,application/json" class="is-hidden" />
-                </div>
-
-                <div class="vfx-control-row vfx-control-row--divided-tight">
-                    <label class="control-group-label control-group-label--sky">Camera Rig:</label>
-                    <select id="vfxCamRigSelect" class="m1as-select">
-                        <option value="1">1: FreeExplore + HeightReticle</option>
-                        <option value="2">2: Obs1 (Scale Observer)</option>
-                        <option value="3">3: Obs2 (4-Face TV Inspect)</option>
-                        <option value="4">4: FirstPerson (Eye Creep + Shake)</option>
-                        <option value="5">5: Worms / BirdsEye + DynamicNearClip</option>
-                    </select>
-
-                    <button id="vfxMountTvBtn" class="playground-btn btn--violet">📺 Spawn 4-Face TV</button>
-                    <button id="vfxLoadManifestBtn" class="playground-btn btn--emerald">📂 Load Level Manifest
-                        (.json)</button>
-                    <input type="file" id="vfxManifestFileInput" accept=".json,application/json" class="is-hidden" />
-                </div>
-
-                <div class="vfx-control-row vfx-control-row--divided-tight">
-                    <label class="control-group-label control-group-label--sky">Add Scene .glb:</label>
-                    <input type="text" id="vfxPropUrlInput" class="m1as-input-txt m1as-input-txt--wide"
-                        placeholder="Paste signed .glb URL (Cube, T-Pose, Tank, Gate)..." />
-
-                    <select id="vfxPropRole" class="m1as-select">
-                        <option value="consumable">🍎 Consumable (Breaks at 65% height)</option>
-                        <option value="wearable">👕 Clothes / Growth Suit (85%)</option>
-                        <option value="container">🧪 Growth Tank / Jar (102%)</option>
-                        <option value="growth-gate">🚪 Growth Gate / Ceiling Vent (102%)</option>
-                        <option value="reference">🧍 Scale Reference (T-Pose / Car / House)</option>
-                    </select>
-
-                    <label class="control-inline-label control-inline-label--tight">
-                        Height: <input type="number" id="vfxPropHeight" class="prop-height-input" value="0.6" min="0.1"
-                            max="15.0" step="0.1" />m
-                    </label>
-
-                    <button id="vfxSpawnPropBtn" class="playground-btn btn--sky">+ Spawn Prop</button>
-                    <button id="vfxRespawnPropsBtn" class="playground-btn btn--slate-dark">↺ Respawn Broken</button>
-                </div>
+            <button id="vfxPulseBtn" class="playground-btn">🌱 Queue Stimulus (Space)</button>
+            <button id="vfxHoldBtn" class="playground-btn btn--amber">✊ Hold Charge</button>
+            <button id="vfxChaosBtn" class="playground-btn btn--violet">🌀 Colossal Chaos</button>
+            <button id="vfxResetBtn" class="playground-btn btn--slate">↺ Reset</button>
         </div>
-    </div>
+
+        <div class="vfx-control-row vfx-control-row--divided">
+            <label class="control-group-label">Nested Box Stage:</label>
+            <select id="vfxBoxPreset" class="m1as-select">
+                <option value="1.6">1. Broken Jar (1.6m Ceiling)</option>
+                <option value="2.4">2. Sewer Pipes (2.4m Ceiling)</option>
+                <option value="3.2" selected>3. Lab Growth Tank (3.2m Ceiling)</option>
+                <option value="5.0">4. Lab Viewing Room / Vent (5.0m Ceiling)</option>
+                <option value="9.5">5. Escape: Street / Cars &amp; Houses (9.5m)</option>
+            </select>
+
+            <label class="control-inline-label">
+                Ceiling:
+                <input type="range" id="vfxCeilingSlider" class="ceiling-slider"
+                    min="1.5" max="12.0" step="0.1" value="3.2" />
+                <span id="vfxCeilingVal" class="ceiling-readout">3.2m</span>
+            </label>
+
+            <label class="control-checkbox-label control-checkbox-label--sm">
+                <input type="checkbox" id="vfxCinematicCamToggle" checked />
+                🎥 Cinematic Low-Angle &amp; FOV Kick
+            </label>
+        </div>
+
+        <div class="vfx-control-row vfx-control-row--divided-tight">
+            <label class="control-group-label control-group-label--sky">CCSA Room Slot:</label>
+
+            <select id="vfxRoomSlotSelect" class="m1as-select">
+                <option value="bg">Slot: bg (Backdrop)</option>
+                <option value="0">Face 0 (+X Right Wall)</option>
+                <option value="1">Face 1 (-X Left Wall)</option>
+                <option value="2">Face 2 (+Y Ceiling)</option>
+                <option value="3">Face 3 (-Y Floor)</option>
+                <option value="4">Face 4 (+Z Front Wall)</option>
+                <option value="5">Face 5 (-Z Back Wall)</option>
+            </select>
+
+            <select id="vfxRoomAssetType" class="m1as-select">
+                <option value="color">Type: Color Hex</option>
+                <option value="image">Type: Image (.png/.webp/.jpg)</option>
+                <option value="video">Type: Video (.webm/.mp4)</option>
+                <option value="audio">Type: Audio Visualizer (.mp3)</option>
+                <option value="svg-preview">Type: SVG</option>
+                <option value="text">Type: JSON / Text</option>
+            </select>
+
+            <input type="text" id="vfxRoomValueInput"
+                class="m1as-input-txt m1as-input-txt--wide"
+                placeholder="#0f172a or signed URL..." />
+
+            <button id="vfxPaintRoomBtn" class="playground-btn btn--purple">🎨 Paint Slot</button>
+
+            <label class="control-checkbox-label control-checkbox-label--sm">
+                <input type="checkbox" id="vfxDoubleSidedRoomToggle" />
+                Double-Sided Room
+            </label>
+
+            <button id="vfxExportPresetBtn" class="playground-btn btn--slate-dark">⬇ Export Preset</button>
+            <button id="vfxImportPresetBtn" class="playground-btn btn--slate-dark">⬆ Import Preset</button>
+
+            <input type="file" id="vfxPresetFileInput"
+                accept=".json,application/json" class="is-hidden" />
+        </div>
+
+        <div class="vfx-control-row vfx-control-row--divided-tight">
+            <label class="control-group-label control-group-label--sky">Camera Rig:</label>
+
+            <select id="vfxCamRigSelect" class="m1as-select">
+                <option value="1">1: FreeExplore + HeightReticle</option>
+                <option value="2">2: Obs1 (Scale Observer)</option>
+                <option value="3">3: Obs2 (4-Face TV Inspect)</option>
+                <option value="4">4: FirstPerson (Eye Creep + Shake)</option>
+                <option value="5">5: Worms / BirdsEye + DynamicNearClip</option>
+            </select>
+
+            <button id="vfxMountTvBtn" class="playground-btn btn--violet">📺 Spawn 4-Face TV</button>
+
+            <button id="vfxLoadManifestBtn" class="playground-btn btn--emerald">
+                📂 Load Level Manifest (.json)
+            </button>
+
+            <input type="file" id="vfxManifestFileInput"
+                accept=".json,application/json" class="is-hidden" />
+        </div>
+
+        <div class="vfx-control-row vfx-control-row--divided-tight">
+            <label class="control-group-label control-group-label--sky">Add Scene .glb:</label>
+
+            <input type="text" id="vfxPropUrlInput"
+                class="m1as-input-txt m1as-input-txt--wide"
+                placeholder="Paste signed .glb URL (Cube, T-Pose, Tank, Gate)..." />
+
+            <select id="vfxPropRole" class="m1as-select">
+                <option value="consumable">🍎 Consumable (Breaks at 65% height)</option>
+                <option value="wearable">👕 Clothes / Growth Suit (85%)</option>
+                <option value="container">🧪 Growth Tank / Jar (102%)</option>
+                <option value="growth-gate">🚪 Growth Gate / Ceiling Vent (102%)</option>
+                <option value="reference">🧍 Scale Reference (T-Pose / Car / House)</option>
+            </select>
+
+            <label class="control-inline-label control-inline-label--tight">
+                Height:
+                <input type="number" id="vfxPropHeight" class="prop-height-input"
+                    value="0.6" min="0.1" max="15.0" step="0.1" />m
+            </label>
+
+            <button id="vfxSpawnPropBtn" class="playground-btn btn--sky">+ Spawn Prop</button>
+            <button id="vfxRespawnPropsBtn" class="playground-btn btn--slate-dark">↺ Respawn Broken</button>
+        </div>
+
     </section>
 
-    <!-- big3r sandbox viweing screen -->
-    <section className="big3r-sandbox-render-screen">
+    <!-- BIG3R RENDERING SCREEN -->
+    <section class="big3r-sandbox-render-screen">
+
         <div id="vfxHeightReticle" class="vfx-telemetry-badge is-hidden">
             ⊕ Height Reticle: 1.00x (1.60m)
         </div>
-        <section className="sandbox-details m1as-selet">
-            <div id="vfxStreamingHud" class="rec-status m1as-select" style="color: #10b981;" >
+
+        <section class="sandbox-details m1as-selet">
+            
+            <div id="vfxStreamingHud" class="rec-status m1as-select"
+                style="color: #10b981;">
                 Telemetry HUD: Awaiting active stage...
             </div>
-            </br>
+            <div id="ttlStatus" class="ttl-status" style="color: #10b981 !important;"></div>
+
+            
             <span id="vfxTelemetryBadge" class="vfx-telemetry-badge m1as-select">
                 Tier 1: Broken Jar | Scale: 1.00x | Posture: STAND | Golden Buf: 0.00
             </span>
+
         </section>
-            <div id="vfxStageContainer" class="vfx-stage-container">
+
+        <div id="vfxStageContainer" class="vfx-stage-container">
             <div class="stage-placeholder stage-placeholder--vfx">
-                VFX Stage idle. Provide a signed .glb URL above or click "🍄 VFX Stage" on an asset card...
+                VFX Stage idle. Provide a signed .glb URL above or click
+                "🍄 VFX Stage" on an asset card...
             </div>
         </div>
+
     </section>
 
+</div>
+<!-- END BIG3R SANDBOX -->
 
-    <div id="ttlStatus" class="ttl-status"></div>
+<!-- note pad -->
+<div style="margin-top: 12px; padding: 10px; background: #111827; border: 1px solid #374151; border-radius: 6px; font-family: monospace;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="color: #9ca3af; font-size: 12px;">TEAM SCRATCHPAD</span>
+        <div>
+            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('teamNotes').value); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy', 1500);" 
+                    style="background: #10b981; color: #064e3b; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;">
+                Copy
+            </button>
+            <button type="button" onclick="if(confirm('Clear notes?')) { document.getElementById('teamNotes').value=''; localStorage.removeItem('m1as_team_notes'); }" 
+                    style="background: transparent; color: #9ca3af; border: 1px solid #4b5563; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; margin-left: 4px;">
+                Clear
+            </button>
+            <button type="button" 
+                    onclick="localStorage.setItem('m1as_team_notes', document.getElementById('teamNotes').value); this.textContent='Saved!'; setTimeout(() => this.textContent='Save', 1500);" 
+                    style="background: #2563eb; color: #ffffff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; margin-right: 4px;">
+                Save
+            </button>
+        </div>
+    </div>
+    <textarea id="teamNotes" rows="5" placeholder="Drop stage notes, scale tweaks, or VFX timing bugs here..."
+              oninput="localStorage.setItem('m1as_team_notes', this.value)"
+              style="width: 100%; box-sizing: border-box; background: #030712; color: #e5e7eb; border: 1px solid #374151; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
+</div>
+
+    
     <div id="viewer"></div>
     <div class="playground-panel">
         <h3 class="panel-title">🚀 Composable Component Simulation Area</h3>

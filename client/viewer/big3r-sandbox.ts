@@ -752,7 +752,15 @@ export class Big3rSandboxController {
 
         panel.append(aButton, bButton, rButton, conversion, pressRate, holdRate, conversionRate,
             spendDuration, growthScaleRate, flowRate, stacking, aKey, bKey, rKey, readout, status, stopFlowButton);
-        this.controlBar.appendChild(panel);
+        const renderScreen = this.controlBar.querySelector(
+            ".big3r-sandbox-render-screen"
+        );
+
+        if (renderScreen) {
+            renderScreen.insertAdjacentElement("afterend", panel);
+        } else {
+            this.controlBar.appendChild(panel);
+        }
         this.renderGrowTimeState();
     }
 
@@ -869,7 +877,7 @@ export class Big3rSandboxController {
             this.activeEngine?.resetAllProps();
         });
 
-                this.paintRoomBtn?.addEventListener("click", async () => {
+        this.paintRoomBtn?.addEventListener("click", async () => {
             if (!this.coordinator || !this.roomSlotSelect || !this.roomAssetTypeSelect || !this.roomValueInput) return;
             const rawSlot = this.roomSlotSelect.value;
             const slot: FaceSlotKey = rawSlot === "bg" ? "bg" : Number(rawSlot);
@@ -935,7 +943,7 @@ export class Big3rSandboxController {
 
     }
 
-    
+
 
     private updateTelemetry(state: VfxGrowthState): void {
         const tierLabel = BOX_TIER_NAMES[Math.min(state.boxTier - 1, BOX_TIER_NAMES.length - 1)];

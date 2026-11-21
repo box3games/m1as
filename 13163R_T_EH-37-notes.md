@@ -320,3 +320,30 @@ NOW: $GB original monolithic Godot 4.6.3 C# Player.cs pasted/read in full; autho
 [MSG 10/10 - INGEST COMPLETE. SURFACE FLAGS FIRST.]
 NOW: Code observations (not design verdicts): G repeats per frame; R resets delayed timer per frame; initial delayed amount range reversed; duplicate/unused paths; competing scale assignments. $GB C# remains $B3-owned.
 FLAGS: [CHECK] Audit $T implementation/interfaces/assets/gaps; $ASCII doesn't prove features exist. [MISSING] Equations, fuel-consumption timing, unused potential persistence, $INT regulation/NPC influence math, trigger priority, scale bands, $WP schema, $CA API, numeric thresholds. [CONFLICT] Minigame-only growth superseded: exploration also accumulates resources; rest/environment/read/minigame can trigger. Immediate growth on ordinary consumable superseded by deferred fuel conversion. $PB remains separate, not replaced by $GB. [CHECK] $GB/$CA/$VFX boundary is proposed, not implemented/approved. Next: dependency map, $T audit, detailed growth spec; no implementation until authorized.
+     _        _                      
+     8        ~            __8__      
+ _-`(8)`-_    8\         _/  || \_     
+     8        8 \_          /><\      
+     8        8            |    |
+    / \       \           _/    \_    
+  _/   \_     |_                
+
+
+
+
+                     
+                      |          /````\             |
+                      |         |__/ \_|            |
+                      |           |   |             |
+                      |           |   |             |
+                      |           |   |             |
+                     /``````````__|```|__```````````\                     
+                    /      \   |    ``   |   /        \
+                   /        \  \________/  /           \
+                  /          |      |     |             \
+                 /            /     |    /               \
+                /            / / /``^````\                \
+               /              / /         \                \
+              /              / /           \                \
+             /               |/             |                \
+            |               |/     
