@@ -75,3 +75,16 @@ test("simulation time cannot move backwards", () => {
   controller.advance(2);
   assert.throws(() => controller.advance(1), /cannot move backwards/);
 });
+
+test("restricted mode converts only allowlisted sources", () => {
+  const controller = new GrowTimeController({
+    conversionMode: "restricted",
+    restrictedConversionSources: ["rest_bonus"],
+    pointsPerPress: 2,
+    growTimeSecondsPerPoint: 3,
+  });
+  controller.pressStack(0, "mini_game_press");
+  assert.equal(controller.getState().availableGrowTimeSeconds, 0);
+  controller.pressStack(1, "rest_bonus");
+  assert.equal(controller.getState().availableGrowTimeSeconds, 6);
+});
