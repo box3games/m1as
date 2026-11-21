@@ -59,7 +59,7 @@ Available adapters:
 - `ThreeObjectScaleGrowthModel`: deterministic baseline GLB/Object3D scaling with duration-driven growth, held-charge growth, and sustained supply flow.
 - `M1ASVFXGrowthModel`: adapter over the existing M1AS VFX engine and legacy queue. It preserves the queue's event timing, spring response, posture, skeletal response, and VFX behavior.
 
-The VFX adapter currently declares sustained flow unsupported. It accepts discrete growth and hold commands; the Growth Flow Controller must be integrated before the VFX model can consume continuous Grow Time supply. The adapter does not invent flow by enqueueing events every render frame.
+The M1AS VFX adapter supports sustained flow commands. Grow Time supply is consumed against simulation time at a configurable multiplier and converted into gradual target-scale feed through the existing GrowthEventQueue spring response. This does not enqueue one discrete event per frame; the queue retains ownership of spring, damping, instability and character embodiment.
 
 The adapters are exported for use by a model host. The sandbox now exposes an engine-level selector between the existing M1AS VFX queue and a baseline whole-object scaling mode. Both modes use the same normalized streamed GLB, subject root, camera, scene, room references, spatial props, and input controls. Switching is rejected while growth is active or queued, and the selector is locked during experiment capture. The standalone baseline adapter remains available for future independent model hosts. For controlled comparisons, use the same asset, initial scale, scene, camera, stimulus sequence, and capture profile.
 
@@ -68,3 +68,14 @@ The adapters are exported for use by a model host. The sandbox now exposes an en
 The sandbox diagnostic logger mirrors structured operational events to the browser console and a bounded localStorage ring buffer. It records important asset stream/load results, input actions, growth queue events, and capture/storage errors. LocalStorage is intentionally limited to recent diagnostics and settings; it is not the experiment database.
 
 Experiment capture uses IndexedDB for persistent structured records. Finalization builds the portable JSON export from the persisted manifest and streams, avoiding a second in-memory copy of every record during the experiment. The recorder remains observational and reports storage failures without changing simulation execution.
+
+
+## Sustained Grow Time flow
+
+- Grow Time reserve is a finite supply measured in supply-seconds.
+- Flow multiplier controls supply consumption per simulation second (1.0x is nominal; 2.0x consumes twice as quickly).
+- Growth-per-supply-second independently controls how much target-scale increase each supply-second produces.
+- The M1AS engine feeds the existing queue's spring target directly. It does not enqueue an event every frame, and discrete stimuli remain independently available to interrupt or compound sustained growth.
+- The Grow Time controller and engine both advance from the same simulation clock and use the same flow multiplier.
+- Flow start, rate changes, depletion, and stop are written to diagnostics. Active flow samples are captured at 2 Hz during experiments with scale, remaining supply, multiplier, and growth response configuration.
+- Baseline scaling remains a control model; this sandbox Grow Time flow path currently requires M1AS VFX mode.
