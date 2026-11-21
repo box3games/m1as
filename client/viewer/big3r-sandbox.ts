@@ -65,6 +65,9 @@ export class Big3rSandboxController {
     private experimentControls: HTMLElement | null = null;
     private experimentStatus: HTMLElement | null = null;
     private experimentExportLink: HTMLAnchorElement | null = null;
+    private growthModelControls: HTMLElement | null = null;
+    private growthModelSelect: HTMLSelectElement | null = null;
+    private growthModelStatus: HTMLElement | null = null;
     private currentBoxTier = 1;
     private growTimeController: GrowTimeController | null = null;
     private growTimeStore: GrowTimeStore | null = null;
@@ -240,6 +243,7 @@ export class Big3rSandboxController {
                 }
             });
 
+            this.installGrowthModelSelector(this.activeEngine);
             this.installExperimentControls(this.activeEngine as unknown as M1ASVFXEngine);
             this.installGrowTimeControls(this.activeEngine as unknown as M1ASVFXEngine);
 
@@ -314,7 +318,7 @@ export class Big3rSandboxController {
                 captureProfile: profile,
                 configurationRefs: {
                     character: "active-glb",
-                    growth: "legacy-growth-queue",
+                    growth: `growth-model:${engine.getGrowthModel?.() ?? "legacy-unknown"}`,
                     camera: "runtime-perspective-camera",
                     world: "sandbox-stage",
                 },
@@ -378,6 +382,7 @@ export class Big3rSandboxController {
             this.experimentStorage = storage;
             this.experimentCoordinator = coordinator;
             try {
+                if (this.growthModelSelect) this.growthModelSelect.disabled = true;
                 await coordinator.start();
                 start.disabled = true;
                 stop.disabled = false;
@@ -386,6 +391,7 @@ export class Big3rSandboxController {
                 this.diagnostics.info("experiment", "Experiment recording started.", { experimentId, captureProfile: profile.name });
             } catch (error) {
                 this.experimentCoordinator = null;
+                if (this.growthModelSelect) this.growthModelSelect.disabled = false;
                 this.diagnostics.error("experiment", "Could not start experiment capture.", { experimentId, error: String(error) });
                 status.textContent = `Could not start capture: ${String(error)}`;
             }
@@ -398,9 +404,11 @@ export class Big3rSandboxController {
             try {
                 await coordinator.stop();
                 start.disabled = false;
+                if (this.growthModelSelect) this.growthModelSelect.disabled = false;
             } catch (error) {
                 status.textContent = `Finalize warning: ${String(error)}`;
                 start.disabled = false;
+                if (this.growthModelSelect) this.growthModelSelect.disabled = false;
             }
         });
 
@@ -416,6 +424,81 @@ export class Big3rSandboxController {
         this.experimentExportLink = exportLink;
     }
 
+
+    /** Selects the growth implementation while preserving the mounted GLB and scene. */
+    private installGrowthModelSelector(engine: IVfxEngine): void {
+        this.growthModelControls?.remove();
+        this.growthModelControls = null;
+        this.growthModelSelect = null;
+        this.growthModelStatus = null;
+        if (!engine.getGrowthModel || !engine.setGrowthModel) {
+            this.diagnostics.warn("growth-model", "The active engine factory does not expose interchangeable growth models.");
+            return;
+        }
+
+        const panel = document.createElement("section");
+        panel.className = "m1as-growth-model-selector";
+        panel.style.display = "flex";
+        panel.style.alignItems = "center";
+        panel.style.flexWrap = "wrap";
+        panel.style.gap = "10px";
+        panel.style.padding = "10px 12px";
+        panel.style.margin = "8px 0";
+        panel.style.borderRadius = "10px";
+        panel.style.background = "rgba(15, 23, 42, .72)";
+
+        const label = document.createElement("label");
+        label.textContent = "Growth Model";
+        label.style.fontWeight = "700";
+        const select = document.createElement("select");
+        select.className = "m1as-select";
+        const options = [
+            { value: "m1as-vfx", label: "M1AS VFX Growth (Golden Boy direction)" },
+            { value: "baseline-scale", label: "Baseline GLB Scaling" },
+        ];
+        for (const item of options) {
+            const option = document.createElement("option");
+            option.value = item.value;
+            option.textContent = item.label;
+            select.appendChild(option);
+        }
+        select.value = engine.getGrowthModel();
+        label.appendChild(select);
+
+        const status = document.createElement("span");
+        status.textContent = "Switch only when the current growth sequence is idle.";
+        status.style.fontSize = "12px";
+        status.style.opacity = ".8";
+        select.addEventListener("change", () => {
+            const next = select.value as "m1as-vfx" | "baseline-scale";
+            const previous = engine.getGrowthModel?.() ?? "m1as-vfx";
+            const switched = engine.setGrowthModel?.(next) ?? false;
+            if (!switched) {
+                select.value = previous;
+                status.textContent = "Model switch blocked: finish or reset the active growth sequence first.";
+                this.diagnostics.warn("growth-model", "Growth model switch rejected because the current model is not idle.", {
+                    requestedModel: next, activeModel: previous,
+                });
+                return;
+            }
+            status.textContent = next === "m1as-vfx"
+                ? "M1AS VFX model active · queue, deformation and VFX enabled."
+                : "Baseline model active · same GLB, direct whole-object scaling.";
+            this.diagnostics.info("growth-model", "Sandbox growth model changed.", { model: next });
+            this.telemetryBadge.textContent = next === "m1as-vfx"
+                ? "M1AS VFX Growth Model"
+                : "Baseline GLB Scaling Model";
+        });
+
+        panel.append(label, status);
+        this.controlBar.prepend(panel);
+        this.growthModelControls = panel;
+        this.growthModelSelect = select;
+        this.growthModelStatus = status;
+        status.textContent = select.value === "m1as-vfx"
+            ? "M1AS VFX model active · queue, deformation and VFX enabled."
+            : "Baseline model active · same GLB, direct whole-object scaling.";
+    }
 
     /**
      * Minimal resource-loop prototype. The simulation clock is supplied by
