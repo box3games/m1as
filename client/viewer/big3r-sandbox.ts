@@ -76,6 +76,7 @@ export class Big3rSandboxController {
     private growTimeKeyDown: ((event: KeyboardEvent) => void) | null = null;
     private growTimeKeyUp: ((event: KeyboardEvent) => void) | null = null;
     private growTimeReadout: HTMLElement | null = null;
+    private lastGrowthFlowSampleTimeSeconds = -1;
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
     private readonly heightReticle = document.getElementById("vfxHeightReticle") as HTMLElement | null;
@@ -222,6 +223,25 @@ export class Big3rSandboxController {
                     if (this.growTimeController) {
                         this.growTimeController.advance(simulationTimeSeconds);
                         this.renderGrowTimeState();
+                    }
+                    const engine = this.activeEngine as M1ASVFXEngine | null;
+                    const flow = engine?.getGrowthFlowTelemetry();
+                    if (flow?.active && simulationTimeSeconds - this.lastGrowthFlowSampleTimeSeconds >= 0.5) {
+                        this.lastGrowthFlowSampleTimeSeconds = simulationTimeSeconds;
+                        const sample = {
+                            model: engine?.getGrowthModel() ?? "m1as-vfx",
+                            currentScale: engine?.getCurrentVisualScale(),
+                            supplyRemainingSeconds: flow.supplyRemainingSeconds,
+                            flowMultiplier: flow.flowMultiplier,
+                            growthPerSupplySecond: flow.growthPerSupplySecond,
+                        };
+                        this.diagnostics.log({
+                            level: "info", category: "growth-flow-sample",
+                            message: "Sustained growth flow sample.",
+                            experimentId: this.experimentCoordinator?.experimentId,
+                            simulationTimeSeconds, frameNumber, data: sample,
+                        });
+                        this.experimentCoordinator?.trigger("growth_flow_sample", simulationTimeSeconds, frameNumber);
                     }
                 },
                 onGrowthQueued: (simulationTimeSeconds, frameNumber) => {
@@ -522,6 +542,7 @@ export class Big3rSandboxController {
      */
     private installGrowTimeControls(engine: M1ASVFXEngine): void {
         this.growTimeControls?.remove();
+        this.lastGrowthFlowSampleTimeSeconds = -1;
         if (this.growTimeKeyDown) window.removeEventListener("keydown", this.growTimeKeyDown);
         if (this.growTimeKeyUp) window.removeEventListener("keyup", this.growTimeKeyUp);
         const panel = document.createElement("section");
@@ -748,7 +769,7 @@ export class Big3rSandboxController {
         if (!this.growTimeController || !this.growTimeReadout) return;
         const state = this.growTimeController.getState();
         this.growTimeReadout.textContent =
-            `Stack points: ${state.stackPointsEarned.toFixed(1)} · Available Grow Time: ${state.availableGrowTimeSeconds.toFixed(1)}s · Active: ${state.activeGrowTimeSeconds.toFixed(1)}s @ ${state.activeFlowMultiplier.toFixed(2)}× · Phase: ${state.phase} · Clock: ${state.clockState}`;
+            `Stack points: ${state.stackPointsEarned.toFixed(1)} · Available Grow Time: ${state.availableGrowTimeSeconds.toFixed(1)}s · Active supply: ${state.activeGrowTimeSeconds.toFixed(1)}s @ ${state.activeFlowMultiplier.toFixed(2)}× · Phase: ${state.phase} · Clock: ${state.clockState}`;
     }
 
     private bindEvents(): void {
