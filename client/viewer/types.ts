@@ -63,6 +63,7 @@ export interface VfxEngineOptions {
     onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
     onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
     onGrowthReleased?: (event: GrowthEvent, simulationTimeSeconds: number, frameNumber: number) => void;
+    onDiagnostic?: (level: "info" | "warn" | "error", category: string, message: string, data?: Record<string, unknown>) => void;
 }
 
 export type FaceSlotKey = "bg" | number;
