@@ -211,9 +211,9 @@ export class M1ASVFXGrowthModel implements GrowthModel {
 
     const telemetry = this.engine.getGrowthModelTelemetry();
     const requestedTarget = command.amount.kind === "relative_change"
-      ? telemetry.targetScale * (1 + command.amount.fraction)
+      ? telemetry.projectedTargetScale * (1 + command.amount.fraction)
       : command.amount.scale;
-    const delta = requestedTarget - telemetry.targetScale;
+    const delta = requestedTarget - telemetry.projectedTargetScale;
     if (!Number.isFinite(delta) || delta <= 0) {
       return { commandId: command.commandId, accepted: false, reason: "Legacy M1AS queue adapter currently accepts positive growth deltas only." };
     }
