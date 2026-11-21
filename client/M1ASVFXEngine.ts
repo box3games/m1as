@@ -275,7 +275,7 @@ export class M1ASVFXEngine {
                 }
 
                 const loadData = { boneCount: this.bones.size, animationClips: Array.from(this.actions.keys()), normalizedHeight: this.baseModelHeight };
-                this.onDiagnostic?.("info", "asset-load", "M1AS VFX engine loaded GLB subject.", loadData);
+                try { this.onDiagnostic?.("info", "asset-load", "M1AS VFX engine loaded GLB subject.", loadData); } catch { /* diagnostics cannot affect engine */ }
                 this.subjectRoot.add(this.loadedModel);
                 this.emitTelemetry();
             },
