@@ -56,3 +56,16 @@ export { CaptureScheduler, type CaptureTrigger } from './experiments/capture-sch
 export { ExperimentCoordinator, type ExperimentCoordinatorOptions, type PresentationSamplePayload } from './experiments/coordinator.js';
 
 export { BrowserDownloadExperimentStorage } from './experiments/browser-download-storage.js';
+
+export {
+  GrowTimeController,
+  LocalStorageGrowTimeStore,
+  DEFAULT_GROW_TIME_CONFIG,
+  DEFAULT_GROW_TIME_INPUTS,
+  type GrowTimeConfig,
+  type GrowTimeState,
+  type GrowTimeSnapshot,
+  type GrowTimeStore,
+  type GrowTimeConsumptionPolicy,
+  type GrowTimeConversionMode,
+} from "./growth/grow-time.js";
