@@ -567,7 +567,8 @@ export class Big3rSandboxController {
         const holdRate = makeNumber("Points per B hold-second", DEFAULT_GROW_TIME_CONFIG.pointsPerHoldSecond);
         const conversionRate = makeNumber("Grow seconds per point", DEFAULT_GROW_TIME_CONFIG.growTimeSecondsPerPoint);
         const spendDuration = makeNumber("R consumption seconds", 5);
-        const growthScaleRate = makeNumber("Scale delta per Grow second", 0.01);
+        const growthScaleRate = makeNumber("Growth per supply second", 0.1);
+        const flowRate = makeNumber("Grow Time flow multiplier", 1.0);
         const conversion = document.createElement("select");
         conversion.className = "m1as=select"
         for (const mode of ["continuous", "restricted", "disabled"]) {
@@ -660,13 +661,26 @@ export class Big3rSandboxController {
         const runRestAndGrow = () => {
             applyConfig();
             const seconds = Math.max(0, Number((spendDuration.querySelector("input") as HTMLInputElement).value) || 0);
+            if (engine.getGrowthModel?.() !== "m1as-vfx") {
+                status.textContent = "Sustained Grow Time flow currently requires the M1AS VFX growth model.";
+                return;
+            }
+            const multiplier = Math.max(0.05, Number((flowRate.querySelector("input") as HTMLInputElement).value) || 1);
+            const growthPerSupplySecond = Math.max(0, Number((growthScaleRate.querySelector("input") as HTMLInputElement).value) || 0);
             const consumed = this.growTimeController?.triggerRestAndGrow(
                 engine.getSimulationTimeSeconds(), { kind: "duration", seconds },
             ) ?? 0;
             if (consumed > 0) {
-                const scaleRate = Math.max(0, Number((growthScaleRate.querySelector("input") as HTMLInputElement).value) || 0);
-                engine.enqueueGrowth(Math.max(0.05, consumed * scaleRate), GrowthStimulusType.Buff);
-                status.textContent = `Growth requested · consumed ${consumed.toFixed(2)}s · reserve retained`;
+                this.growTimeController?.setFlowMultiplier(multiplier);
+                const started = engine.startGrowthFlow(consumed, multiplier, growthPerSupplySecond, GrowthStimulusType.Buff);
+                if (started) {
+                    status.textContent = `Sustained growth flow active · ${consumed.toFixed(2)}s supply · ${multiplier.toFixed(2)}× flow`;
+                    this.diagnostics.info("growth-flow", "Grow Time supply committed to sustained M1AS growth.", {
+                        supplySeconds: consumed, flowMultiplier: multiplier, growthPerSupplySecond,
+                    });
+                } else {
+                    status.textContent = "Growth flow could not start; Grow Time was consumed. Reset and inspect diagnostics.";
+                }
             } else {
                 status.textContent = "No Grow Time available, or a growth duration is already active.";
             }
@@ -705,9 +719,19 @@ export class Big3rSandboxController {
         window.addEventListener("keyup", this.growTimeKeyUp);
         conversion.addEventListener("change", () => { applyConfig(); saveAndRender(); });
         stackingToggle.addEventListener("change", () => { applyConfig(); saveAndRender(); });
+        flowRate.querySelector("input")!.addEventListener("change", () => {
+            const multiplier = Math.max(0.05, Number((flowRate.querySelector("input") as HTMLInputElement).value) || 1);
+            if (this.growTimeController?.getState().clockState === "active") {
+                this.growTimeController.setFlowMultiplier(multiplier);
+                engine.setGrowthFlowMultiplier(multiplier);
+                status.textContent = `Active growth flow adjusted to ${multiplier.toFixed(2)}×`;
+                this.diagnostics.info("growth-flow", "Active Grow Time flow multiplier adjusted.", { flowMultiplier: multiplier });
+            }
+            saveAndRender();
+        });
 
         panel.append(aButton, bButton, rButton, conversion, pressRate, holdRate, conversionRate,
-            spendDuration, growthScaleRate, stacking, aKey, bKey, rKey, readout, status);
+            spendDuration, growthScaleRate, flowRate, stacking, aKey, bKey, rKey, readout, status);
         this.controlBar.appendChild(panel);
         this.renderGrowTimeState();
     }
@@ -724,7 +748,7 @@ export class Big3rSandboxController {
         if (!this.growTimeController || !this.growTimeReadout) return;
         const state = this.growTimeController.getState();
         this.growTimeReadout.textContent =
-            `Stack points: ${state.stackPointsEarned.toFixed(1)} · Available Grow Time: ${state.availableGrowTimeSeconds.toFixed(1)}s · Active: ${state.activeGrowTimeSeconds.toFixed(1)}s · Phase: ${state.phase} · Clock: ${state.clockState}`;
+            `Stack points: ${state.stackPointsEarned.toFixed(1)} · Available Grow Time: ${state.availableGrowTimeSeconds.toFixed(1)}s · Active: ${state.activeGrowTimeSeconds.toFixed(1)}s @ ${state.activeFlowMultiplier.toFixed(2)}× · Phase: ${state.phase} · Clock: ${state.clockState}`;
     }
 
     private bindEvents(): void {
