@@ -176,7 +176,7 @@ export class M1ASVFXGrowthModel implements GrowthModel {
   readonly descriptor: GrowthModelDescriptor = {
     id: "m1as-vfx-queue",
     displayName: "M1AS VFX Growth Engine",
-    version: "legacy-queue-adapter-v1",
+    version: "legacy-queue-adapter-v2-flow",
     capabilities: {
       wholeObjectScale: true,
       regionalGrowth: true,
