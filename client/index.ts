@@ -31,7 +31,7 @@ export type {
 } from './viewer/types.js';
 
 export type * from './experiments/contracts.js';
-export { ExperimentRecorder, type ExperimentRecord, type ExperimentStorage, type ExperimentClock, type ExperimentRecorderOptions } from './experiments/recorder.js';
+export { ExperimentRecorder, type ExperimentStorage, type ExperimentClock, type ExperimentRecorderOptions } from './experiments/recorder.js';
 export { ExperimentTimeline } from './experiments/timeline.js';
 export { DEFAULT_CAPTURE_PROFILES } from './experiments/capture-profiles.js';
 export {

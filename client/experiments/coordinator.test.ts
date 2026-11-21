@@ -135,8 +135,8 @@ test('legacy queue release observations are exported and linked to presentation 
   await coordinator.stop();
 
   const execution = storage.records.find(record =>
-    'provenance' in record && record.provenance === 'legacy_observation');
-  assert.ok(execution && 'eventId' in execution);
+    'provenance' in record && record.provenance === 'legacy_observation' && 'status' in record);
+  assert.ok(execution && 'eventId' in execution && 'status' in execution);
   assert.equal(execution.status, 'active');
   const presentation = storage.records.find(record => 'sampleId' in record);
   assert.ok(presentation && 'relatedEventIds' in presentation);
