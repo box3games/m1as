@@ -182,6 +182,21 @@ export class GrowTimeController {
     return consumed;
   }
 
+  /** Stop an active flow and optionally return unused supply to the reserve. */
+  cancelGrowth(refundRemainingSeconds = 0): number {
+    if (!Number.isFinite(refundRemainingSeconds) || refundRemainingSeconds < 0) {
+      throw new RangeError("Refunded Grow Time must be finite and non-negative.");
+    }
+    const refund = Math.min(this.state.activeGrowTimeSeconds, refundRemainingSeconds);
+    this.state.availableGrowTimeSeconds = this.clampReserve(this.state.availableGrowTimeSeconds + refund);
+    this.state.activeGrowTimeSeconds = 0;
+    this.state.activeFlowMultiplier = 1;
+    this.state.clockState = "idle";
+    this.state.phase = "buff";
+    this.state.lastTrigger = "growth_cancelled";
+    return refund;
+  }
+
   pauseGrowth(): void {
     if (this.state.clockState === "active") this.state.clockState = "paused";
   }
