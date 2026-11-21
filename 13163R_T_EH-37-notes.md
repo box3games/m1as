@@ -339,3 +339,36 @@ Example values for illustrating the record structure, not actual measurements fr
 
 Idea - growth is just time growing, longerest grow time >> colossal growth event >> multiple grow events grow clock starts again
 players build grow time rather than points, grow clock starts with rest or other growth event trigger
+Player input / mini-game
+
+Repeated press, hold, configurable actions
+
+
+Buff Stack State
+
+Points earned and converted
+
+
+Grow Time Reserve
+
+Stored, persistent, spendable resource
+
+
+Growth Trigger + Consumption Policy
+
+Duration-driven or chaos-driven
+
+
+Growth Execution
+
+Buff-to-growth transition, body expansion, event timing
+
+
+Presentation Controller
+
+Camera snapshots, occupancy, visibility, landmarks, clipping
+
+
+React / C# parity
+
+Same state transitions, timing contract and configurable rules
