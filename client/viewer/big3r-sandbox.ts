@@ -224,6 +224,9 @@ export class Big3rSandboxController {
                     this.diagnostics.log({ level: "info", category: "growth-queue", message: "Growth stimulus queued.", simulationTimeSeconds, frameNumber });
                     this.experimentCoordinator?.trigger("growth_queued", simulationTimeSeconds, frameNumber);
                 },
+                onDiagnostic: (level, category, message, data) => {
+                    this.diagnostics.log({ level, category, message, data });
+                },
                 onGrowthReleased: (event, simulationTimeSeconds, frameNumber) => {
                     this.diagnostics.log({ level: "info", category: "growth-queue", message: "Legacy growth event released.", simulationTimeSeconds, frameNumber, data: { oldScale: event.oldScale, newScale: event.newScale, delta: event.delta, growthPressure: event.growthPressure, stimulus: event.type, entropyImpact: event.entropyImpact, delayWeight: event.delayWeight } });
                     this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
