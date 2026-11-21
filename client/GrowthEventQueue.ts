@@ -133,6 +133,19 @@ export class GrowthEventQueue {
     return this.ready.shift();
   }
 
+  /**
+   * Feed a sustained growth target without manufacturing a queue event per frame.
+   * The existing spring, damping and instability response continue to own embodiment.
+   */
+  public feedSustainedGrowth(amount: number, stimulus: GrowthStimulusType = GrowthStimulusType.Buff): void {
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const pressure = amount / Math.max(this.targetScale, 0.25);
+    this.targetScale += amount;
+    // Sustained supply adds restrained organic instability; discrete queue bursts remain distinct.
+    const stimulusFactor = stimulus === GrowthStimulusType.Environmental ? 0.08 : 0.04;
+    this.instabilityScore = Math.min(1.25, this.instabilityScore + pressure * stimulusFactor);
+  }
+
   public step(deltaSeconds: number): GrowthQueueTelemetry {
     const fDelta = Math.min(deltaSeconds, 0.05);
 
