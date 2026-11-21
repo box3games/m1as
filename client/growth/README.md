@@ -77,5 +77,5 @@ Experiment capture uses IndexedDB for persistent structured records. Finalizatio
 - Growth-per-supply-second independently controls how much target-scale increase each supply-second produces.
 - The M1AS engine feeds the existing queue's spring target directly. It does not enqueue an event every frame, and discrete stimuli remain independently available to interrupt or compound sustained growth.
 - The Grow Time controller and engine both advance from the same simulation clock and use the same flow multiplier.
-- Flow start, rate changes, depletion, and stop are written to diagnostics. Active flow samples are captured at 2 Hz during experiments with scale, remaining supply, multiplier, and growth response configuration.
+- Flow start, rate changes, depletion, and stop are written to diagnostics. Active flow samples are captured at 2 Hz during experiments with scale, remaining supply, multiplier, and growth response configuration. Stopping a flow refunds only the unused supply; reset performs the same synchronization.
 - Baseline scaling remains a control model; this sandbox Grow Time flow path currently requires M1AS VFX mode.
