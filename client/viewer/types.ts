@@ -21,6 +21,7 @@ export interface SignedUrlResponse {
 }
 
 export type GrowthMode = "click" | "tap" | "hold" | "chaos-delayed";
+export type GrowthModelMode = "m1as-vfx" | "baseline-scale";
 export type StimulusType = "Consumption" | "Exercise" | "Buff" | "Environmental";
 export type PropRole = "consumable" | "wearable" | "container" | "growth-gate" | "reference";
 export type PostureState = "stand" | "hunch" | "crawl";
@@ -121,6 +122,8 @@ export interface Big3rStagePreset {
 
 export interface IVfxEngine {
     setMode(mode: GrowthMode): void;
+    getGrowthModel?(): GrowthModelMode;
+    setGrowthModel?(mode: GrowthModelMode): boolean;
     enqueueGrowth(amount: number, stimulus: StimulusType): void;
     startHoldGrowth(): void;
     releaseHoldGrowth(): void;
