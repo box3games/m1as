@@ -1016,23 +1016,25 @@ export class M1ASVFXEngine {
         video.onended = cleanup;
         video.play().catch(cleanup);
     }
-    private beginBaselineGrowth(amount: number): void {
-        if (!Number.isFinite(amount) || amount <= 0) return;
+    private beginBaselineGrowth(amount: number): { oldScale: number; newScale: number } | null {
+        if (!Number.isFinite(amount) || amount <= 0) return null;
+        const oldScale = Math.max(this.baselineCurrentScale, this.baselineTargetScale);
         this.baselineStartScale = this.baselineCurrentScale;
-        this.baselineTargetScale = this.baselineCurrentScale + amount;
+        this.baselineTargetScale = oldScale + amount;
         this.baselineElapsedSeconds = 0;
-        this.baselineDurationSeconds = Math.max(0.75, amount * 2.0);
+        this.baselineDurationSeconds = Math.max(0.75, (this.baselineTargetScale - this.baselineCurrentScale) * 2.0);
+        return { oldScale, newScale: this.baselineTargetScale };
     }
 
     private advanceBaselineGrowth(dt: number): void {
-        for (let i = this.baselineDelayedEvents.length - 1; i >= 0; i--) {
-            const event = this.baselineDelayedEvents[i];
-            if (this.simulationTimeSeconds < event.dueAt) continue;
-            this.baselineDelayedEvents.splice(i, 1);
-            this.beginBaselineGrowth(event.amount);
+        this.baselineDelayedEvents.sort((a, b) => a.dueAt - b.dueAt);
+        while (this.baselineDelayedEvents.length > 0 && this.simulationTimeSeconds >= this.baselineDelayedEvents[0].dueAt) {
+            const event = this.baselineDelayedEvents.shift()!;
+            const transition = this.beginBaselineGrowth(event.amount);
+            if (!transition) continue;
             try {
                 this.onGrowthReleased?.({
-                    oldScale: this.baselineStartScale, newScale: this.baselineTargetScale,
+                    oldScale: transition.oldScale, newScale: transition.newScale,
                     delta: event.amount, growthPressure: 0, type: event.stimulus,
                     entropyImpact: 0, delayWeight: 0
                 } as GrowthEvent, this.simulationTimeSeconds, this.simulationFrameNumber);
