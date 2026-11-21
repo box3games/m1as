@@ -333,7 +333,7 @@ export class M1ASVFXEngine {
     public getGrowthModel(): GrowthModelMode { return this.growthModelMode; }
     public setGrowthModel(mode: GrowthModelMode): boolean {
         if (mode === this.growthModelMode) return true;
-        if (this.isHolding) return false;
+        if (this.isHolding || this.growFlowRemainingSeconds > 0) return false;
         if (this.growthModelMode === 'm1as-vfx') {
             const queueSettled =
                 this.growthQueue.pendingCount === 0 &&
