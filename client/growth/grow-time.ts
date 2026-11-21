@@ -188,13 +188,15 @@ export class GrowTimeController {
       throw new RangeError("Refunded Grow Time must be finite and non-negative.");
     }
     const refund = Math.min(this.state.activeGrowTimeSeconds, refundRemainingSeconds);
-    this.state.availableGrowTimeSeconds = this.clampReserve(this.state.availableGrowTimeSeconds + refund);
+    const reserveBeforeRefund = this.state.availableGrowTimeSeconds;
+    this.state.availableGrowTimeSeconds = this.clampReserve(reserveBeforeRefund + refund);
+    const actuallyRefunded = this.state.availableGrowTimeSeconds - reserveBeforeRefund;
     this.state.activeGrowTimeSeconds = 0;
     this.state.activeFlowMultiplier = 1;
     this.state.clockState = "idle";
     this.state.phase = "buff";
     this.state.lastTrigger = "growth_cancelled";
-    return refund;
+    return actuallyRefunded;
   }
 
   pauseGrowth(): void {
