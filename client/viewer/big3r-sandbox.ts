@@ -20,6 +20,9 @@ import type { ExperimentManifest } from "../experiments/contracts.js";
 import { DEFAULT_CAPTURE_PROFILES } from "../experiments/capture-profiles.js";
 import { ExperimentCoordinator, type PresentationSamplePayload } from "../experiments/coordinator.js";
 import { BrowserDownloadExperimentStorage } from "../experiments/browser-download-storage.js";
+import { IndexedDbExperimentStorage } from "../experiments/indexeddb-storage.js";
+import { MultiTargetExperimentStorage } from "../experiments/multi-target-storage.js";
+import { createBrowserDiagnosticLogger } from "../experiments/diagnostic-logger.js";
 import {
     GrowTimeController,
     LocalStorageGrowTimeStore,
@@ -55,6 +58,7 @@ export interface Big3rSandboxOptions {
 export class Big3rSandboxController {
     private readonly userId: string;
     private readonly engineFactory: VfxEngineFactory;
+    private readonly diagnostics = createBrowserDiagnosticLogger();
     private activeEngine: IVfxEngine | null = null;
 
     private coordinator: Big3rStageCoordinator | null = null;
@@ -167,6 +171,7 @@ export class Big3rSandboxController {
         }
 
         this.glbUrlInput.value = glbSignedUrl;
+        this.diagnostics.info("asset-stream", "Beginning primary GLB stream.", { source: "sandbox_mount" });
 
         if (this.experimentCoordinator) {
             await this.experimentCoordinator.stop();
@@ -189,6 +194,7 @@ export class Big3rSandboxController {
             const res = await fetch(glbSignedUrl, { headers: { "m1as-user-id": this.userId } });
             if (!res.ok) throw new Error(`GLB stream failed (${res.status})`);
             const glbBlob = await res.blob();
+            this.diagnostics.info("asset-stream", "Primary GLB downloaded for local streaming.", { byteLength: glbBlob.size, contentType: glbBlob.type || "unknown" });
             const glbBlobUrl = URL.createObjectURL(glbBlob);
 
             this.stageContainer.innerHTML = "";
@@ -309,12 +315,15 @@ export class Big3rSandboxController {
                     world: "sandbox-stage",
                 },
             };
-            const storage = new BrowserDownloadExperimentStorage((url, fileName) => {
+            const downloadStorage = new BrowserDownloadExperimentStorage((url, fileName) => {
                 exportLink.href = url;
                 exportLink.download = fileName;
                 exportLink.hidden = false;
                 status.textContent = "Experiment finalized and ready to download.";
             });
+            const persistentStorage = new IndexedDbExperimentStorage();
+            const storage = new MultiTargetExperimentStorage([persistentStorage, downloadStorage]);
+            this.diagnostics.info("experiment", "Starting experiment capture.", { experimentId, captureProfile: profile.name });
             const coordinator = new ExperimentCoordinator({
                 manifest,
                 storage,
@@ -359,20 +368,23 @@ export class Big3rSandboxController {
                         relatedEventIds: [],
                     };
                 },
-                onCaptureError: (error) => {
-                    status.textContent = `Capture warning: ${String(error)}`;
+                onCaptureError: (error, stream) => {
+                    this.diagnostics.error("experiment-capture", "Experiment capture or storage failed.", { experimentId, stream, error: String(error) });
+                    status.textContent = `Capture warning (${stream}): ${String(error)}`;
                 },
             });
-            this.experimentStorage = storage;
+            this.experimentStorage = downloadStorage;
             this.experimentCoordinator = coordinator;
             try {
                 await coordinator.start();
                 start.disabled = true;
                 stop.disabled = false;
                 exportLink.hidden = true;
-                status.textContent = `Recording ${experimentId} · ${profile.name} profile`;
+                status.textContent = `Recording ${experimentId} · ${profile.name} profile · IndexedDB + download mirror`;
+                this.diagnostics.info("experiment", "Experiment recording started.", { experimentId, captureProfile: profile.name });
             } catch (error) {
                 this.experimentCoordinator = null;
+                this.diagnostics.error("experiment", "Could not start experiment capture.", { experimentId, error: String(error) });
                 status.textContent = `Could not start capture: ${String(error)}`;
             }
         });
