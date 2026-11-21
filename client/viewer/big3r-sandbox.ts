@@ -655,18 +655,21 @@ export class Big3rSandboxController {
             this.growthModeSelect.value = "hold";
             this.activeEngine.setMode("hold");
             this.activeEngine.startHoldGrowth();
+            this.diagnostics.info("input", "Hold Charge pressed.", { input: "hold_charge", action: "begin" });
             this.holdBtn.textContent = "🔥 Charging... Release!";
         });
 
         const releaseHold = () => {
             if (!this.activeEngine) return;
             this.activeEngine.releaseHoldGrowth();
+            this.diagnostics.info("input", "Hold Charge released.", { input: "hold_charge", action: "release" });
             this.holdBtn.textContent = "✊ Hold Charge";
         };
         this.holdBtn.addEventListener("pointerup", releaseHold);
         this.holdBtn.addEventListener("pointerleave", releaseHold);
 
         this.chaosBtn.addEventListener("click", () => {
+            this.diagnostics.info("input", "Colossal Chaos activated.", { input: "colossal_chaos", delaySeconds: 2.0, surgeAmount: 2.6 });
             this.activeEngine?.triggerDelayedColossalChaos(2.0, 2.6);
         });
 
