@@ -29,6 +29,7 @@ export interface GrowTimeState {
   stackPointsEarned: number;
   availableGrowTimeSeconds: number;
   activeGrowTimeSeconds: number;
+  activeFlowMultiplier: number;
   phase: GrowTimePhase;
   clockState: GrowTimeClockState;
   holdActive: boolean;
@@ -77,6 +78,7 @@ export class GrowTimeController {
       stackPointsEarned: snapshot?.stackPointsEarned ?? 0,
       availableGrowTimeSeconds: snapshot?.availableGrowTimeSeconds ?? 0,
       activeGrowTimeSeconds: 0,
+      activeFlowMultiplier: 1,
       phase: "buff",
       clockState: "idle",
       holdActive: false,
@@ -137,14 +139,23 @@ export class GrowTimeController {
     }
 
     if (this.state.clockState === "active" && this.state.activeGrowTimeSeconds > 0) {
-      this.state.activeGrowTimeSeconds = Math.max(0, this.state.activeGrowTimeSeconds - delta);
+      this.state.activeGrowTimeSeconds = Math.max(0, this.state.activeGrowTimeSeconds - delta * this.state.activeFlowMultiplier);
       if (this.state.activeGrowTimeSeconds === 0) {
         this.state.clockState = "idle";
+        this.state.activeFlowMultiplier = 1;
         this.state.phase = "buff";
         this.state.lastTrigger = "growth_duration_completed";
       }
     }
     this.state.lastSimulationTimeSeconds = simulationTimeSeconds;
+  }
+
+  /** Set how quickly active supply is consumed; 1.0 is nominal. */
+  setFlowMultiplier(multiplier: number): void {
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      throw new RangeError("Flow multiplier must be finite and greater than zero.");
+    }
+    this.state.activeFlowMultiplier = multiplier;
   }
 
   /** R/rest trigger. randomUnit is injectable so chaos policy is reproducible. */
@@ -162,6 +173,7 @@ export class GrowTimeController {
 
     this.state.availableGrowTimeSeconds = this.clampReserve(this.state.availableGrowTimeSeconds - consumed);
     this.state.activeGrowTimeSeconds = consumed;
+    this.state.activeFlowMultiplier = 1;
     this.state.phase = "growth";
     this.state.clockState = "active";
     this.state.holdActive = false;
