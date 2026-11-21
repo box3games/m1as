@@ -19,9 +19,7 @@ import { EXPERIMENT_SCHEMA_VERSION } from "../experiments/contracts.js";
 import type { ExperimentManifest } from "../experiments/contracts.js";
 import { DEFAULT_CAPTURE_PROFILES } from "../experiments/capture-profiles.js";
 import { ExperimentCoordinator, type PresentationSamplePayload } from "../experiments/coordinator.js";
-import { BrowserDownloadExperimentStorage } from "../experiments/browser-download-storage.js";
 import { IndexedDbExperimentStorage } from "../experiments/indexeddb-storage.js";
-import { MultiTargetExperimentStorage } from "../experiments/multi-target-storage.js";
 import { createBrowserDiagnosticLogger } from "../experiments/diagnostic-logger.js";
 import {
     GrowTimeController,
@@ -63,7 +61,7 @@ export class Big3rSandboxController {
 
     private coordinator: Big3rStageCoordinator | null = null;
     private experimentCoordinator: ExperimentCoordinator | null = null;
-    private experimentStorage: BrowserDownloadExperimentStorage | null = null;
+    private experimentStorage: IndexedDbExperimentStorage | null = null;
     private experimentControls: HTMLElement | null = null;
     private experimentStatus: HTMLElement | null = null;
     private experimentExportLink: HTMLAnchorElement | null = null;
@@ -221,14 +219,14 @@ export class Big3rSandboxController {
                     }
                 },
                 onGrowthQueued: (simulationTimeSeconds, frameNumber) => {
-                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Growth stimulus queued.", simulationTimeSeconds, frameNumber });
+                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Growth stimulus queued.", experimentId: this.experimentCoordinator?.experimentId, simulationTimeSeconds, frameNumber });
                     this.experimentCoordinator?.trigger("growth_queued", simulationTimeSeconds, frameNumber);
                 },
                 onDiagnostic: (level, category, message, data) => {
-                    this.diagnostics.log({ level, category, message, data });
+                    this.diagnostics.log({ level, category, message, experimentId: this.experimentCoordinator?.experimentId, data });
                 },
                 onGrowthReleased: (event, simulationTimeSeconds, frameNumber) => {
-                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Legacy growth event released.", simulationTimeSeconds, frameNumber, data: { oldScale: event.oldScale, newScale: event.newScale, delta: event.delta, growthPressure: event.growthPressure, stimulus: event.type, entropyImpact: event.entropyImpact, delayWeight: event.delayWeight } });
+                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Legacy growth event released.", experimentId: this.experimentCoordinator?.experimentId, simulationTimeSeconds, frameNumber, data: { oldScale: event.oldScale, newScale: event.newScale, delta: event.delta, growthPressure: event.growthPressure, stimulus: event.type, entropyImpact: event.entropyImpact, delayWeight: event.delayWeight } });
                     this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
                 },
                 onStateChange: (state) => {
@@ -321,14 +319,12 @@ export class Big3rSandboxController {
                     world: "sandbox-stage",
                 },
             };
-            const downloadStorage = new BrowserDownloadExperimentStorage((url, fileName) => {
+            const storage = new IndexedDbExperimentStorage((url, fileName) => {
                 exportLink.href = url;
                 exportLink.download = fileName;
                 exportLink.hidden = false;
-                status.textContent = "Experiment finalized and ready to download.";
+                status.textContent = "Experiment finalized, persisted locally, and ready to download.";
             });
-            const persistentStorage = new IndexedDbExperimentStorage();
-            const storage = new MultiTargetExperimentStorage([persistentStorage, downloadStorage]);
             this.diagnostics.info("experiment", "Starting experiment capture.", { experimentId, captureProfile: profile.name });
             const coordinator = new ExperimentCoordinator({
                 manifest,
@@ -379,14 +375,14 @@ export class Big3rSandboxController {
                     status.textContent = `Capture warning (${stream}): ${String(error)}`;
                 },
             });
-            this.experimentStorage = downloadStorage;
+            this.experimentStorage = storage;
             this.experimentCoordinator = coordinator;
             try {
                 await coordinator.start();
                 start.disabled = true;
                 stop.disabled = false;
                 exportLink.hidden = true;
-                status.textContent = `Recording ${experimentId} · ${profile.name} profile · IndexedDB + download mirror`;
+                status.textContent = `Recording ${experimentId} · ${profile.name} profile · IndexedDB persistent capture`;
                 this.diagnostics.info("experiment", "Experiment recording started.", { experimentId, captureProfile: profile.name });
             } catch (error) {
                 this.experimentCoordinator = null;
