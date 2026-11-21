@@ -68,6 +68,8 @@ export class Big3rSandboxController {
     private growTimeStore: GrowTimeStore | null = null;
     private growTimeStatus: HTMLElement | null = null;
     private growTimeControls: HTMLElement | null = null;
+    private growTimeKeyDown: ((event: KeyboardEvent) => void) | null = null;
+    private growTimeKeyUp: ((event: KeyboardEvent) => void) | null = null;
     private growTimeReadout: HTMLElement | null = null;
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
@@ -410,6 +412,8 @@ export class Big3rSandboxController {
      */
     private installGrowTimeControls(engine: M1ASVFXEngine): void {
         this.growTimeControls?.remove();
+        if (this.growTimeKeyDown) window.removeEventListener("keydown", this.growTimeKeyDown);
+        if (this.growTimeKeyUp) window.removeEventListener("keyup", this.growTimeKeyUp);
         const panel = document.createElement("section");
         panel.className = "m1as-grow-time-controls";
         this.growTimeControls = panel;
@@ -487,6 +491,22 @@ export class Big3rSandboxController {
         const aButton = button("A · Stack");
         const bButton = button("B · Hold to stack");
         const rButton = button("R · Rest / Grow");
+        const makeKeyInput = (label: string, value: string): HTMLLabelElement => {
+            const wrapper = document.createElement("label");
+            wrapper.textContent = label;
+            wrapper.style.display = "grid";
+            wrapper.style.gap = "4px";
+            const input = document.createElement("input");
+            input.type = "text";
+            input.maxLength = 1;
+            input.value = value;
+            input.style.width = "48px";
+            wrapper.appendChild(input);
+            return wrapper;
+        };
+        const aKey = makeKeyInput("A action key", "a");
+        const bKey = makeKeyInput("B hold key", "b");
+        const rKey = makeKeyInput("R growth key", "r");
 
         const applyConfig = () => {
             this.growTimeController?.updateConfig({
@@ -523,7 +543,7 @@ export class Big3rSandboxController {
         bButton.addEventListener("pointerup", endB);
         bButton.addEventListener("pointerleave", endB);
         bButton.addEventListener("pointercancel", endB);
-        rButton.addEventListener("click", () => {
+        const runRestAndGrow = () => {
             applyConfig();
             const seconds = Math.max(0, Number((spendDuration.querySelector("input") as HTMLInputElement).value) || 0);
             const consumed = this.growTimeController?.triggerRestAndGrow(
@@ -537,12 +557,43 @@ export class Big3rSandboxController {
                 status.textContent = "No Grow Time available, or a growth duration is already active.";
             }
             saveAndRender();
-        });
+        };
+        rButton.addEventListener("click", runRestAndGrow);
+
+        this.growTimeKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return;
+            const key = event.key.toLowerCase();
+            if (key === (aKey.querySelector("input") as HTMLInputElement).value.toLowerCase() && !event.repeat) {
+                event.preventDefault();
+                applyConfig();
+                this.growTimeController?.pressStack(engine.getSimulationTimeSeconds());
+                saveAndRender();
+            } else if (key === (bKey.querySelector("input") as HTMLInputElement).value.toLowerCase()) {
+                if (!event.repeat) {
+                    event.preventDefault();
+                    applyConfig();
+                    this.growTimeController?.beginHold(engine.getSimulationTimeSeconds());
+                    bButton.textContent = "B · Release to stop";
+                }
+            } else if (key === (rKey.querySelector("input") as HTMLInputElement).value.toLowerCase() && !event.repeat) {
+                event.preventDefault();
+                runRestAndGrow();
+            }
+        };
+        this.growTimeKeyUp = (event: KeyboardEvent) => {
+            if (event.key.toLowerCase() !== (bKey.querySelector("input") as HTMLInputElement).value.toLowerCase()) return;
+            this.growTimeController?.endHold(engine.getSimulationTimeSeconds());
+            bButton.textContent = "B · Hold to stack";
+            saveAndRender();
+        };
+        window.addEventListener("keydown", this.growTimeKeyDown);
+        window.addEventListener("keyup", this.growTimeKeyUp);
         conversion.addEventListener("change", () => { applyConfig(); saveAndRender(); });
         stackingToggle.addEventListener("change", () => { applyConfig(); saveAndRender(); });
 
         panel.append(aButton, bButton, rButton, conversion, pressRate, holdRate, conversionRate,
-            spendDuration, growthScaleRate, stacking, readout, status);
+            spendDuration, growthScaleRate, stacking, aKey, bKey, rKey, readout, status);
         this.controlBar.appendChild(panel);
         this.renderGrowTimeState();
     }
