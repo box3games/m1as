@@ -173,6 +173,9 @@ export class Big3rSandboxController {
         }
 
         this.glbUrlInput.value = glbSignedUrl;
+        this.growthModelControls?.remove();
+        this.growthModelControls = null;
+        this.growthModelSelect = null;
         this.diagnostics.info("asset-stream", "Beginning primary GLB stream.", { source: "sandbox_mount" });
 
         if (this.experimentCoordinator) {
