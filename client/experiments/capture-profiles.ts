@@ -11,7 +11,7 @@ export const DEFAULT_CAPTURE_PROFILES: Readonly<Record<CaptureProfileName, Captu
   },
   detailed: {
     name: 'detailed', mode: 'continuous', sampleIntervalSeconds: 0.1,
-    eventTriggers: ['growth_queued', 'growth_started', 'growth_completed', 'growth_velocity_changed', 'threshold_crossed',
+    eventTriggers: ['growth_queued', 'growth_started', 'growth_completed', 'growth_flow_sample', 'growth_velocity_changed', 'threshold_crossed',
       'camera_mode_changed', 'visibility_changed', 'environment_scale_transition', 'perception_annotation'],
     preEventWindowSeconds: 1, postEventWindowSeconds: 2,
     includeCamera: true, includeCharacter: true, includeWorldLandmarks: true,
@@ -19,7 +19,7 @@ export const DEFAULT_CAPTURE_PROFILES: Readonly<Record<CaptureProfileName, Captu
   },
   discovery: {
     name: 'discovery', mode: 'continuous', sampleIntervalSeconds: 0.05,
-    eventTriggers: ['growth_queued', 'growth_started', 'growth_completed', 'growth_velocity_changed', 'threshold_crossed',
+    eventTriggers: ['growth_queued', 'growth_started', 'growth_completed', 'growth_flow_sample', 'growth_velocity_changed', 'threshold_crossed',
       'camera_mode_changed', 'visibility_changed', 'environment_scale_transition', 'perception_annotation',
       'screen_occupancy_changed', 'unexpected_growth_continuation'],
     preEventWindowSeconds: 2, postEventWindowSeconds: 4,
