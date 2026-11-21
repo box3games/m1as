@@ -354,12 +354,16 @@ export class M1ASVFXEngine {
     /** Read-only queue and character diagnostics for interchangeable-model adapters. */
     public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean } {
         return {
-            currentScale: this.growthQueue.currentVisualScale,
-            targetScale: this.growthQueue.currentTargetScale,
-            projectedTargetScale: this.projectedTargetScale,
-            growthVelocity: this.growthQueue.currentGrowthVelocity,
-            instability: this.growthQueue.currentInstability,
-            pendingEvents: this.growthQueue.pendingCount,
+            currentScale: this.getCurrentVisualScale(),
+            targetScale: this.growthModelMode === 'baseline-scale' ? this.baselineTargetScale : this.growthQueue.currentTargetScale,
+            projectedTargetScale: this.growthModelMode === 'baseline-scale' ? this.baselineTargetScale : this.projectedTargetScale,
+            growthVelocity: this.growthModelMode === 'baseline-scale' && this.baselineDurationSeconds > 0
+                ? (this.baselineTargetScale - this.baselineStartScale) / this.baselineDurationSeconds
+                : this.growthQueue.currentGrowthVelocity,
+            instability: this.growthModelMode === 'baseline-scale' ? 0 : this.growthQueue.currentInstability,
+            pendingEvents: this.growthModelMode === 'baseline-scale'
+                ? this.baselineDelayedEvents.length + (this.baselineCurrentScale !== this.baselineTargetScale ? 1 : 0)
+                : this.growthQueue.pendingCount,
             posture: this.posture,
             goldenBuffer: this.storedGoldenBuffer,
             isHolding: this.isHolding,
