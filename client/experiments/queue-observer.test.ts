@@ -27,3 +27,15 @@ test('observer exceptions cannot interrupt queue stepping or release', () => {
   assert.equal(queue.pendingCount, 0);
   assert.equal(queue.hasEvents, true);
 });
+
+
+test('sustained growth feed advances the existing spring target without queuing per-frame events', () => {
+  const queue = new GrowthEventQueue(1);
+  queue.feedSustainedGrowth(0.25, GrowthStimulusType.Buff);
+  queue.feedSustainedGrowth(0.25, GrowthStimulusType.Buff);
+  assert.equal(queue.currentTargetScale, 1.5);
+  assert.equal(queue.pendingCount, 0);
+  assert.equal(queue.hasEvents, false);
+  const frame = queue.step(0.05);
+  assert.ok(frame.absoluteFinalScale > 1);
+});
