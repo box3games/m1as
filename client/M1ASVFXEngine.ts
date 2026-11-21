@@ -420,11 +420,12 @@ export class M1ASVFXEngine {
         return true;
     }
 
-    public stopGrowthFlow(): void {
-        if (this.growFlowRemainingSeconds <= 0) return;
+    public stopGrowthFlow(): number {
         const remaining = this.growFlowRemainingSeconds;
+        if (remaining <= 0) return 0;
         this.growFlowRemainingSeconds = 0;
         try { this.onDiagnostic?.('info', 'growth-flow', 'Sustained growth flow stopped.', { unusedSupplySeconds: remaining }); } catch { /* diagnostics cannot affect simulation */ }
+        return remaining;
     }
 
     public getGrowthFlowTelemetry(): { active: boolean; supplyRemainingSeconds: number; flowMultiplier: number; growthPerSupplySecond: number } {
