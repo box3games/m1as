@@ -82,6 +82,10 @@ export class GrowthEventQueue {
     return this.instabilityScore;
   }
 
+  public get currentGrowthVelocity(): number {
+    return this.growthVelocity;
+  }
+
   public get pendingCount(): number {
     return this.queue.length;
   }
