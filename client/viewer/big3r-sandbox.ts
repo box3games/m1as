@@ -19,6 +19,12 @@ import type { ExperimentManifest } from "../experiments/contracts.js";
 import { DEFAULT_CAPTURE_PROFILES } from "../experiments/capture-profiles.js";
 import { ExperimentCoordinator, type PresentationSamplePayload } from "../experiments/coordinator.js";
 import { BrowserDownloadExperimentStorage } from "../experiments/browser-download-storage.js";
+import {
+    GrowTimeController,
+    LocalStorageGrowTimeStore,
+    DEFAULT_GROW_TIME_CONFIG,
+    type GrowTimeStore,
+} from "../growth/grow-time.js";
 import { captureCharacterPresentation, capturePerspectiveCamera } from "../experiments/three-adapters.js";
 
 
@@ -57,6 +63,10 @@ export class Big3rSandboxController {
     private experimentStatus: HTMLElement | null = null;
     private experimentExportLink: HTMLAnchorElement | null = null;
     private currentBoxTier = 1;
+    private growTimeController: GrowTimeController | null = null;
+    private growTimeStore: GrowTimeStore | null = null;
+    private growTimeStatus: HTMLElement | null = null;
+    private growTimeReadout: HTMLElement | null = null;
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
     private readonly heightReticle = document.getElementById("vfxHeightReticle") as HTMLElement | null;
@@ -194,6 +204,11 @@ export class Big3rSandboxController {
                 onPropsChanged: (props) => this.renderActivePropsUI(props),
                 onFrame: (simulationTimeSeconds, frameNumber) => {
                     this.experimentCoordinator?.tick(simulationTimeSeconds, frameNumber);
+                    if (this.growTimeController) {
+                        this.growTimeController.advance(simulationTimeSeconds);
+                        this.persistGrowTime();
+                        this.renderGrowTimeState();
+                    }
                 },
                 onGrowthQueued: (simulationTimeSeconds, frameNumber) => {
                     this.experimentCoordinator?.trigger("growth_queued", simulationTimeSeconds, frameNumber);
@@ -213,6 +228,7 @@ export class Big3rSandboxController {
             });
 
             this.installExperimentControls(this.activeEngine as unknown as M1ASVFXEngine);
+            this.installGrowTimeControls(this.activeEngine as unknown as M1ASVFXEngine);
 
             this.coordinator = new Big3rStageCoordinator(
                 this.activeEngine as unknown as M1ASVFXEngine,
@@ -384,6 +400,163 @@ export class Big3rSandboxController {
         this.experimentControls = panel;
         this.experimentStatus = status;
         this.experimentExportLink = exportLink;
+    }
+
+
+    /**
+     * Minimal resource-loop prototype. The simulation clock is supplied by
+     * M1ASVFXEngine; localStorage persists only the durable reserve/point totals.
+     */
+    private installGrowTimeControls(engine: M1ASVFXEngine): void {
+        const panel = document.createElement("section");
+        panel.className = "m1as-grow-time-controls";
+        panel.style.display = "grid";
+        panel.style.gridTemplateColumns = "repeat(auto-fit, minmax(150px, 1fr))";
+        panel.style.gap = "8px";
+        panel.style.padding = "12px";
+        panel.style.margin = "10px 0";
+        panel.style.border = "1px solid rgba(148,163,184,.35)";
+        panel.style.borderRadius = "10px";
+
+        const heading = document.createElement("strong");
+        heading.textContent = "Grow Time · Resource Prototype";
+        heading.style.gridColumn = "1 / -1";
+        panel.appendChild(heading);
+
+        let store: GrowTimeStore | null = null;
+        try {
+            store = new LocalStorageGrowTimeStore(window.localStorage);
+        } catch { /* browser storage may be unavailable */ }
+        this.growTimeStore = store;
+        const saved = store?.load() ?? null;
+        this.growTimeController = new GrowTimeController(DEFAULT_GROW_TIME_CONFIG, saved);
+
+        const makeNumber = (label: string, value: number, step = "0.1"): HTMLLabelElement => {
+            const wrapper = document.createElement("label");
+            wrapper.textContent = label;
+            wrapper.style.display = "grid";
+            wrapper.style.gap = "4px";
+            const input = document.createElement("input");
+            input.type = "number";
+            input.min = "0";
+            input.step = step;
+            input.value = String(value);
+            input.style.minWidth = "0";
+            wrapper.appendChild(input);
+            return wrapper;
+        };
+        const pressRate = makeNumber("Points per A press", DEFAULT_GROW_TIME_CONFIG.pointsPerPress, "1");
+        const holdRate = makeNumber("Points per B hold-second", DEFAULT_GROW_TIME_CONFIG.pointsPerHoldSecond);
+        const conversionRate = makeNumber("Grow seconds per point", DEFAULT_GROW_TIME_CONFIG.growTimeSecondsPerPoint);
+        const spendDuration = makeNumber("R consumption seconds", 5);
+        const growthScaleRate = makeNumber("Scale delta per Grow second", 0.01);
+        const conversion = document.createElement("select");
+        for (const mode of ["continuous", "restricted", "disabled"]) {
+            const option = document.createElement("option");
+            option.value = mode;
+            option.textContent = `Conversion: ${mode}`;
+            conversion.appendChild(option);
+        }
+        const stacking = document.createElement("label");
+        const stackingToggle = document.createElement("input");
+        stackingToggle.type = "checkbox";
+        stackingToggle.checked = DEFAULT_GROW_TIME_CONFIG.allowStackingDuringGrowth;
+        stacking.append(stackingToggle, document.createTextNode(" Allow stacking during growth"));
+
+        const readout = document.createElement("div");
+        readout.style.gridColumn = "1 / -1";
+        readout.style.fontVariantNumeric = "tabular-nums";
+        readout.style.lineHeight = "1.6";
+        const status = document.createElement("div");
+        status.style.gridColumn = "1 / -1";
+        status.style.color = "#94a3b8";
+        status.textContent = "A stacks · hold B accumulates · R spends stored Grow Time";
+        this.growTimeReadout = readout;
+        this.growTimeStatus = status;
+
+        const button = (label: string): HTMLButtonElement => {
+            const el = document.createElement("button");
+            el.type = "button";
+            el.textContent = label;
+            el.style.padding = "8px 12px";
+            return el;
+        };
+        const aButton = button("A · Stack");
+        const bButton = button("B · Hold to stack");
+        const rButton = button("R · Rest / Grow");
+
+        const applyConfig = () => {
+            this.growTimeController?.updateConfig({
+                conversionMode: conversion.value as "continuous" | "restricted" | "disabled",
+                pointsPerPress: Math.max(0, Number((pressRate.querySelector("input") as HTMLInputElement).value) || 0),
+                pointsPerHoldSecond: Math.max(0, Number((holdRate.querySelector("input") as HTMLInputElement).value) || 0),
+                growTimeSecondsPerPoint: Math.max(0, Number((conversionRate.querySelector("input") as HTMLInputElement).value) || 0),
+                allowStackingDuringGrowth: stackingToggle.checked,
+            });
+        };
+        const saveAndRender = () => {
+            this.persistGrowTime();
+            this.renderGrowTimeState();
+        };
+
+        aButton.addEventListener("click", () => {
+            applyConfig();
+            this.growTimeController?.pressStack(engine.getSimulationTimeSeconds());
+            saveAndRender();
+        });
+        const beginB = (event: Event) => {
+            event.preventDefault();
+            applyConfig();
+            this.growTimeController?.beginHold(engine.getSimulationTimeSeconds());
+            bButton.textContent = "B · Release to stop";
+            saveAndRender();
+        };
+        const endB = () => {
+            this.growTimeController?.endHold(engine.getSimulationTimeSeconds());
+            bButton.textContent = "B · Hold to stack";
+            saveAndRender();
+        };
+        bButton.addEventListener("pointerdown", beginB);
+        bButton.addEventListener("pointerup", endB);
+        bButton.addEventListener("pointerleave", endB);
+        bButton.addEventListener("pointercancel", endB);
+        rButton.addEventListener("click", () => {
+            applyConfig();
+            const seconds = Math.max(0, Number((spendDuration.querySelector("input") as HTMLInputElement).value) || 0);
+            const consumed = this.growTimeController?.triggerRestAndGrow(
+                engine.getSimulationTimeSeconds(), { kind: "duration", seconds },
+            ) ?? 0;
+            if (consumed > 0) {
+                const scaleRate = Math.max(0, Number((growthScaleRate.querySelector("input") as HTMLInputElement).value) || 0);
+                engine.enqueueGrowth(Math.max(0.05, consumed * scaleRate), "Buff" as never);
+                status.textContent = `Growth requested · consumed ${consumed.toFixed(2)}s · reserve retained`;
+            } else {
+                status.textContent = "No Grow Time available, or a growth duration is already active.";
+            }
+            saveAndRender();
+        });
+        conversion.addEventListener("change", () => { applyConfig(); saveAndRender(); });
+        stackingToggle.addEventListener("change", () => { applyConfig(); saveAndRender(); });
+
+        panel.append(aButton, bButton, rButton, conversion, pressRate, holdRate, conversionRate,
+            spendDuration, growthScaleRate, stacking, readout, status);
+        this.controlBar.appendChild(panel);
+        this.renderGrowTimeState();
+    }
+
+    private persistGrowTime(): void {
+        if (!this.growTimeController || !this.growTimeStore) return;
+        try { this.growTimeStore.save(this.growTimeController.createSnapshot()); }
+        catch (error) {
+            if (this.growTimeStatus) this.growTimeStatus.textContent = `Grow Time persistence unavailable: ${String(error)}`;
+        }
+    }
+
+    private renderGrowTimeState(): void {
+        if (!this.growTimeController || !this.growTimeReadout) return;
+        const state = this.growTimeController.getState();
+        this.growTimeReadout.textContent =
+            `Stack points: ${state.stackPointsEarned.toFixed(1)} · Available Grow Time: ${state.availableGrowTimeSeconds.toFixed(1)}s · Active: ${state.activeGrowTimeSeconds.toFixed(1)}s · Phase: ${state.phase} · Clock: ${state.clockState}`;
     }
 
     private bindEvents(): void {
