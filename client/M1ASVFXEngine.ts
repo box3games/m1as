@@ -469,9 +469,21 @@ export class M1ASVFXEngine {
             z?: number;
         } = {}
     ): Promise<string> {
-        const res = await fetch(glbSignedUrl, { headers: { 'm1as-user-id': this.userId } });
-        if (!res.ok) throw new Error(`Prop GLB stream failed (${res.status})`);
-        const blobUrl = URL.createObjectURL(await res.blob());
+        let res: Response;
+        try {
+            res = await fetch(glbSignedUrl, { headers: { 'm1as-user-id': this.userId } });
+        } catch (error) {
+            try { this.onDiagnostic?.("error", "prop-stream", "Spatial prop GLB request failed.", { error: String(error), propName: options.name ?? "unnamed" }); } catch { /* diagnostics cannot affect engine */ }
+            throw error;
+        }
+        if (!res.ok) {
+            const error = new Error(`Prop GLB stream failed (${res.status})`);
+            try { this.onDiagnostic?.("error", "prop-stream", "Spatial prop GLB request returned an unsuccessful status.", { status: res.status, propName: options.name ?? "unnamed" }); } catch { /* diagnostics cannot affect engine */ }
+            throw error;
+        }
+        const propBlob = await res.blob();
+        try { this.onDiagnostic?.("info", "prop-stream", "Spatial prop GLB downloaded.", { byteLength: propBlob.size, contentType: propBlob.type || "unknown", propName: options.name ?? "unnamed" }); } catch { /* diagnostics cannot affect engine */ }
+        const blobUrl = URL.createObjectURL(propBlob);
 
         const id = `prop-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const role = options.role ?? 'consumable';
@@ -516,12 +528,14 @@ export class M1ASVFXEngine {
                     };
 
                     this.sceneProps.set(id, propEntry);
+                    try { this.onDiagnostic?.("info", "prop-load", "Spatial prop GLB loaded into the scene.", { propId: id, name: propEntry.name, role, targetHeight, measuredDimensions: { x: size.x * scaleFactor, y: size.y * scaleFactor, z: size.z * scaleFactor } }); } catch { /* diagnostics cannot affect engine */ }
                     this.notifyPropsChanged();
                     resolve(id);
                 },
                 undefined,
                 (err) => {
                     URL.revokeObjectURL(blobUrl);
+                    try { this.onDiagnostic?.("error", "prop-load", "Spatial prop GLB could not be decoded or loaded.", { propName: options.name ?? "unnamed", error: String(err) }); } catch { /* diagnostics cannot affect engine */ }
                     reject(err);
                 }
             );
