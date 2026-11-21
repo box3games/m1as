@@ -329,7 +329,17 @@ export class M1ASVFXEngine {
     public getGrowthModel(): GrowthModelMode { return this.growthModelMode; }
     public setGrowthModel(mode: GrowthModelMode): boolean {
         if (mode === this.growthModelMode) return true;
-        if (this.isHolding || this.growthQueue.pendingCount > 0 || this.baselineDelayedEvents.length > 0 || this.baselineCurrentScale !== this.baselineTargetScale) return false;
+        if (this.isHolding) return false;
+        if (this.growthModelMode === 'm1as-vfx') {
+            const queueSettled =
+                this.growthQueue.pendingCount === 0 &&
+                Math.abs(this.growthQueue.currentVisualScale - this.growthQueue.currentTargetScale) <= 0.002 &&
+                Math.abs(this.growthQueue.currentGrowthVelocity) <= 0.02 &&
+                this.growthQueue.currentInstability <= 0.02;
+            if (!queueSettled) return false;
+        } else if (this.baselineDelayedEvents.length > 0 || Math.abs(this.baselineCurrentScale - this.baselineTargetScale) > 0.000001) {
+            return false;
+        }
         if (mode === 'baseline-scale') {
             this.baselineCurrentScale = this.growthQueue.currentVisualScale;
             this.baselineTargetScale = this.baselineCurrentScale;
@@ -337,6 +347,8 @@ export class M1ASVFXEngine {
             this.subjectRoot.scale.setScalar(this.baselineCurrentScale);
             this.resetBonesToIdentity();
             this.posture = 'stand';
+            this.venousPulseEnergy = 0;
+            for (const material of this.subjectMaterials) material.emissiveIntensity = 0;
         } else {
             this.growthQueue.reset(this.baselineCurrentScale);
             this.projectedTargetScale = this.baselineCurrentScale;
