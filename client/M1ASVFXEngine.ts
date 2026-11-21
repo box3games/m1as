@@ -9,6 +9,7 @@ import {
 } from './GrowthEventQueue.js';
 
 export type GrowthTriggerMode = 'click' | 'tap' | 'hold' | 'chaos-delayed';
+export type GrowthModelMode = 'm1as-vfx' | 'baseline-scale';
 export type PostureState = 'stand' | 'hunch' | 'crawl';
 export type SpatialPropRole =
     | 'consumable'
@@ -83,6 +84,13 @@ export class M1ASVFXEngine {
     // Core Growth Queue (C# Port)
     private growthQueue: GrowthEventQueue;
     private projectedTargetScale = 1.0;
+    private growthModelMode: GrowthModelMode = 'm1as-vfx';
+    private baselineCurrentScale = 1.0;
+    private baselineTargetScale = 1.0;
+    private baselineStartScale = 1.0;
+    private baselineElapsedSeconds = 0;
+    private baselineDurationSeconds = 0;
+    private baselineDelayedEvents: Array<{ dueAt: number; amount: number; stimulus: GrowthStimulusType }> = [];
 
     // Subject, Rig & AnimationMixer
     private subjectRoot = new THREE.Group();
@@ -317,7 +325,32 @@ export class M1ASVFXEngine {
     public getRenderer(): THREE.WebGLRenderer { return this.renderer; }
     public getControls(): OrbitControls { return this.controls; }
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
-    public getCurrentVisualScale(): number { return this.growthQueue.currentVisualScale; }
+    public getCurrentVisualScale(): number { return this.growthModelMode === 'baseline-scale' ? this.baselineCurrentScale : this.growthQueue.currentVisualScale; }
+    public getGrowthModel(): GrowthModelMode { return this.growthModelMode; }
+    public setGrowthModel(mode: GrowthModelMode): boolean {
+        if (mode === this.growthModelMode) return true;
+        if (this.isHolding || this.growthQueue.pendingCount > 0 || this.baselineDelayedEvents.length > 0 || this.baselineCurrentScale !== this.baselineTargetScale) return false;
+        if (mode === 'baseline-scale') {
+            this.baselineCurrentScale = this.growthQueue.currentVisualScale;
+            this.baselineTargetScale = this.baselineCurrentScale;
+            this.baselineStartScale = this.baselineCurrentScale;
+            this.subjectRoot.scale.setScalar(this.baselineCurrentScale);
+            this.resetBonesToIdentity();
+            this.posture = 'stand';
+        } else {
+            this.growthQueue.reset(this.baselineCurrentScale);
+            this.projectedTargetScale = this.baselineCurrentScale;
+            this.subjectRoot.scale.set(1, 1, 1);
+            this.resetBonesToIdentity();
+            this.upperBodyExcess = 0;
+            this.storedGoldenBuffer = 0;
+            this.posture = 'stand';
+        }
+        this.growthModelMode = mode;
+        this.emitTelemetry();
+        try { this.onDiagnostic?.('info', 'growth-model', 'Growth model switched.', { model: mode, currentScale: this.getCurrentVisualScale() }); } catch { /* observer isolation */ }
+        return true;
+    }
     /** Read-only queue and character diagnostics for interchangeable-model adapters. */
     public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean } {
         return {
@@ -372,6 +405,12 @@ export class M1ASVFXEngine {
         this.roomCeilingHeight = 3.2;
         this.ceilingMesh.position.y = this.roomCeilingHeight;
         this.projectedTargetScale = 1.0;
+        this.baselineCurrentScale = 1.0;
+        this.baselineTargetScale = 1.0;
+        this.baselineStartScale = 1.0;
+        this.baselineElapsedSeconds = 0;
+        this.baselineDurationSeconds = 0;
+        this.baselineDelayedEvents = [];
         this.upperBodyExcess = 0.0;
         this.storedGoldenBuffer = 0.0;
         this.posture = 'stand';
@@ -388,6 +427,14 @@ export class M1ASVFXEngine {
         stimulus: GrowthStimulusType = GrowthStimulusType.Consumption,
         customDelay?: number
     ): void {
+        if (this.growthModelMode === 'baseline-scale') {
+            const delay = customDelay ?? (this.mode === 'chaos-delayed' ? 1.8 + Math.random() * 1.2 : 0);
+            if (delay > 0) this.baselineDelayedEvents.push({ dueAt: this.simulationTimeSeconds + delay, amount, stimulus });
+            else this.beginBaselineGrowth(amount);
+            try { this.onGrowthQueued?.(this.simulationTimeSeconds, this.simulationFrameNumber); } catch { /* observer isolation */ }
+            this.emitTelemetry();
+            return;
+        }
         const oldScale = this.projectedTargetScale;
 
         if (stimulus === GrowthStimulusType.Exercise || stimulus === GrowthStimulusType.Buff) {
@@ -965,14 +1012,46 @@ export class M1ASVFXEngine {
         video.onended = cleanup;
         video.play().catch(cleanup);
     }
+    private beginBaselineGrowth(amount: number): void {
+        if (!Number.isFinite(amount) || amount <= 0) return;
+        this.baselineStartScale = this.baselineCurrentScale;
+        this.baselineTargetScale = this.baselineCurrentScale + amount;
+        this.baselineElapsedSeconds = 0;
+        this.baselineDurationSeconds = Math.max(0.75, amount * 2.0);
+    }
+
+    private advanceBaselineGrowth(dt: number): void {
+        for (let i = this.baselineDelayedEvents.length - 1; i >= 0; i--) {
+            const event = this.baselineDelayedEvents[i];
+            if (this.simulationTimeSeconds < event.dueAt) continue;
+            this.baselineDelayedEvents.splice(i, 1);
+            this.beginBaselineGrowth(event.amount);
+            try {
+                this.onGrowthReleased?.({
+                    oldScale: this.baselineStartScale, newScale: this.baselineTargetScale,
+                    delta: event.amount, growthPressure: 0, type: event.stimulus,
+                    entropyImpact: 0, delayWeight: 0
+                } as GrowthEvent, this.simulationTimeSeconds, this.simulationFrameNumber);
+            } catch { /* observer isolation */ }
+        }
+        if (this.baselineDurationSeconds > 0 && this.baselineCurrentScale !== this.baselineTargetScale) {
+            this.baselineElapsedSeconds = Math.min(this.baselineDurationSeconds, this.baselineElapsedSeconds + dt);
+            const t = this.baselineElapsedSeconds / this.baselineDurationSeconds;
+            const eased = t * t * (3 - 2 * t);
+            this.baselineCurrentScale = this.baselineStartScale + (this.baselineTargetScale - this.baselineStartScale) * eased;
+            if (t >= 1) this.baselineCurrentScale = this.baselineTargetScale;
+        }
+        this.subjectRoot.scale.setScalar(this.baselineCurrentScale);
+    }
+
     private emitTelemetry(): void {
-        const currentScale = this.growthQueue.currentVisualScale;
+        const currentScale = this.getCurrentVisualScale();
         const occupancyRatio = (this.baseModelHeight * currentScale) / this.roomCeilingHeight;
         this.onStateChange?.({
             currentScale: Number(currentScale.toFixed(2)),
-            targetScale: Number(this.growthQueue.currentTargetScale.toFixed(2)),
-            instability: Number(this.growthQueue.currentInstability.toFixed(2)),
-            pendingQueue: this.growthQueue.pendingCount,
+            targetScale: Number((this.growthModelMode === 'baseline-scale' ? this.baselineTargetScale : this.growthQueue.currentTargetScale).toFixed(2)),
+            instability: Number((this.growthModelMode === 'baseline-scale' ? 0 : this.growthQueue.currentInstability).toFixed(2)),
+            pendingQueue: this.growthModelMode === 'baseline-scale' ? this.baselineDelayedEvents.length + (this.baselineCurrentScale !== this.baselineTargetScale ? 1 : 0) : this.growthQueue.pendingCount,
             posture: this.posture,
             occupancyRatio: Number(occupancyRatio.toFixed(2)),
             boxTier: this.boxTier,
@@ -1002,16 +1081,16 @@ export class M1ASVFXEngine {
     this.checkPropCollisionsAndBreaks();
 
     const queueTelemetry = this.growthQueue.step(dt);
-    this.applyOrganicAndBoneScaling(
-      dt,
-      queueTelemetry.absoluteFinalScale,
-      queueTelemetry.instabilityScore
-    );
-    this.updateCinematicCamera(
-      dt,
-      queueTelemetry.absoluteFinalScale,
-      queueTelemetry.instabilityScore
-    );
+    let cameraScale = queueTelemetry.absoluteFinalScale;
+    let cameraInstability = queueTelemetry.instabilityScore;
+    if (this.growthModelMode === 'baseline-scale') {
+      this.advanceBaselineGrowth(dt);
+      cameraScale = this.baselineCurrentScale;
+      cameraInstability = 0;
+    } else {
+      this.applyOrganicAndBoneScaling(dt, queueTelemetry.absoluteFinalScale, queueTelemetry.instabilityScore);
+    }
+    this.updateCinematicCamera(dt, cameraScale, cameraInstability);
 
     // Update expanding ground shockwave rings
     for (let i = this.activeRings.length - 1; i >= 0; i--) {
