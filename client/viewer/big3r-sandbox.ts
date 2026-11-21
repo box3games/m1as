@@ -229,8 +229,21 @@ export class Big3rSandboxController {
                     this.diagnostics.log({ level, category, message, experimentId: this.experimentCoordinator?.experimentId, data });
                 },
                 onGrowthReleased: (event, simulationTimeSeconds, frameNumber) => {
-                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Legacy growth event released.", experimentId: this.experimentCoordinator?.experimentId, simulationTimeSeconds, frameNumber, data: { oldScale: event.oldScale, newScale: event.newScale, delta: event.delta, growthPressure: event.growthPressure, stimulus: event.type, entropyImpact: event.entropyImpact, delayWeight: event.delayWeight } });
-                    this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
+                    const model = this.activeEngine?.getGrowthModel?.() ?? "m1as-vfx";
+                    this.diagnostics.log({
+                        level: "info",
+                        category: model === "m1as-vfx" ? "growth-queue" : "baseline-growth",
+                        message: model === "m1as-vfx" ? "Legacy M1AS queue event released." : "Baseline scaling growth stimulus released.",
+                        experimentId: this.experimentCoordinator?.experimentId,
+                        simulationTimeSeconds,
+                        frameNumber,
+                        data: { model, oldScale: event.oldScale, newScale: event.newScale, delta: event.delta, stimulus: event.type },
+                    });
+                    if (model === "m1as-vfx") {
+                        this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
+                    } else {
+                        this.experimentCoordinator?.trigger("baseline_growth_released", simulationTimeSeconds, frameNumber);
+                    }
                 },
                 onStateChange: (state) => {
                     this.currentBoxTier = state.boxTier;
