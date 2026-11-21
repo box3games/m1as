@@ -347,6 +347,8 @@ export class M1ASVFXEngine {
             this.subjectRoot.scale.setScalar(this.baselineCurrentScale);
             this.resetBonesToIdentity();
             this.posture = 'stand';
+            this.upperBodyExcess = 0;
+            this.storedGoldenBuffer = 0;
             this.venousPulseEnergy = 0;
             for (const material of this.subjectMaterials) material.emissiveIntensity = 0;
         } else {
@@ -1068,7 +1070,10 @@ export class M1ASVFXEngine {
             const t = this.baselineElapsedSeconds / this.baselineDurationSeconds;
             const eased = t * t * (3 - 2 * t);
             this.baselineCurrentScale = this.baselineStartScale + (this.baselineTargetScale - this.baselineStartScale) * eased;
-            if (t >= 1) this.baselineCurrentScale = this.baselineTargetScale;
+            if (t >= 1) {
+                this.baselineCurrentScale = this.baselineTargetScale;
+                this.baselineDurationSeconds = 0;
+            }
         }
         this.subjectRoot.scale.setScalar(this.baselineCurrentScale);
     }
