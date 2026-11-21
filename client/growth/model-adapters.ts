@@ -35,6 +35,8 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
   private flowMultiplier = 1;
   private growthPerSupplySecond = 0.1;
   private lastSimulationTimeSeconds = 0;
+  private holdActive = false;
+  private holdElapsedSeconds = 0;
 
   constructor(private readonly root: THREE.Object3D) {}
 
@@ -45,9 +47,26 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
     this.lastSimulationTimeSeconds = context.simulationTimeSeconds;
   }
 
-  apply(command: GrowthModelCommand, _context: GrowthModelContext): GrowthModelResult {
+  apply(command: GrowthModelCommand, context: GrowthModelContext): GrowthModelResult {
     if (command.kind === "hold") {
-      return { commandId: command.commandId, accepted: true };
+      if (command.active) {
+        this.holdActive = true;
+        this.holdElapsedSeconds = 0;
+      } else if (this.holdActive) {
+        this.holdActive = false;
+        const holdRate = command.parameters?.growthPerHoldSecond;
+        const rate = typeof holdRate === "number" && Number.isFinite(holdRate) && holdRate >= 0
+          ? holdRate : 0.25;
+        const chargedGrowth = this.holdElapsedSeconds * rate;
+        this.holdElapsedSeconds = 0;
+        if (chargedGrowth > 0) {
+          this.interpolationStart = this.currentScale;
+          this.targetScale = this.currentScale + chargedGrowth;
+          this.interpolationElapsed = 0;
+          this.interpolationDuration = 0.5;
+        }
+      }
+      return { commandId: command.commandId, accepted: true, telemetry: this.readTelemetry(this.lastSimulationTimeSeconds) };
     }
     if (command.kind === "flow") {
       if (!Number.isFinite(command.flowMultiplier) || command.flowMultiplier < 0 ||
@@ -85,6 +104,7 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
         deltaSeconds < 0 || simulationTimeSeconds < this.lastSimulationTimeSeconds) return;
     this.lastSimulationTimeSeconds = simulationTimeSeconds;
 
+    if (this.holdActive) this.holdElapsedSeconds += deltaSeconds;
     if (this.interpolationDuration > 0 && this.currentScale !== this.targetScale) {
       this.interpolationElapsed = Math.min(this.interpolationDuration, this.interpolationElapsed + deltaSeconds);
       const t = this.interpolationElapsed / this.interpolationDuration;
@@ -106,6 +126,7 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
       targetScale: this.targetScale,
       flowMultiplier: this.flowMultiplier,
       supplyRemainingSeconds: this.flowRemainingSeconds,
+      modelData: { holdActive: this.holdActive, holdElapsedSeconds: this.holdElapsedSeconds },
     };
   }
 
@@ -117,6 +138,8 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
     this.interpolationDuration = 0;
     this.flowRemainingSeconds = 0;
     this.flowMultiplier = 1;
+    this.holdActive = false;
+    this.holdElapsedSeconds = 0;
     this.applyScale();
   }
 
@@ -198,7 +221,7 @@ export class M1ASVFXGrowthModel implements GrowthModel {
     return {
       commandId: command.commandId,
       accepted: true,
-      telemetry: this.readTelemetry(telemetry.currentScale),
+      telemetry: this.readTelemetry(context.simulationTimeSeconds),
     };
   }
 
