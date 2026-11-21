@@ -155,6 +155,7 @@ export class Big3rSandboxController {
             return;
         }
 
+        this.diagnostics.info("asset-stream", "Beginning spatial prop GLB stream.", { displayName, role: this.propRoleSelect.value });
         await this.activeEngine.addSpatialProp(signedUrl, {
             name: displayName,
             role: this.propRoleSelect.value as PropRole,
@@ -220,9 +221,11 @@ export class Big3rSandboxController {
                     }
                 },
                 onGrowthQueued: (simulationTimeSeconds, frameNumber) => {
+                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Growth stimulus queued.", simulationTimeSeconds, frameNumber });
                     this.experimentCoordinator?.trigger("growth_queued", simulationTimeSeconds, frameNumber);
                 },
                 onGrowthReleased: (event, simulationTimeSeconds, frameNumber) => {
+                    this.diagnostics.log({ level: "info", category: "growth-queue", message: "Legacy growth event released.", simulationTimeSeconds, frameNumber, data: { oldScale: event.oldScale, newScale: event.newScale, delta: event.delta, growthPressure: event.growthPressure, stimulus: event.type, entropyImpact: event.entropyImpact, delayWeight: event.delayWeight } });
                     this.experimentCoordinator?.recordLegacyQueueRelease(event, simulationTimeSeconds, frameNumber);
                 },
                 onStateChange: (state) => {
