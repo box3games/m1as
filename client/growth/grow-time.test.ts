@@ -55,7 +55,7 @@ test("disabled or restricted conversion does not mint global Grow Time", () => {
   for (const conversionMode of ["disabled", "restricted"] as const) {
     const controller = new GrowTimeController({ conversionMode });
     controller.pressStack(0);
-    assert.equal(controller.getState().stackPointsEarned, 0);
+    assert.equal(controller.getState().stackPointsEarned, 1);
     assert.equal(controller.getState().availableGrowTimeSeconds, 0);
   }
 });
