@@ -260,14 +260,10 @@ export class Big3rSandboxController {
             : null;
         if (this.experimentControls) this.experimentControls.remove();
         const panel = document.createElement("div");
-        panel.className = "m1as-experiment-controls";
-        panel.style.display = "flex";
-        panel.style.flexWrap = "wrap";
-        panel.style.alignItems = "center";
-        panel.style.gap = "8px";
-        panel.style.margin = "8px 0";
+        panel.className = "m1as-experiment-controls vfx-control-row vfx-control-row--divided-tight m1as-select";
 
         const profileSelect = document.createElement("select");
+        profileSelect.className = "m1as-select";
         for (const profileName of ["lightweight", "detailed", "discovery"] as const) {
             const option = document.createElement("option");
             option.value = profileName;
@@ -276,6 +272,7 @@ export class Big3rSandboxController {
         }
         const start = document.createElement("button");
         start.type = "button";
+        start.className = "playground-btn btn--emerald";
         start.textContent = "Start Experiment Capture";
         const stop = document.createElement("button");
         stop.type = "button";
@@ -415,14 +412,14 @@ export class Big3rSandboxController {
         if (this.growTimeKeyDown) window.removeEventListener("keydown", this.growTimeKeyDown);
         if (this.growTimeKeyUp) window.removeEventListener("keyup", this.growTimeKeyUp);
         const panel = document.createElement("section");
-        panel.className = "m1as-grow-time-controls";
+        panel.className = "m1as-grow-time-controls m1as-select";
         this.growTimeControls = panel;
         panel.style.display = "grid";
         panel.style.gridTemplateColumns = "repeat(auto-fit, minmax(150px, 1fr))";
         panel.style.gap = "8px";
         panel.style.padding = "12px";
         panel.style.margin = "10px 0";
-        panel.style.border = "1px solid rgba(148,163,184,.35)";
+        // panel.style.border = "1px solid rgba(148,163,184,.35)";
         panel.style.borderRadius = "10px";
 
         const heading = document.createElement("strong");
@@ -440,6 +437,7 @@ export class Big3rSandboxController {
 
         const makeNumber = (label: string, value: number, step = "0.1"): HTMLLabelElement => {
             const wrapper = document.createElement("label");
+            wrapper.className = "m1as-select";
             wrapper.textContent = label;
             wrapper.style.display = "grid";
             wrapper.style.gap = "4px";
@@ -458,6 +456,7 @@ export class Big3rSandboxController {
         const spendDuration = makeNumber("R consumption seconds", 5);
         const growthScaleRate = makeNumber("Scale delta per Grow second", 0.01);
         const conversion = document.createElement("select");
+        conversion.className = "m1as=select"
         for (const mode of ["continuous", "restricted", "disabled"]) {
             const option = document.createElement("option");
             option.value = mode;
@@ -476,7 +475,7 @@ export class Big3rSandboxController {
         readout.style.lineHeight = "1.6";
         const status = document.createElement("div");
         status.style.gridColumn = "1 / -1";
-        status.style.color = "#94a3b8";
+        // status.style.color = "#94a3b8";
         status.textContent = "A stacks · hold B accumulates · R spends stored Grow Time";
         this.growTimeReadout = readout;
         this.growTimeStatus = status;
@@ -484,6 +483,7 @@ export class Big3rSandboxController {
         const button = (label: string): HTMLButtonElement => {
             const el = document.createElement("button");
             el.type = "button";
+            el.className = "playground-btn btn--violet";
             el.textContent = label;
             el.style.padding = "8px 12px";
             return el;
@@ -493,6 +493,7 @@ export class Big3rSandboxController {
         const rButton = button("R · Rest / Grow");
         const makeKeyInput = (label: string, value: string): HTMLLabelElement => {
             const wrapper = document.createElement("label");
+            wrapper.className = "m1as-select"
             wrapper.textContent = label;
             wrapper.style.display = "grid";
             wrapper.style.gap = "4px";

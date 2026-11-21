@@ -165,7 +165,6 @@ export class GrowTimeController {
     this.state.phase = "growth";
     this.state.clockState = "active";
     this.state.holdActive = false;
-    this.holdStartedAt = null;
     this.state.lastTrigger = "rest_and_grow";
     this.state.growthEventsStarted += 1;
     return consumed;
