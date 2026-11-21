@@ -24,8 +24,10 @@ interface StoredFinalization {
  */
 export class IndexedDbExperimentStorage implements ExperimentStorage {
   private databasePromise: Promise<IDBDatabase> | null = null;
+  private downloadUrl: string | null = null;
 
   constructor(
+    private readonly onReady?: (url: string, fileName: string) => void,
     private readonly databaseName = "m1as-experiments",
     private readonly databaseVersion = 1,
   ) {}
@@ -33,7 +35,7 @@ export class IndexedDbExperimentStorage implements ExperimentStorage {
   async createManifest(manifest: ExperimentManifest): Promise<void> {
     const db = await this.open();
     await this.transaction(db, ["manifests"], "readwrite", (tx) => {
-      tx.objectStore("manifests").put({
+      tx.objectStore("manifests").add({
         experimentId: manifest.experimentId,
         manifest,
         createdAtISO: new Date().toISOString(),
@@ -66,6 +68,25 @@ export class IndexedDbExperimentStorage implements ExperimentStorage {
         finalizedAtISO: new Date().toISOString(),
       } satisfies StoredFinalization);
     });
+    const captured = await this.readExperiment(experimentId);
+    if (!captured.manifest) throw new Error("Cannot export an experiment without its manifest.");
+    const payload = {
+      packageFormat: "m1as-experiment-json",
+      packageVersion: 1,
+      manifest: captured.manifest,
+      endedAt: captured.endedAt,
+      streams: captured.streams,
+    };
+    if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl);
+    this.downloadUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    }));
+    this.onReady?.(this.downloadUrl, `13163r-experiment-${experimentId}.json`);
+  }
+
+  dispose(): void {
+    if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl);
+    this.downloadUrl = null;
   }
 
   async readExperiment(experimentId: ExperimentId): Promise<{
