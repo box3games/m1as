@@ -61,7 +61,7 @@ Available adapters:
 
 The VFX adapter currently declares sustained flow unsupported. It accepts discrete growth and hold commands; the Growth Flow Controller must be integrated before the VFX model can consume continuous Grow Time supply. The adapter does not invent flow by enqueueing events every render frame.
 
-The adapters are exported for use by a model host. The current sandbox still mounts the VFX engine directly; a user-facing model selector and isolated baseline GLB host are the next integration step. Do not compare the two models until both receive equivalent asset normalization, initial conditions, input sequences, scene references, and camera capture.
+The adapters are exported for use by a model host. The sandbox now exposes an engine-level selector between the existing M1AS VFX queue and a baseline whole-object scaling mode. Both modes use the same normalized streamed GLB, subject root, camera, scene, room references, spatial props, and input controls. Switching is rejected while growth is active or queued, and the selector is locked during experiment capture. The standalone baseline adapter remains available for future independent model hosts. For controlled comparisons, use the same asset, initial scale, scene, camera, stimulus sequence, and capture profile.
 
 ## Experiment diagnostics and persistence
 
