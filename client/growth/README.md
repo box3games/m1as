@@ -48,3 +48,23 @@ The 13163R sandbox provides A (press), B (hold), and R (rest/grow) controls. R c
 ## Verification
 
 Run `npm run test:experiments`. Grow Time tests cover continuous conversion, hold timing, reserve consumption, growth completion, deterministic chaos, restricted/disabled conversion, stacking policy, and monotonic simulation time.
+
+
+## Interchangeable growth models
+
+The growth-model contract is defined in `model-contract.ts`. It separates common experiment commands and telemetry from model-specific execution.
+
+Available adapters:
+
+- `ThreeObjectScaleGrowthModel`: deterministic baseline GLB/Object3D scaling with duration-driven growth, held-charge growth, and sustained supply flow.
+- `M1ASVFXGrowthModel`: adapter over the existing M1AS VFX engine and legacy queue. It preserves the queue's event timing, spring response, posture, skeletal response, and VFX behavior.
+
+The VFX adapter currently declares sustained flow unsupported. It accepts discrete growth and hold commands; the Growth Flow Controller must be integrated before the VFX model can consume continuous Grow Time supply. The adapter does not invent flow by enqueueing events every render frame.
+
+The adapters are exported for use by a model host. The current sandbox still mounts the VFX engine directly; a user-facing model selector and isolated baseline GLB host are the next integration step. Do not compare the two models until both receive equivalent asset normalization, initial conditions, input sequences, scene references, and camera capture.
+
+## Experiment diagnostics and persistence
+
+The sandbox diagnostic logger mirrors structured operational events to the browser console and a bounded localStorage ring buffer. It records important asset stream/load results, input actions, growth queue events, and capture/storage errors. LocalStorage is intentionally limited to recent diagnostics and settings; it is not the experiment database.
+
+Experiment capture uses IndexedDB for persistent structured records. Finalization builds the portable JSON export from the persisted manifest and streams, avoiding a second in-memory copy of every record during the experiment. The recorder remains observational and reports storage failures without changing simulation execution.
