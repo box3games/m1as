@@ -319,10 +319,11 @@ export class M1ASVFXEngine {
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
     public getCurrentVisualScale(): number { return this.growthQueue.currentVisualScale; }
     /** Read-only queue and character diagnostics for interchangeable-model adapters. */
-    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean } {
+    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean } {
         return {
             currentScale: this.growthQueue.currentVisualScale,
             targetScale: this.growthQueue.currentTargetScale,
+            projectedTargetScale: this.projectedTargetScale,
             growthVelocity: this.growthQueue.currentGrowthVelocity,
             instability: this.growthQueue.currentInstability,
             pendingEvents: this.growthQueue.pendingCount,
