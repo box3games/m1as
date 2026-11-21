@@ -59,6 +59,7 @@ export interface M1ASVFXEngineOptions {
     onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
     onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
     onGrowthReleased?: (event: GrowthEvent, simulationTimeSeconds: number, frameNumber: number) => void;
+    onDiagnostic?: (level: "info" | "warn" | "error", category: string, message: string, data?: Record<string, unknown>) => void;
 }
 
 export class M1ASVFXEngine {
@@ -76,6 +77,7 @@ export class M1ASVFXEngine {
     private onFrame?: (simulationTimeSeconds: number, frameNumber: number) => void;
     private onGrowthQueued?: (simulationTimeSeconds: number, frameNumber: number) => void;
     private onGrowthReleased?: (event: GrowthEvent, simulationTimeSeconds: number, frameNumber: number) => void;
+    private onDiagnostic?: (level: "info" | "warn" | "error", category: string, message: string, data?: Record<string, unknown>) => void;
     private frameId: number | null = null;
 
     // Core Growth Queue (C# Port)
@@ -151,6 +153,7 @@ export class M1ASVFXEngine {
         this.onFrame = options.onFrame;
         this.onGrowthQueued = options.onGrowthQueued;
         this.onGrowthReleased = options.onGrowthReleased;
+        this.onDiagnostic = options.onDiagnostic;
 
         const startScale = options.baseScale ?? 1.0;
         this.projectedTargetScale = startScale;
@@ -271,14 +274,15 @@ export class M1ASVFXEngine {
                     this.playAnimation('idle');
                 }
 
-                console.log(
-                    `[M1ASVFXEngine] Loaded .glb | Bones: ${this.bones.size} | Clips: [${Array.from(this.actions.keys()).join(', ')}]`
-                );
+                const loadData = { boneCount: this.bones.size, animationClips: Array.from(this.actions.keys()), normalizedHeight: this.baseModelHeight };
+                this.onDiagnostic?.("info", "asset-load", "M1AS VFX engine loaded GLB subject.", loadData);
                 this.subjectRoot.add(this.loadedModel);
                 this.emitTelemetry();
             },
             undefined,
-            (err) => console.error('[M1ASVFXEngine] Failed to load .glb:', err)
+            (err) => {
+                try { this.onDiagnostic?.("error", "asset-load", "M1AS VFX engine failed to load GLB subject.", { error: String(err) }); } catch { /* diagnostics cannot affect engine */ }
+            }
         );
 
 
