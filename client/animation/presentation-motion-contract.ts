@@ -25,8 +25,6 @@ export interface MotionRigCapabilities {
   supportedLayerModes: MotionLayerMode[];
   /** Regions owned by the authoritative stand/hunch/crawl posture solver. */
   postureControlledRegions: MotionRegion[];
-  /** Must be explicitly declared; defaults are never inferred from rig type. */
-  postureOverrideAllowed: boolean;
   supportsJointConstraints: boolean;
   supportsPerRegionTelemetry: boolean;
   availableClipIds: string[];
@@ -78,8 +76,6 @@ export interface CharacterMotionLayer {
   blendInSeconds: number;
   blendOutSeconds: number;
   interruption: MotionInterruptionPolicy;
-  /** Posture remains authoritative unless both rig and layer explicitly permit override. */
-  allowPostureOverride?: boolean;
   constraints?: MotionJointConstraint[];
   sourceChannels: Array<keyof Omit<MotionSourceSnapshot, "simulationTimeSeconds" | "breathPhase">>;
 }
@@ -215,7 +211,6 @@ export function validateMotionRigCapabilities(input: unknown): string[] {
   for (const key of ["supportedRegions", "supportedLayerModes", "postureControlledRegions", "availableClipIds", "availableScriptIds"] as const) {
     if (!Array.isArray(rig[key]) || rig[key].some(value => !nonEmpty(value))) issues.push(`${key} must be an array of non-empty identifiers`);
   }
-  if (typeof rig.postureOverrideAllowed !== "boolean") issues.push("postureOverrideAllowed must be boolean");
   if (typeof rig.supportsJointConstraints !== "boolean") issues.push("supportsJointConstraints must be boolean");
   if (typeof rig.supportsPerRegionTelemetry !== "boolean") issues.push("supportsPerRegionTelemetry must be boolean");
   return issues;
@@ -261,9 +256,8 @@ export function resolveCharacterMotionIntents(
     const availableAssets = layer.asset.kind === "clip" ? context.rig.availableClipIds : context.rig.availableScriptIds;
     if (!availableAssets.includes(layer.asset.id)) { reject(`Rig does not expose the referenced ${layer.asset.kind}.`); continue; }
     const protectedRegions = layer.regions.filter(region => context.rig.postureControlledRegions.includes(region));
-    if (protectedRegions.length &&
-        !(context.rig.postureOverrideAllowed && layer.allowPostureOverride === true)) {
-      reject(`Posture authority (${context.posture}) owns region(s): ${protectedRegions.join(", ")}.`); continue;
+    if (protectedRegions.length) {
+      reject(`Posture authority (${context.posture}) owns region(s): ${protectedRegions.join(", ")}; presentation motion cannot override posture-controlled regions.`); continue;
     }
     const conflict = accepted.find(existing =>
       layer.mode === "replace" || existing.layer.mode === "replace"
