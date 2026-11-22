@@ -115,6 +115,7 @@ export {
   BODY_ARCHETYPE_REGISTRY_SCHEMA_VERSION,
   STANDARD_ANATOMICAL_REGION_IDS,
   createAnatomicalRegionId,
+  validateAnatomicalVocabulary,
   validateCharacterBodyProfile,
   validateCharacterBodyIdentity,
   validateCharacterBodyArchetype,
