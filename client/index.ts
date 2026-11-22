@@ -107,3 +107,20 @@ export {
 export {
   AabbBroadPhaseIntegrityDetector,
 } from "./animation/deformation-integrity-monitor.js";
+
+
+export {
+  CHARACTER_BODY_ARCHITECTURE_SCHEMA_VERSION,
+  CHARACTER_BODY_ARCHETYPE_SCHEMA_VERSION,
+  BODY_ARCHETYPE_REGISTRY_SCHEMA_VERSION,
+  STANDARD_ANATOMICAL_REGION_IDS,
+  createAnatomicalRegionId,
+  validateCharacterBodyProfile,
+  validateCharacterBodyIdentity,
+  validateCharacterBodyArchetype,
+  validateBodyArchetypeRegistry,
+  CharacterBodyArchetypeRegistry,
+  serializeBodyArchetypeRegistry,
+  parseBodyArchetypeRegistry,
+} from "./character/body-architecture-contract.js";
+export type * from "./character/body-architecture-contract.js";
