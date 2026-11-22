@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { BiologicalBreathController, type BiologicalBreathConfig } from './growth/biological-breathing.js';
 import type { BiologicalBreathTelemetry } from './growth/model-contract.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
@@ -128,6 +129,9 @@ export class M1ASVFXEngine {
     private biologicalVisualExpansion = 0;
     private biologicalInternalPressure = 0;
     private biologicalPressureWave = 0;
+    private biologicalBreathController: BiologicalBreathController | null = null;
+    private biologicalBreathingActive = false;
+    private biologicalBreathPreviousScale = 1;
 
     // Input & Controls
     private mode: GrowthTriggerMode = 'click';
@@ -445,6 +449,44 @@ export class M1ASVFXEngine {
     }
 
 
+    /** Begin or resume the authored biological breathing growth profile. */
+    public startBiologicalBreathing(config: Partial<BiologicalBreathConfig> = {}): boolean {
+        if (this.growthModelMode !== 'm1as-vfx') return false;
+        if (!this.biologicalBreathController) {
+            const initialScale = this.getCurrentVisualScale();
+            this.biologicalBreathController = new BiologicalBreathController({ ...config, initialScale });
+            this.biologicalBreathPreviousScale = initialScale;
+        }
+        this.biologicalBreathingActive = true;
+        return true;
+    }
+
+    /** Pause the breathing profile without discarding accumulated scale or cycle progress. */
+    public pauseBiologicalBreathing(): void {
+        this.biologicalBreathingActive = false;
+    }
+
+    public getBiologicalBreathingActive(): boolean {
+        return this.biologicalBreathingActive;
+    }
+
+    public getBiologicalBreathSnapshot(): BiologicalBreathTelemetry | undefined {
+        const state = this.biologicalBreathController?.getState();
+        if (!state) return undefined;
+        return {
+            completedCycles: state.completedCycles,
+            cycleIndex: state.cycleIndex,
+            phase: state.phase,
+            cycleElapsedSeconds: state.cycleElapsedSeconds,
+            cycleDurationSeconds: state.cycleDurationSeconds,
+            actualScale: state.actualScale,
+            visualExpansion: state.visualExpansion,
+            internalPressure: state.internalPressure,
+            pressureWave: state.pressureWave,
+            pressureWavePhaseRadians: state.pressureWavePhaseRadians,
+        };
+    }
+
     /** Apply continuous biological growth without manufacturing discrete queue events. */
     public applyBiologicalBreathState(state: BiologicalBreathTelemetry, growthDelta: number): void {
         if (!Number.isFinite(growthDelta) || growthDelta < 0) return;
@@ -512,6 +554,9 @@ export class M1ASVFXEngine {
         this.biologicalVisualExpansion = 0;
         this.biologicalInternalPressure = 0;
         this.biologicalPressureWave = 0;
+        this.biologicalBreathController = null;
+        this.biologicalBreathingActive = false;
+        this.biologicalBreathPreviousScale = 1;
         this.posture = 'stand';
         this.growthQueue.reset(1.0);
         this.subjectRoot.position.set(0, 0, 0);
@@ -1209,6 +1254,24 @@ export class M1ASVFXEngine {
         try { this.onDiagnostic?.('info', 'growth-flow', 'Sustained Grow Time supply depleted.', { simulationTimeSeconds: this.simulationTimeSeconds, projectedTargetScale: this.projectedTargetScale }); } catch { /* diagnostics cannot affect simulation */ }
       }
     }
+    if (this.biologicalBreathingActive && this.biologicalBreathController) {
+      const breathState = this.biologicalBreathController.advance(dt);
+      const growthDelta = breathState.actualScale - this.biologicalBreathPreviousScale;
+      this.biologicalBreathPreviousScale = breathState.actualScale;
+      this.applyBiologicalBreathState({
+        completedCycles: breathState.completedCycles,
+        cycleIndex: breathState.cycleIndex,
+        phase: breathState.phase,
+        cycleElapsedSeconds: breathState.cycleElapsedSeconds,
+        cycleDurationSeconds: breathState.cycleDurationSeconds,
+        actualScale: breathState.actualScale,
+        visualExpansion: breathState.visualExpansion,
+        internalPressure: breathState.internalPressure,
+        pressureWave: breathState.pressureWave,
+        pressureWavePhaseRadians: breathState.pressureWavePhaseRadians,
+      }, growthDelta);
+    }
+
     const queueTelemetry = this.growthQueue.step(dt);
     let cameraScale = queueTelemetry.absoluteFinalScale;
     let cameraInstability = queueTelemetry.instabilityScore;
