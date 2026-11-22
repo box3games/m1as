@@ -24,7 +24,7 @@ test("stage-relative scale preserves independent axis ratios and volume ratio", 
   const result = computeStageRelativeScale(subject, stage);
   assert.deepEqual(result.axisRatios, { x: 2, y: 1, z: 0.5 });
   assert.equal(result.geometricMeanLinearRatio, 1);
-  assert.equal(result.relativeVolume3D, 0.5);
+  assert.equal(result.relativeVolume3D, 1);
 });
 
 test("stage changes recompute reference ratios without mutating actual dimensions", () => {
