@@ -339,6 +339,8 @@ export class M1ASVFXEngine {
     public getRenderer(): THREE.WebGLRenderer { return this.renderer; }
     public getControls(): OrbitControls { return this.controls; }
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
+    public get presentationAccentHostId(): string { return "m1as-vfx-engine"; }
+
     /** Apply a data-driven accent without changing subject scale or growth state. */
     public applyPresentationAccent(
         channelId: string,
@@ -1325,7 +1327,10 @@ export class M1ASVFXEngine {
     if (this.growthModelMode === 'baseline-scale') {
       this.advanceBaselineGrowth(dt);
       const accentEmissive = this.getPresentationAccentEmissiveIntensity();
-      for (const material of this.subjectMaterials) material.emissiveIntensity = accentEmissive;
+      for (const material of this.subjectMaterials) {
+        material.emissive.setHex(0x10b981);
+        material.emissiveIntensity = accentEmissive;
+      }
       cameraScale = this.baselineCurrentScale;
       cameraInstability = 0;
     } else {
