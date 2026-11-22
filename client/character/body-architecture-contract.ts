@@ -13,8 +13,8 @@ export const STANDARD_ANATOMICAL_REGION_IDS = [
   "root", "full_body", "head", "face", "neck",
   "torso", "spine", "chest", "abdomen", "back", "shoulders",
   "pelvis", "pelvic_floor", "perineum", "groin", "gluteal",
-  "upper_arm", "elbow", "forearm", "wrist", "hand", "fingers",
-  "hip", "thigh", "knee", "lower_leg", "ankle", "foot", "toes",
+  "upper_arm", "arms", "elbow", "forearm", "wrist", "hand", "hands", "fingers",
+  "hip", "thigh", "thighs", "knee", "knees", "lower_leg", "legs", "ankle", "foot", "feet", "toes",
   "clothing", "attachments",
 ] as const;
 
@@ -146,8 +146,12 @@ export interface RegionalMorphologyProfile {
   tags?: string[];
 }
 
+export type TissueCompositionKind =
+  | "skeletal_muscle" | "adipose" | "connective_tissue"
+  | "skin" | "fluid" | "organ" | "custom";
+
 export interface TissueCompositionProfile {
-  tissueType: string;
+  tissueType: TissueCompositionKind | string;
   parameters: MorphologyParameter[];
   regionalDistribution: RegionalMorphologyProfile[];
   description?: string;
@@ -357,6 +361,7 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   }
   const declaredRegions = new Set<string>(profile.bodyPlan?.regionIds ?? []);
   if (declaredRegions.size !== (profile.bodyPlan?.regionIds?.length ?? 0)) issues.push("bodyPlan.regionIds contains duplicates");
+  for (const regionId of declaredRegions) if (!validRegionId(regionId)) issues.push("bodyPlan.regionIds contains invalid ID " + regionId);
   const vocabularyIds: string[] = [];
   if (!Array.isArray(profile.vocabulary)) issues.push("vocabulary must be an array");
   else profile.vocabulary.forEach((entry, index) => {
@@ -504,6 +509,29 @@ export function validateBodyArchetypeRegistry(input: unknown): string[] {
     if (versions.has(key)) issues.push("registry contains duplicate archetype revision " + key);
     versions.add(key);
   });
+  const byRevision = new Map(registry.archetypes.map(item => [item.id + "@" + item.version, item]));
+  for (const archetype of registry.archetypes) {
+    const parent = archetype.parentArchetype;
+    if (!parent) continue;
+    const parentKey = parent.archetypeId + "@" + parent.archetypeVersion;
+    if (parentKey === archetype.id + "@" + archetype.version) {
+      issues.push("archetype " + parentKey + " cannot derive from itself");
+    } else if (!byRevision.has(parentKey)) {
+      issues.push("archetype " + archetype.id + " references missing parent revision " + parentKey);
+    }
+    const visited = new Set<string>([archetype.id + "@" + archetype.version]);
+    let cursor = parentKey;
+    while (byRevision.has(cursor)) {
+      if (visited.has(cursor)) {
+        issues.push("archetype lineage contains a cycle involving " + cursor);
+        break;
+      }
+      visited.add(cursor);
+      const next = byRevision.get(cursor)?.parentArchetype;
+      if (!next) break;
+      cursor = next.archetypeId + "@" + next.archetypeVersion;
+    }
+  }
   return issues;
 }
 
