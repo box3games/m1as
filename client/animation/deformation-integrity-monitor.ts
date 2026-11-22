@@ -33,7 +33,7 @@ export interface IntegrityDetectorContext {
 }
 
 export type IntegrityDetectorResult =
-  | { status: "completed"; observations: Array<Omit<CharacterIntersectionObservation, "observationId" | "simulationTimeSeconds">> }
+  | { status: "completed"; verificationLevel?: "broad_phase_candidate" | "surface_exact" | "constraint_metric" | "unknown"; observations: Array<Omit<CharacterIntersectionObservation, "observationId" | "simulationTimeSeconds">> }
   | { status: "unsupported"; reason: string }
   | { status: "not_tested"; reason: string };
 
@@ -63,6 +63,52 @@ export interface DeformationIntegrityReport {
   }>;
 }
 
+
+/**
+ * Conservative AABB broad-phase detector. An overlap is only a candidate:
+ * exact mesh/surface intersection must be checked by a later narrow-phase detector.
+ * A no-overlap result never certifies that surfaces are free of clipping.
+ */
+export class AabbBroadPhaseIntegrityDetector implements CharacterIntegrityDetector {
+  readonly id = "aabb-broad-phase";
+  readonly supportedKinds: CharacterIntersectionKind[] = [
+    "environment_collision", "clothing_penetration", "attachment_misalignment",
+  ];
+
+  inspect(context: IntegrityDetectorContext): IntegrityDetectorResult {
+    const observations: Array<Omit<CharacterIntersectionObservation, "observationId" | "simulationTimeSeconds">> = [];
+    const subjects = context.geometry.filter(item => item.role !== "environment");
+    const environments = context.geometry.filter(item => item.role === "environment");
+    const overlaps = (a: IntegrityBounds3, b: IntegrityBounds3): boolean =>
+      a.min.x < b.max.x && a.max.x > b.min.x &&
+      a.min.y < b.max.y && a.max.y > b.min.y &&
+      a.min.z < b.max.z && a.max.z > b.min.z;
+
+    for (const subject of subjects) {
+      const candidates = subject.role === "character_region"
+        ? environments
+        : context.geometry.filter(item => item.role === "character_region");
+      for (const other of candidates) {
+        if (!overlaps(subject.bounds, other.bounds)) continue;
+        const kind: CharacterIntersectionKind =
+          other.role === "environment" ? "environment_collision" :
+          subject.role === "clothing" ? "clothing_penetration" :
+          "attachment_misalignment";
+        observations.push({
+          kind,
+          subjectRegionIds: [subject.regionId ?? subject.objectId, ...(other.regionId ? [other.regionId] : [])],
+          otherObjectId: other.objectId,
+          severity: "info",
+          status: "detected",
+          provenance: this.id,
+          details: "Broad-phase AABB overlap candidate only; exact mesh/surface intersection is not established.",
+        });
+      }
+    }
+    return { status: "completed", verificationLevel: "broad_phase_candidate", observations };
+  }
+}
+
 /**
  * Detector orchestration and evidence aggregation only. It never changes
  * transforms, growth, posture, animation, collision response, or scene state.
@@ -89,10 +135,12 @@ export class DeformationIntegrityMonitor {
     }
     const observations: CharacterIntersectionObservation[] = [];
     const detectorResults: DeformationIntegrityReport["detectorResults"] = [];
+    let broadPhaseOnlyWithoutCandidates = false;
     for (const detector of this.detectors.values()) {
       try {
         const result = detector.inspect(context);
         if (result.status === "completed") {
+          if (result.verificationLevel === "broad_phase_candidate" && result.observations.length === 0) broadPhaseOnlyWithoutCandidates = true;
           for (const [index, observation] of result.observations.entries()) {
             observations.push({
               ...observation,
@@ -126,7 +174,7 @@ export class DeformationIntegrityMonitor {
       anyWarning ? "warning" :
       anyFailed ? "failed" :
       allUnsupported || anyUnsupported ? "unsupported" :
-      usable.length === 0 || anyNotTested ? "not_tested" :
+      usable.length === 0 || anyNotTested || broadPhaseOnlyWithoutCandidates ? "not_tested" :
       observations.some(item => item.status === "failed") ? "failed" :
       observations.some(item => item.status === "unsupported") ? "unsupported" :
       observations.some(item => item.status === "not_tested") ? "not_tested" :
