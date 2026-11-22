@@ -383,6 +383,33 @@ export class Big3rSandboxController {
                     const character = captureCharacterPresentation(
                         engine.getSubjectRoot(), engine.getCamera(), manifest.worldUnit,
                     );
+                    const growthState = engine.getGrowthModelTelemetry();
+                    character.deformationState = {
+                        status: "available",
+                        value: {
+                            currentScale: growthState.currentScale,
+                            targetScale: growthState.targetScale,
+                            growthVelocity: growthState.growthVelocity,
+                            instability: growthState.instability,
+                            biologicalVisualExpansion: growthState.biologicalVisualExpansion,
+                            biologicalInternalPressure: growthState.biologicalInternalPressure,
+                            biologicalPressureWave: growthState.biologicalPressureWave,
+                        },
+                        provenance: "M1ASVFXEngine.getGrowthModelTelemetry",
+                    };
+                    character.vfxState = {
+                        status: "available",
+                        value: {
+                            biologicalBreath: {
+                                visualExpansion: growthState.biologicalVisualExpansion,
+                                internalPressure: growthState.biologicalInternalPressure,
+                                pressureWave: growthState.biologicalPressureWave,
+                            },
+                            posture: growthState.posture,
+                            goldenBuffer: growthState.goldenBuffer,
+                        },
+                        provenance: "M1ASVFXEngine biological and presentation telemetry",
+                    };
                     return {
                         cameraConfiguration: {
                             status: "not_captured",
