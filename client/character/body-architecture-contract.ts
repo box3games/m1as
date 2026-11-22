@@ -413,7 +413,7 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   if (profile.bodyPlan && !["humanoid", "non_humanoid", "hybrid", "creator_defined"].includes(profile.bodyPlan.family)) {
     issues.push("bodyPlan.family is unsupported");
   }
-  const declaredRegions = new Set<string>(profile.bodyPlan?.regionIds ?? []);
+  const declaredRegions = new Set<string>(Array.isArray(profile.bodyPlan?.regionIds) ? profile.bodyPlan.regionIds : []);
   if (declaredRegions.size !== (profile.bodyPlan?.regionIds?.length ?? 0)) issues.push("bodyPlan.regionIds contains duplicates");
   for (const regionId of declaredRegions) if (!validRegionId(regionId)) issues.push("bodyPlan.regionIds contains invalid ID " + regionId);
   if (!Array.isArray(profile.vocabulary)) issues.push("vocabulary must be an array");
@@ -680,7 +680,7 @@ export function validateCharacterBodyArchetype(input: unknown): string[] {
   if (!Array.isArray(archetype.regionIds) || archetype.regionIds.some(id => !validRegionId(id))) {
     issues.push("archetype.regionIds must contain valid semantic region IDs");
   } else if (!unique(archetype.regionIds)) issues.push("archetype.regionIds contains duplicates");
-  const archetypeRegions = new Set(archetype.regionIds ?? []);
+  const archetypeRegions = new Set(Array.isArray(archetype.regionIds) ? archetype.regionIds : []);
   validateMorphology(archetype.morphology, issues);
   if (!Array.isArray(archetype.growthPreferences)) issues.push("archetype.growthPreferences must be an array");
   else archetype.growthPreferences.forEach((preference, index) => {
@@ -727,7 +727,9 @@ export function validateBodyArchetypeRegistry(input: unknown): string[] {
     versions.add(key);
   });
   const validArchetypes = registry.archetypes.filter(item => item && typeof item === "object");
-  const byRevision = new Map(validArchetypes.map(item => [item.id + "@" + item.version, item]));
+  const byRevision = new Map<string, CharacterBodyArchetype>(
+    validArchetypes.map(item => [item.id + "@" + item.version, item] as const),
+  );
   for (const archetype of validArchetypes) {
     const parent = archetype.parentArchetype;
     if (!parent) continue;
