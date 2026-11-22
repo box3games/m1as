@@ -566,7 +566,9 @@ export class Big3rSandboxController {
         breathingStart.addEventListener("click", () => {
             const started = m1asEngine.startBiologicalBreathing();
             if (!started) {
-                breathingStatus.textContent = "Biological breathing currently requires the M1AS VFX model.";
+                breathingStatus.textContent = engine.getGrowthModel?.() !== "m1as-vfx"
+                    ? "Biological breathing currently requires the M1AS VFX model."
+                    : "Finish the current queue, hold, or sustained flow before starting a breath sequence.";
             }
             refreshBreathingControls();
         });
