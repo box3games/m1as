@@ -391,7 +391,9 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   if (declaredRegions.size !== (profile.bodyPlan?.regionIds?.length ?? 0)) issues.push("bodyPlan.regionIds contains duplicates");
   for (const regionId of declaredRegions) if (!validRegionId(regionId)) issues.push("bodyPlan.regionIds contains invalid ID " + regionId);
   issues.push(...validateAnatomicalVocabulary(profile.vocabulary ?? []));
-  const vocabularyIds = new Set((profile.vocabulary ?? []).map(entry => entry.regionId));
+  const vocabularyIds = new Set((Array.isArray(profile.vocabulary) ? profile.vocabulary : [])
+    .filter(entry => entry && validRegionId(entry.regionId))
+    .map(entry => entry.regionId));
   for (const regionId of vocabularyIds) {
     if (declaredRegions.size && !declaredRegions.has(regionId)) issues.push("vocabulary region " + regionId + " is absent from bodyPlan.regionIds");
   }
@@ -403,10 +405,12 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   const relationships = Array.isArray(profile.relationships) ? profile.relationships : [];
   if (!Array.isArray(profile.relationships)) issues.push("relationships must be an array");
   for (const [index, relationship] of relationships.entries()) {
-    if (!validRegionId(relationship?.fromRegionId) || !validRegionId(relationship?.toRegionId)) {
+    if (!relationship || typeof relationship !== "object" ||
+        !validRegionId(relationship.fromRegionId) || !validRegionId(relationship.toRegionId)) {
       issues.push("relationships[" + index + "] has invalid region IDs");
+      continue;
     }
-    if (relationship?.fromRegionId === relationship?.toRegionId) issues.push("relationships[" + index + "] cannot relate a region to itself");
+    if (relationship.fromRegionId === relationship.toRegionId) issues.push("relationships[" + index + "] cannot relate a region to itself");
     if (!["parent_of", "adjacent_to", "paired_with", "symmetrical_to", "connected_to"].includes(relationship?.kind)) {
       issues.push("relationships[" + index + "].kind is unsupported");
     }
@@ -414,7 +418,7 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
       issues.push("relationships[" + index + "] references a region outside the body plan");
     }
   }
-  const parentEdges = relationships.filter(item => item.kind === "parent_of");
+  const parentEdges = relationships.filter(item => item && item.kind === "parent_of");
   for (const start of declaredRegions) {
     const pending: Array<{ regionId: string; path: Set<string> }> = [{ regionId: start, path: new Set([start]) }];
     while (pending.length) {
@@ -434,6 +438,10 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
 
   const checkRegionReferences = (items: Array<{ regionIds?: SemanticRegionId[]; regionId?: SemanticRegionId }>, path: string): void => {
     items.forEach((item, index) => {
+      if (!item || typeof item !== "object") {
+        issues.push(path + "[" + index + "] must be an object");
+        return;
+      }
       const refs = item.regionIds ?? (item.regionId ? [item.regionId] : []);
       for (const regionId of refs) {
         if (!validRegionId(regionId)) issues.push(path + "[" + index + "] contains an invalid region ID");
@@ -470,9 +478,13 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   } else {
     const validGoals = ["silhouette_dominance", "perceived_weight", "proportional_emphasis", "motion_presence", "comparative_scale", "visual_anticipation", "transformation_recognition", "environmental_consequence", "custom"];
     if (profile.presentation.goals.some(goal => !validGoals.includes(goal))) issues.push("presentation contains an unsupported perceptual goal");
-    const cueIds = profile.presentation.cues.map(cue => cue.id);
+    const cueIds = profile.presentation.cues.filter(Boolean).map(cue => cue.id);
     if (cueIds.some(id => !nonEmpty(id)) || !unique(cueIds)) issues.push("presentation cue IDs must be non-empty and unique");
     for (const cue of profile.presentation.cues) {
+      if (!cue || typeof cue !== "object") {
+        issues.push("presentation contains an invalid cue");
+        continue;
+      }
       if (!nonEmpty(cue.cueType) || !Array.isArray(cue.goals) || cue.goals.some(goal => !validGoals.includes(goal))) {
         issues.push("presentation cue " + cue.id + " has invalid type or goals");
       }
@@ -484,7 +496,7 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   if (!Array.isArray(profile.attachments)) issues.push("attachments must be an array");
   else {
     checkRegionReferences(profile.attachments, "attachments");
-    const attachmentIds = profile.attachments.map(item => item.id);
+    const attachmentIds = profile.attachments.filter(Boolean).map(item => item.id);
     if (attachmentIds.some(id => !nonEmpty(id)) || !unique(attachmentIds)) issues.push("attachment IDs must be non-empty and unique");
   }
   return issues;
@@ -529,7 +541,7 @@ export function validateCharacterBodyArchetype(input: unknown): string[] {
   });
   if (!Array.isArray(archetype.capabilityRequirements)) issues.push("archetype.capabilityRequirements must be an array");
   else archetype.capabilityRequirements.forEach((requirement, index) => {
-    if (!nonEmpty(requirement?.capability) || !["required", "preferred", "optional"].includes(requirement?.requirement)) {
+    if (!requirement || !nonEmpty(requirement.capability) || !["required", "preferred", "optional"].includes(requirement.requirement)) {
       issues.push("capabilityRequirements[" + index + "] is invalid");
     }
     if (!Array.isArray(requirement?.regionIds) || requirement.regionIds.some(id => !validRegionId(id) || !archetypeRegions.has(id))) {
@@ -552,6 +564,7 @@ export function validateBodyArchetypeRegistry(input: unknown): string[] {
   const versions = new Set<string>();
   registry.archetypes.forEach((archetype, index) => {
     for (const issue of validateCharacterBodyArchetype(archetype)) issues.push("archetypes[" + index + "]: " + issue);
+    if (!archetype || typeof archetype !== "object") return;
     const key = archetype.id + "@" + archetype.version;
     if (versions.has(key)) issues.push("registry contains duplicate archetype revision " + key);
     versions.add(key);
