@@ -75,11 +75,12 @@ export class BiologicalBreathingGrowthModel implements GrowthModel {
   }
 
   readTelemetry(simulationTimeSeconds: number): GrowthModelTelemetry {
+    const telemetry = this.inner.readTelemetry(simulationTimeSeconds);
     return {
-      ...this.inner.readTelemetry(simulationTimeSeconds),
+      ...telemetry,
       biologicalBreath: this.toTelemetry(),
       modelData: {
-        ...this.inner.readTelemetry(simulationTimeSeconds).modelData,
+        ...telemetry.modelData,
         biologicalBreathingActive: this.active,
       },
     };
