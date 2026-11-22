@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DeformationIntegrityMonitor, type IntegrityDetectorContext } from "./deformation-integrity-monitor.js";
+import { AabbBroadPhaseIntegrityDetector, DeformationIntegrityMonitor, type IntegrityDetectorContext } from "./deformation-integrity-monitor.js";
 
 const context: IntegrityDetectorContext = {
   subjectId: "subject-1",
@@ -79,4 +79,22 @@ test("prevents duplicate detector IDs and supports removal and disposal", () => 
 test("rejects invalid simulation timestamps", () => {
   const monitor = new DeformationIntegrityMonitor();
   assert.throws(() => monitor.inspect({ ...context, simulationTimeSeconds: Number.NaN }), /finite and non-negative/);
+});
+
+test("AABB detector reports broad-phase candidates without claiming exact clipping", () => {
+  const monitor = new DeformationIntegrityMonitor();
+  monitor.registerDetector(new AabbBroadPhaseIntegrityDetector());
+  const overlapping = monitor.inspect({
+    ...context,
+    geometry: [
+      { objectId: "left-thigh", role: "character_region", regionId: "thighs", bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 2, y: 2, z: 2 } } },
+      { objectId: "wall", role: "environment", bounds: { min: { x: 1, y: 0, z: 0 }, max: { x: 3, y: 2, z: 2 } } },
+    ],
+  });
+  assert.equal(overlapping.telemetry.deformationStatus, "warning");
+  assert.match(overlapping.telemetry.observations[0].details ?? "", /AABB overlap candidate only/);
+  assert.equal(overlapping.detectorResults[0].verificationLevel, "broad_phase_candidate");
+
+  const clear = monitor.inspect({ ...context, geometry: [] });
+  assert.equal(clear.telemetry.deformationStatus, "not_tested");
 });
