@@ -10,7 +10,7 @@ export const CHARACTER_PRESENTATION_MOTION_SCHEMA_VERSION = 1 as const;
 export type AuthoritativePosture = "stand" | "hunch" | "crawl";
 export type MotionRegion =
   | "root" | "spine" | "chest" | "shoulders" | "arms" | "hands"
-  | "pelvis" | "legs" | "feet" | "head" | "face" | "full_body" | string;
+  | "pelvis" | "pelvic_floor" | "perineum" | "groin" | "gluteal"\n  | "thighs" | "legs" | "knees" | "feet" | "head" | "face"\n  | "clothing" | "attachments" | "full_body" | string;
 export type MotionLayerMode = "additive" | "overlay" | "replace";
 export type MotionInterruptionPolicy = "never" | "when_higher_priority" | "when_same_owner" | "always";
 export type MotionLifecyclePhase =
@@ -53,6 +53,70 @@ export interface MotionSourceSnapshot {
   breathExpansion: MotionSourceMeasurement;
   internalPressure: MotionSourceMeasurement;
   pressureWave: MotionSourceMeasurement;
+}
+
+
+/**
+ * Rig topology is discovered per character. Region IDs are semantic aliases;
+ * bone IDs remain the exact runtime identifiers from the loaded asset.
+ */
+export interface CharacterRigRegionBinding {
+  regionId: MotionRegion;
+  boneIds: string[];
+  parentRegionId?: MotionRegion;
+  deformable: boolean;
+  provenance: "runtime_discovery" | "authored_mapping";
+}
+
+export interface CharacterRigTopology {
+  rigId: string;
+  rigVersion: string;
+  boneIds: string[];
+  regions: CharacterRigRegionBinding[];
+}
+
+/** Scale-aware deformation policy; this describes required checks, not a claim
+ * that the current renderer already performs them. */
+export interface ScaleDeformationPolicy {
+  id: string;
+  version: string;
+  supportedScaleAxes: Array<"x" | "y" | "z">;
+  preserveVolume: boolean;
+  preserveJointContinuity: boolean;
+  preserveAttachmentAlignment: boolean;
+  minimumJointClearance?: number;
+  maximumStretchRatio?: number;
+  fallback: "report_only" | "clamp_deformation" | "switch_representation" | "reject_motion";
+}
+
+export type CharacterIntersectionKind =
+  | "self_intersection" | "joint_discontinuity" | "clothing_penetration"
+  | "attachment_misalignment" | "environment_collision" | "mesh_collapse"
+  | "unknown";
+
+export interface CharacterIntersectionObservation {
+  observationId: string;
+  kind: CharacterIntersectionKind;
+  subjectRegionIds: string[];
+  otherObjectId?: string;
+  severity: "info" | "warning" | "critical";
+  status: "detected" | "not_detected" | "not_tested" | "unsupported" | "failed";
+  simulationTimeSeconds: number;
+  provenance: string;
+  details?: string;
+}
+
+export interface ScaleDeformationTelemetry {
+  subjectId: string;
+  rigId: string;
+  actualScale: MotionSourceMeasurement;
+  stageRelativeScale: MotionSourceMeasurement;
+  posture: AuthoritativePosture;
+  policyId?: string;
+  observations: CharacterIntersectionObservation[];
+  deformationStatus: "within_policy" | "warning" | "critical" | "not_tested" | "unsupported" | "failed";
+  simulationTimeSeconds: number;
+  provenance: string;
 }
 
 export interface MotionJointConstraint {
