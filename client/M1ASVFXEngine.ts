@@ -395,7 +395,9 @@ export class M1ASVFXEngine {
             isHolding: this.isHolding,
             biologicalVisualExpansion: this.biologicalVisualExpansion,
             biologicalInternalPressure: this.biologicalInternalPressure,
-            biologicalPressureWave: this.biologicalPressureWave,\n            biologicalBreathingActive: this.biologicalBreathingActive,\n            biologicalBreath: this.getBiologicalBreathSnapshot(),
+            biologicalPressureWave: this.biologicalPressureWave,
+            biologicalBreathingActive: this.biologicalBreathingActive,
+            biologicalBreath: this.getBiologicalBreathSnapshot(),
         };
     }
     /** Elapsed simulation time accumulated from this engine's existing frame dt. */
