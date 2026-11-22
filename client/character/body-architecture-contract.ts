@@ -378,7 +378,10 @@ function validateMorphology(morphology: BodyMorphologyCompositionProfile, issues
   if (!Array.isArray(morphology.tissueComposition)) issues.push("morphology.tissueComposition must be an array");
   else morphology.tissueComposition.forEach((tissue, index) => {
     const path = "morphology.tissueComposition[" + index + "]";
-    if (!nonEmpty(tissue?.tissueType)) issues.push(path + ".tissueType must be non-empty");
+    if (!tissue || !["skeletal_muscle", "adipose", "connective_tissue", "skin", "fluid", "organ", "custom"].includes(tissue.tissueType)) {
+      issues.push(path + ".tissueType is unsupported");
+    }
+    if (tissue?.tissueType === "custom" && !nonEmpty(tissue.customTissueType)) issues.push(path + ".customTissueType must be named");
     validateParameters(tissue?.parameters, path + ".parameters", issues);
     if (!Array.isArray(tissue?.regionalDistribution)) issues.push(path + ".regionalDistribution must be an array");
     else tissue.regionalDistribution.forEach((region, regionIndex) => {
@@ -413,7 +416,8 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   const declaredRegions = new Set<string>(profile.bodyPlan?.regionIds ?? []);
   if (declaredRegions.size !== (profile.bodyPlan?.regionIds?.length ?? 0)) issues.push("bodyPlan.regionIds contains duplicates");
   for (const regionId of declaredRegions) if (!validRegionId(regionId)) issues.push("bodyPlan.regionIds contains invalid ID " + regionId);
-  issues.push(...validateAnatomicalVocabulary(profile.vocabulary ?? []));
+  if (!Array.isArray(profile.vocabulary)) issues.push("vocabulary must be an array");
+  issues.push(...validateAnatomicalVocabulary(Array.isArray(profile.vocabulary) ? profile.vocabulary : []));
   const vocabularyIds = new Set((Array.isArray(profile.vocabulary) ? profile.vocabulary : [])
     .filter(entry => entry && validRegionId(entry.regionId))
     .map(entry => entry.regionId));
@@ -695,6 +699,12 @@ export function validateCharacterBodyArchetype(input: unknown): string[] {
       issues.push("capabilityRequirements[" + index + "].regionIds is invalid or absent from archetype.regionIds");
     }
   });
+  if (archetype.presentationIntent) {
+    if (!nonEmpty(archetype.presentationIntent.version) || !Array.isArray(archetype.presentationIntent.goals) ||
+        !Array.isArray(archetype.presentationIntent.cues)) {
+      issues.push("presentationIntent requires version, goals, and cues");
+    }
+  }
   if (archetype.parentArchetype && (!nonEmpty(archetype.parentArchetype.archetypeId) || !nonEmpty(archetype.parentArchetype.archetypeVersion))) {
     issues.push("parentArchetype requires archetypeId and archetypeVersion");
   }
