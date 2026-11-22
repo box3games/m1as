@@ -63,16 +63,6 @@ async function startServer() {
     .toString()
     .padStart(6, "0");
 
-//   const m1asSessionFlavorList = [
-//   "fish",
-//   "apple",
-//   "square",
-//   "rhombus",
-//   "unicorn",
-//   "blueMoon",
-//   "raptor"
-// ] as const;
-
 const m1asSessionFlavorList = m1asConfig.m1asDeploymentFlavorList || 
 [
   'fish',
@@ -105,7 +95,7 @@ const randomFlavor =
   // ---- MongoDB connection ----
   try {
     await mongoose.connect(
-      process.env.MONGO_URI || "mongodb://localhost:27017/m1as"
+      process.env.MONGO_URI || "mongodb://localhost:27017/1316R"
     );
 
     if (!mongoose.connection.db) {
