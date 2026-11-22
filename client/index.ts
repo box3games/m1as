@@ -77,3 +77,10 @@ export { MultiTargetExperimentStorage } from "./experiments/multi-target-storage
 export { type GrowthModel, type GrowthModelId, type GrowthModelDescriptor, type GrowthModelCapabilities, type GrowthModelSubject, type GrowthModelContext, type GrowthModelCommand, type GrowthModelResult, type GrowthModelTelemetry } from "./growth/model-contract.js";
 
 export { ThreeObjectScaleGrowthModel, M1ASVFXGrowthModel } from "./growth/model-adapters.js";
+
+export {
+  validateCharacterPresentationMotionProfile,
+  validateMotionRigCapabilities,
+  resolveCharacterMotionIntents,
+} from "./animation/presentation-motion-contract.js";
+export type * from "./animation/presentation-motion-contract.js";
