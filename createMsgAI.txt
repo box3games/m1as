@@ -29,3 +29,46 @@ Required Content Order Across the Chunks:
 5. `FLAGS:` Any conflicting specs (`[CONFLICT]`), unverified states (`[CHECK]`), or missing details (`[MISSING]`) the next chat should ask me about first.
 
 Audit the conversation chronologically so the most recent decisions overwrite older ones, and deduplicate overlapping details. Generate the code blocks now.
+
+[MSG 1/5 - HOLD RESPONSE UNTIL MSG 5/5 ARRIVES]
+DICT:
+$M1=M1AS|$B3=BIG3R|$VFX=VFX growth engine|$GB=Golden Boy original Godot C# Player.cs|$S=box3games_13163R_S_EH-37 (frozen)|$T=box3games_13163R_T_EH-37 (now frozen)|$E=box3games_13163R_E_EH-37 (new active target)|$GLB=streamed glTF binary asset|$GT=Grow Time|$GFC=Growth Flow Controller|$GEQ=GrowthEventQueue|$GM=Growth Model|$EC=Experiment Capture|$SSR=Sweet-Spot Registry|$ER=Experiment Recorder|$GF=Growth Fuel|$GP=Growth Potential|$GA=Growth Ambition|$INT=Instability|$JSONL=appendable JSON Lines telemetry|$IDB=IndexedDB|$LS=localStorage.
+Key files: client/growth/model-contract.ts; model-adapters.ts; grow-time.ts; grow-time.test.ts; client/experiments/diagnostic-logger.ts; indexeddb-storage.ts; multi-target-storage.ts; client/viewer/big3r-sandbox.ts; client/viewer/vfx-recorder.ts; client/GrowthEventQueue.ts; client/M1ASVFXEngine.ts.
+
+[MSG 2/5 - HOLD RESPONSE UNTIL MSG 5/5 ARRIVES]
+PROTO:
+User owns creative/design authority. Collaborate respectfully; technically substantive, direct, no patronizing or judgmental assumptions. Distinguish verified facts, hypotheses and unknowns. Discuss/align before implementation. Never modify code, branches, commits, pushes, merges or refactors without explicit authorization. Never claim tests/builds/repository changes unless verified. Active work now targets $E; preserve frozen $S and $T. Do not alter frozen branches.
+One essential question at a time. Preserve exact terminology and user experiential labels. Keep experimental harness independent of future inventory/gameplay systems. Do not conflate $GB with M1AS architecture or replace its authoritative original Player.cs.
+Adaptive export rule: Trigger="msgAI"->audit_latest,dedupe,flag_conflicts,pack_into_min_blocks(<1150chars_each)_with_[MSG_X/N]_headers_preserving_this_Trigger. When user requests msgAI, output ONLY plain-text code blocks, minimum number, every block <1,150 chars including header; first line of each block uses required HOLD header; final block uses INGEST COMPLETE. Preserve this trigger in future exports.
+Current user says $T is frozen after team tested changes positively; next discussions/results and direction occur before new implementation on $E.
+
+[MSG 3/5 - HOLD RESPONSE UNTIL MSG 5/5 ARRIVES]
+EPICS:
+Growth architecture: semantic Growth Request (outcome/opportunity) -> Manager decision (approved/partial/deferred/rejected) -> Approved Growth Event -> queue scheduling/execution -> character response. Recorder observes only. Manager owns eligibility/resources/release; queue owns timing/order/overlap; character adapter embodies response. Preserve direct experimental input path and legacy queue policy.
+Growth amount supports relative, absolute, regional, authored profiles. Explicit units; no ambiguous numeric meaning. IDs link requests/decisions/events/executions. Idempotency, immutable records, explicit cancellation/replacement. Sequential/overlap/feed-active-chain configurable.
+$GT is persistent spendable reserve. Conversion configurable continuous/restricted/disabled. Regional reserves/effects need not feed global reserve. Duration-driven and chaos-driven consumption policies. Flow rate (reserve consumed per sim second) separate from growth response per supply second. Add acceleration/deceleration, pulses, sustained pressure; discrete events may interrupt/compound flow. No per-frame queue flooding.
+Interchangeable GM contract: same GLB, scene, camera, inputs and experiment config; selectable baseline scaling vs M1AS VFX. Declare capabilities (whole-object/regional scaling, deformation, rig, VFX, timing). Unsupported features explicit. Compare trajectory, velocity, deformation, screen occupancy and perception.
+Inputs: Queue Stimulus, Hold Charge, Colossal Chaos, configurable mappings, combos; coexist with experimental direct requests and future gameplay/resource mode.
+
+[MSG 4/5 - HOLD RESPONSE UNTIL MSG 5/5 ARRIVES]
+EPICS continued:
+EC: synchronized growth execution, presentation and perception streams; experiment ID, simulation time authoritative, optional wall clock/frame, sequence number. Record requests, decisions, events, queue, scale/velocity/duration, regional growth; camera config vs runtime state; world/camera/screen coordinates; character regions/landmarks/occlusion/clipping; GLB hierarchy/dimensions; scene geometry, props, lighting, VFX, random seed, timestep, build/config versions, asset loading and connection diagnostics. Human perception separate from automated metrics.
+Capture snapshot/keyframes/continuous; profiles lightweight/detailed/discovery; event-triggered windows. Wall-clock separate from simulation clock. Recorder must not affect simulation; measure overhead. Sweet spots are versioned presentation recipes with camera, framing, growth trajectory, orientation and world references; evidence immutable, recipe versioned; confidence unverified/observed/repeatable/validated.
+Preserve canonical perception labels: "did i grow"; "maybe i grew"; "I grew"; "I got bigger"; "grew some more"; "did not think I was going to grow again"; "oh wait am I still growing"; "when will i stop growing"; "I cant believe I am that big"; "I am BIG3R". Milestones may skip/recur/reorder.
+Storage: console mirror, compact LS preferences/index/recovery, full records in IDB, portable JSON/JSONL experiment package. Common logger routes one structured event to multiple sinks. Log failures visible; never silently drop.
+[MSG 5/5 - INGEST COMPLETE. SURFACE FLAGS FIRST.]
+NOW:
+User recognizes commit 881b7f4a7eb23f674f73f27ed015aa33c3730ba0 as major milestone. Subsequent assistant-claimed commits on $T:
+4f940c6d923d9e1b27e6c9e08a04339caf005631: model contract/adapters, diagnostics, IDB storage.
+f830abb2d314aa79d08910f731e2540310a3c131: sandbox GM selector and input routing.
+daf06a7a2262d13ef56cedade6be106837171e1c: sustained GT flow integration.
+Claimed files: client/growth/model-contract.ts, model-adapters.ts; client/experiments/diagnostic-logger.ts, indexeddb-storage.ts, multi-target-storage.ts; grow-time.ts/tests/docs; sandbox integration in client/viewer/big3r-sandbox.ts. Baseline ThreeObjectScaleGrowthModel and M1ASVFXGrowthModel share contract. M1AS remains default. Baseline smooth scale; VFX uses legacy queue/spring/skeletal/posture/VFX. Selector blocks switching while growth/queue settles and during recording. Manifest identifies model. VFX-only residue cleared on baseline switch.
+GT feeds existing spring target continuously, no per-frame queue events. Flow multiplier independently controls reserve consumption; growth-per-supply-second controls scale response. Stop refunds unused reserve subject to cap. Samples claimed at 2Hz; flow start/rate/depletion/stop captured; profiles recognize growth_flow_sample. User now confirms team tested changes and gave positive feedback.
+[MSG 6/6 - INGEST COMPLETE. SURFACE FLAGS FIRST.]
+FLAGS:
+[CHECK] Commit IDs and exact file contents above are assistant-reported, not independently re-fetched in this conversation. User confirms team-tested changes positively; treat that as user-verified test feedback, but do not infer specific CI/build reports.
+[CHECK] Earlier claimed latest commit efe61598ccc3543fd2aa618fe4aa56f226e83a20 conflicted with user-recognized 881b milestone and prior baseline e3b834d21bc00ad77beeb8dcd040595f4b972a57. Do not assume it is current; $T's final stated milestone is daf06a7 pending repository audit.
+[CHECK] No independent confirmation that the $T freeze or $E branch creation/checkout has occurred in Git. User's instruction is authoritative: freeze $T and move to $E. Verify branch/HEAD before changes; do not write to $T.
+[MISSING] Before implementation on $E, discuss team's experiment results and user's forward direction. Ask for observations/results rather than assuming next feature. No Growth Flow shaping, further model integration, or recorder expansion authorized yet.
+[MISSING] C# parity remains unimplemented/unverified; M1AS repo did not contain authoritative $GB source. Preserve original Player.cs as baseline. Original G/R/O rapid keyboard stimulation and "happy bug" are hypotheses for balloon-like deformation, not proven cause.
+[MISSING] Exact test/build commands/results and whether current IndexedDB export contains all desired scene/camera/connection metadata need audit.
