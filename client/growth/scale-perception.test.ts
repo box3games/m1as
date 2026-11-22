@@ -64,7 +64,7 @@ test("camera-relative 2D mass uses projected area and preserves offscreen bounds
   assert.equal(result.projectedWidthFraction, 0.6);
   assert.equal(result.projectedHeightFraction, 0.5);
   assert.equal(result.projectedAreaFraction, 0.3);
-  assert.equal(result.relativeMass2D, 3);
+  assert.ok(Math.abs(result.relativeMass2D - 3) < 1e-12);
   assert.equal(result.normalizedBounds.left, -0.1);
   assert.equal(result.clipped, true);
 });
@@ -96,8 +96,8 @@ test("camera movement can change projected mass without changing actual dimensio
     visible: true,
     clipped: false,
   });
-  assert.equal(near.relativeMass2D, 3.6);
-  assert.equal(far.relativeMass2D, 0.4);
+  assert.ok(Math.abs(near.relativeMass2D - 3.6) < 1e-12);
+  assert.ok(Math.abs(far.relativeMass2D - 0.4) < 1e-12);
   assert.deepEqual(subject.dimensions, { x: 4, y: 2, z: 1 });
 });
 
