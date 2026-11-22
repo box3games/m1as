@@ -28,6 +28,8 @@ import {
     type GrowTimeStore,
 } from "../growth/grow-time.js";
 import { captureCharacterPresentation, capturePerspectiveCamera } from "../experiments/three-adapters.js";
+import { captureExperientialScale } from "../experiments/experiential-scale-adapter.js";
+import { validateExperientialScaleProfileSet, type ExperientialScaleProfileSet } from "../growth/experiential-scale.js";
 
 
 const BOX_TIER_NAMES = [
@@ -77,6 +79,7 @@ export class Big3rSandboxController {
     private growTimeKeyUp: ((event: KeyboardEvent) => void) | null = null;
     private growTimeReadout: HTMLElement | null = null;
     private lastGrowthFlowSampleTimeSeconds = -1;
+    private experientialScaleProfiles: ExperientialScaleProfileSet | null = this.loadExperientialScaleProfiles();
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
     private readonly heightReticle = document.getElementById("vfxHeightReticle") as HTMLElement | null;
@@ -311,6 +314,48 @@ export class Big3rSandboxController {
         if (this.experimentControls) this.experimentControls.remove();
         const panel = document.createElement("div");
         panel.className = "m1as-experiment-controls vfx-control-row vfx-control-row--divided-tight m1as-select";
+        const scaleProfileInput = document.createElement("input");
+        scaleProfileInput.type = "file";
+        scaleProfileInput.accept = "application/json,.json";
+        scaleProfileInput.hidden = true;
+        const importScaleProfiles = document.createElement("button");
+        importScaleProfiles.type = "button";
+        importScaleProfiles.textContent = "Import Scale Profiles";
+        importScaleProfiles.addEventListener("click", () => scaleProfileInput.click());
+        scaleProfileInput.addEventListener("change", async () => {
+            const file = scaleProfileInput.files?.item(0);
+            if (!file) return;
+            try {
+                const parsed: unknown = JSON.parse(await file.text());
+                validateExperientialScaleProfileSet(parsed);
+                this.experientialScaleProfiles = parsed;
+                localStorage.setItem("big3r.experientialScaleProfiles.v1", JSON.stringify(parsed));
+                exportScaleProfiles.disabled = false;
+                status.textContent = `Loaded scale profiles ${parsed.id} · v${parsed.version}`;
+                this.diagnostics.info("experiential-scale", "Authored experiential-scale profiles loaded.", {
+                    profileSetId: parsed.id, profileSetVersion: parsed.version,
+                    stageProfiles: Object.keys(parsed.stages), cameraProfiles: Object.keys(parsed.cameras),
+                });
+            } catch (error) {
+                status.textContent = `Scale profile import failed: ${error instanceof Error ? error.message : String(error)}`;
+            } finally {
+                scaleProfileInput.value = "";
+            }
+        });
+        const exportScaleProfiles = document.createElement("button");
+        exportScaleProfiles.type = "button";
+        exportScaleProfiles.textContent = "Export Scale Profiles";
+        exportScaleProfiles.disabled = !this.experientialScaleProfiles;
+        exportScaleProfiles.addEventListener("click", () => {
+            if (!this.experientialScaleProfiles) return;
+            const blob = new Blob([JSON.stringify(this.experientialScaleProfiles, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `experiential-scale-profiles-${this.experientialScaleProfiles.id}-v${this.experientialScaleProfiles.version}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        });
 
         const profileSelect = document.createElement("select");
         profileSelect.className = "m1as-select";
@@ -357,6 +402,9 @@ export class Big3rSandboxController {
                     growth: `growth-model:${engine.getGrowthModel?.() ?? "legacy-unknown"}`,
                     camera: "runtime-perspective-camera",
                     world: "sandbox-stage",
+                    experientialScale: this.experientialScaleProfiles
+                        ? `${this.experientialScaleProfiles.id}@${this.experientialScaleProfiles.version}`
+                        : "unconfigured",
                 },
             };
             const storage = new IndexedDbExperimentStorage((url, fileName) => {
@@ -384,6 +432,19 @@ export class Big3rSandboxController {
                         engine.getSubjectRoot(), engine.getCamera(), manifest.worldUnit,
                     );
                     const growthState = engine.getGrowthModelTelemetry();
+                    const activeStageId = `sandbox-box-tier-${this.currentBoxTier}`;
+                    const activeCameraMode = this.camRigSelect ? `rig-${this.camRigSelect.value}` : "sandbox";
+                    character.experientialScale = captureExperientialScale({
+                        subjectId: "active-glb-subject",
+                        root: engine.getSubjectRoot(),
+                        camera: engine.getCamera(),
+                        viewportWidth: viewport.widthPixels,
+                        viewportHeight: viewport.heightPixels,
+                        worldUnit: manifest.worldUnit,
+                        stageId: activeStageId,
+                        cameraMode: activeCameraMode,
+                        profiles: this.experientialScaleProfiles,
+                    });
                     character.deformationState = {
                         status: "available",
                         value: {
@@ -482,6 +543,7 @@ export class Big3rSandboxController {
             exportLink.download = previousExport.download;
             exportLink.hidden = false;
         }
+        panel.append(importScaleProfiles, exportScaleProfiles, scaleProfileInput);
         panel.append(profileSelect, start, stop, status, exportLink);
         this.controlBar.appendChild(panel);
         this.experimentControls = panel;
@@ -825,6 +887,20 @@ export class Big3rSandboxController {
         this.renderGrowTimeState();
     }
 
+    private loadExperientialScaleProfiles(): ExperientialScaleProfileSet | null {
+        try {
+            const raw = localStorage.getItem("big3r.experientialScaleProfiles.v1");
+            if (!raw) return null;
+            const parsed: unknown = JSON.parse(raw);
+            validateExperientialScaleProfileSet(parsed);
+            return parsed;
+        } catch (error) {
+            this.diagnostics.warn("experiential-scale", "Saved experiential-scale profiles could not be loaded.", {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return null;
+        }
+    }
     private persistGrowTime(): void {
         if (!this.growTimeController || !this.growTimeStore) return;
         try { this.growTimeStore.save(this.growTimeController.createSnapshot()); }

@@ -6,6 +6,7 @@
  */
 
 import type { ScalePerceptionMeasurements } from '../growth/scale-perception.js';
+import type { ExperientialScaleSnapshot } from '../growth/experiential-scale.js';
 
 export const EXPERIMENT_SCHEMA_VERSION = 1 as const;
 
@@ -281,6 +282,8 @@ export interface CharacterPresentationSample {
   vfxState?: Measurement<Record<string, unknown>>;
   /** Independent actual/stage/camera/perceived-mass snapshot for this presentation sample. */
   scalePerception?: Measurement<ScalePerceptionMeasurements>;
+  /** Independent actual/stage/camera/perceived/accent snapshot with per-dimension status. */
+  experientialScale?: Measurement<ExperientialScaleSnapshot>;
 }
 
 export interface WorldLandmarkSample {
@@ -442,6 +445,7 @@ export interface ExperimentManifest {
     growth: string;
     camera: string;
     world: string;
+    experientialScale?: string;
   };
   artifactHashes?: Record<string, string>;
 }
