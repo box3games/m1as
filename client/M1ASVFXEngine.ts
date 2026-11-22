@@ -558,6 +558,7 @@ export class M1ASVFXEngine {
         this.growFlowGrowthPerSupplySecond = 0.1;
         this.upperBodyExcess = 0.0;
         this.storedGoldenBuffer = 0.0;
+        this.venousPulseEnergy = 0;
         this.biologicalVisualExpansion = 0;
         this.biologicalInternalPressure = 0;
         this.biologicalPressureWave = 0;
