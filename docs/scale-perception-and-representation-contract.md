@@ -129,7 +129,7 @@ Keep authored configuration distinct from runtime measurements. Preserve unavail
 The following renderer-independent foundations are now present:
 
 - `client/growth/scale-perception.ts`: actual-dimension snapshots, stage-relative axis ratios, optional 3D bounding-volume ratio proxy, camera-relative projected-area ratio, and stage-bound perceived-mass normalization.
-- `client/growth/biological-breathing.ts`: simulation-time breath phases with independently configurable accumulated scale, progressively longer cycles, increasing hold pressure, and a separate traveling pressure-wave signal.
+- `client/growth/biological-breathing.ts`: simulation-time breath phases with continuous, monotonic scale accumulation during inhale; progressively longer cycles; increasing hold pressure; a separate traveling pressure-wave signal; and independently tunable growth and visual-pulse envelopes.
 - `client/growth/scale-perception.test.ts` and `client/growth/biological-breathing.test.ts`: deterministic edge-case and progression tests, included in `npm run test:experiments`.
 
 The 3D volume output is explicitly a bounding-volume ratio proxy, not physical mass. The 2D relative-mass output is projected visual area divided by a stage/camera-authored reference footprint. Camera and perceived-mass profiles identify their stage, preventing accidental comparison across unrelated level references.
