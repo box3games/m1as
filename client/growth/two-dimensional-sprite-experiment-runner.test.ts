@@ -111,6 +111,5 @@ test("runner rejects breathing events unless breathing is enabled", async () => 
     ...baseConfig,
     events: [{ atSeconds: 0, action: { kind: "breathing", active: true } }],
   };
-  const runner = new TwoDimensionalSpriteExperimentRunner(model, config);
-  await assert.rejects(() => runner.initialize(), /Breathing events require/);
+  assert.throws(() => new TwoDimensionalSpriteExperimentRunner(model, config), /Breathing events require/);
 });
