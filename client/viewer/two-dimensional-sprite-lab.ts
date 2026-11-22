@@ -3,7 +3,6 @@ import {
   parseTwoDimensionalSpriteExperimentConfig,
   TwoDimensionalSpriteExperimentRunner,
   type TwoDimensionalSpriteExperimentConfig,
-  type TwoDimensionalSpriteExperimentResult,
 } from "../growth/two-dimensional-sprite-experiment-runner.js";
 import { TwoDimensionalSpriteGrowthModel } from "../growth/two-dimensional-sprite-growth-model.js";
 
@@ -31,7 +30,6 @@ export class TwoDimensionalSpriteLab {
   private sprite: THREE.Sprite | null = null;
   private runner: TwoDimensionalSpriteExperimentRunner | null = null;
   private config: TwoDimensionalSpriteExperimentConfig | null = null;
-  private latestResult: TwoDimensionalSpriteExperimentResult | null = null;
   private animationFrame = 0;
   private lastFrameTime = 0;
   private accumulatedWallTime = 0;
@@ -171,7 +169,6 @@ export class TwoDimensionalSpriteLab {
       await this.createRunner();
       this.setStatus(`Loaded ${imageFile.name} · ${config.experimentId} · ${config.durationSeconds}s`);
       this.setControlsEnabled(true);
-      this.latestResult = null;
       this.updateTelemetry();
       this.render();
     } catch (error) {
@@ -201,7 +198,6 @@ export class TwoDimensionalSpriteLab {
     if (!this.config || !this.texture) return;
     this.disposeExperiment();
     await this.createRunner();
-    this.latestResult = null;
     this.setStatus("Experiment reset to its initial sprite state.");
     this.render();
   }
@@ -270,16 +266,22 @@ export class TwoDimensionalSpriteLab {
       this.telemetry.textContent = "No experiment loaded.";
       return;
     }
-    const sample = this.runner.simulationTimeSeconds;
+    const time = this.runner.simulationTimeSeconds;
     const config = this.config;
-    const progress = config ? Math.min(100, sample / config.durationSeconds * 100) : 0;
+    const telemetry = this.runner.latestTelemetry;
+    const progress = config ? Math.min(100, time / config.durationSeconds * 100) : 0;
     const spriteScale = this.sprite?.scale.x ?? 0;
     this.telemetry.textContent = [
-      `Simulation time: ${sample.toFixed(2)}s / ${config?.durationSeconds.toFixed(2) ?? "—"}s`,
-      `Sprite width scale: ${spriteScale.toFixed(3)}`,
+      `Simulation time: ${time.toFixed(2)}s / ${config?.durationSeconds.toFixed(2) ?? "—"}s`,
+      `Accumulated scale: ${(telemetry?.currentScale ?? 1).toFixed(3)}×`,
+      `Target scale: ${(telemetry?.targetScale ?? 1).toFixed(3)}×`,
+      `Rendered sprite width: ${spriteScale.toFixed(3)}`,
+      `Flow remaining: ${(telemetry?.supplyRemainingSeconds ?? 0).toFixed(2)}s`,
+      `Breathing: ${telemetry?.biologicalBreath ? telemetry.biologicalBreath.phase + " · cycle " + telemetry.biologicalBreath.cycleIndex : "not enabled"}`,
+      `Internal pressure: ${(telemetry?.biologicalBreath?.internalPressure ?? 0).toFixed(3)}`,
       `Progress: ${progress.toFixed(1)}%`,
       `State: ${this.runner.isComplete ? "completed" : this.running ? "playing" : "paused"}`,
-    ].join("\n");
+    ].join("\\n");
   }
 
   private render(): void {
