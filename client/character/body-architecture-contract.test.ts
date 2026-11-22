@@ -282,3 +282,15 @@ test("development history validates revision parents and preserves separate grow
   };
   assert.ok(validateCharacterDevelopmentHistory(cyclic).some(issue => issue.includes("cycle")));
 });
+
+
+test("live archetype registry refuses orphaned lineage references", () => {
+  const registry = new CharacterBodyArchetypeRegistry("team");
+  const orphan = {
+    ...archetype,
+    id: "studio:orphan",
+    parentArchetype: { archetypeId: "studio:not-registered", archetypeVersion: "1" },
+  };
+  assert.throws(() => registry.register(orphan), /missing parent revision/);
+  assert.equal(registry.list().length, 0);
+});
