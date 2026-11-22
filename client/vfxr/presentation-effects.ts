@@ -21,7 +21,7 @@ export class VfxrPresentationEffectRegistry implements PresentationAccentEffectH
   public register(target: PresentationEffectTarget): () => void {
     if (!target.targetId.trim()) throw new TypeError("Presentation effect targetId is required.");
     if (this.targets.has(target.targetId)) {
-      throw new Error(\`Presentation effect target "\${target.targetId}" is already registered.\`);
+      throw new Error(`Presentation effect target "${target.targetId}" is already registered.`);
     }
     this.targets.set(target.targetId, target);
     return () => {
@@ -38,7 +38,7 @@ export class VfxrPresentationEffectRegistry implements PresentationAccentEffectH
   ): PresentationAccentApplyResult {
     if (!Number.isFinite(value)) return { status: "failed", reason: "Accent value must be finite." };
     const target = this.targets.get(targetId);
-    if (!target) return { status: "unsupported", reason: \`VFXR target "\${targetId}" is not registered.\` };
+    if (!target) return { status: "unsupported", reason: `VFXR target "${targetId}" is not registered.` };
     try {
       return target.apply(channelId, value);
     } catch (error) {
