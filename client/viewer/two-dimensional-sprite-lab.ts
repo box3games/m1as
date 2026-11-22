@@ -159,15 +159,25 @@ export class TwoDimensionalSpriteLab {
       } finally {
         URL.revokeObjectURL(imageUrl);
       }
+      texture.colorSpace = THREE.SRGBColorSpace;
       this.disposeExperiment();
       this.texture?.dispose();
       this.texture = texture;
+      const imageAspect = texture.image.width / texture.image.height;
+      if (!Number.isFinite(imageAspect) || imageAspect <= 0) throw new Error("The selected image has invalid dimensions.");
       this.config = {
         ...config,
-        subject: { ...config.subject, assetId: imageFile.name },
+        subject: {
+          ...config.subject,
+          assetId: imageFile.name,
+          initialDimensions: {
+            ...config.subject.initialDimensions,
+            x: config.subject.initialDimensions.y * imageAspect,
+          },
+        },
       };
       await this.createRunner();
-      this.setStatus(`Loaded ${imageFile.name} · ${config.experimentId} · ${config.durationSeconds}s`);
+      this.setStatus(`Loaded ${imageFile.name} · ${config.experimentId} · source aspect ratio preserved · ${config.durationSeconds}s`);
       this.setControlsEnabled(true);
       this.updateTelemetry();
       this.render();
