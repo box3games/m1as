@@ -60,7 +60,7 @@ export class BiologicalBreathingGrowthModel implements GrowthModel {
     return this.active;
   }
 
-  apply(command: GrowthModelCommand, context: GrowthModelContext): GrowthModelResult {
+  apply(command: GrowthModelCommand, context: GrowthModelContext): GrowthModelResult | Promise<GrowthModelResult> {
     return this.inner.apply(command, context);
   }
 

@@ -112,7 +112,9 @@ export function validateCharacterRigTopology(
       errors.push(`Region ${region.regionId} references missing parent region ${region.parentRegionId}.`);
     }
   }
-  const parentByRegion = new Map(topology.regions.map(region => [region.regionId, region.parentRegionId]));
+  const parentByRegion = new Map<string, string | undefined>(
+    topology.regions.map(region => [region.regionId, region.parentRegionId]),
+  );
   for (const start of parentByRegion.keys()) {
     const visited = new Set<string>();
     let current: string | undefined = start;

@@ -445,20 +445,24 @@ export class Big3rSandboxController {
                         cameraMode: activeCameraMode,
                         profiles: this.experientialScaleProfiles,
                     });
-                    if (character.experientialScale.status === "available" &&
-                        character.experientialScale.value.presentationAccent.status === "available") {
+                    if (character.experientialScale.status === "available") {
                         const snapshot = character.experientialScale.value;
-                        const applied = applyPresentationAccentEvaluation(
-                            snapshot.presentationAccent.value, engine,
-                        );
-                        character.experientialScale = {
-                            ...character.experientialScale,
-                            value: { ...snapshot, presentationAccent: {
-                                status: "available",
-                                value: applied,
-                                provenance: "presentation-accent-effect-host-application",
-                            } },
-                        };
+                        const presentationAccent = snapshot.presentationAccent;
+                        if (presentationAccent.status === "available") {
+                            const applied = applyPresentationAccentEvaluation(
+                                presentationAccent.value, engine,
+                            );
+                            character.experientialScale = {
+                                ...character.experientialScale,
+                                value: { ...snapshot, presentationAccent: {
+                                    status: "available",
+                                    value: applied,
+                                    provenance: "presentation-accent-effect-host-application",
+                                } },
+                            };
+                        } else {
+                            engine.clearPresentationAccentChannels([]);
+                        }
                     } else {
                         engine.clearPresentationAccentChannels([]);
                     }
@@ -476,7 +480,7 @@ export class Big3rSandboxController {
                             biologicalVisualExpansion: growthState.biologicalVisualExpansion,
                             biologicalInternalPressure: growthState.biologicalInternalPressure,
                             biologicalPressureWave: growthState.biologicalPressureWave,
-                            biologicalBreathingActive: growthState.biologicalBreathingActive,
+                            biologicalBreathingActive: Number(growthState.biologicalBreathingActive),
                         },
                         provenance: "M1ASVFXEngine.getGrowthModelTelemetry",
                     };
