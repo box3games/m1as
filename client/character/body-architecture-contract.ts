@@ -151,7 +151,8 @@ export type TissueCompositionKind =
   | "skin" | "fluid" | "organ" | "custom";
 
 export interface TissueCompositionProfile {
-  tissueType: TissueCompositionKind | string;
+  tissueType: TissueCompositionKind;
+  customTissueType?: string;
   parameters: MorphologyParameter[];
   regionalDistribution: RegionalMorphologyProfile[];
   description?: string;
@@ -303,6 +304,30 @@ const validRegionId = (value: unknown): value is SemanticRegionId => {
     /^[a-z][a-z0-9._-]*:[a-z][a-z0-9._-]*$/.test(value);
 };
 
+export function validateAnatomicalVocabulary(entries: AnatomicalVocabularyEntry[]): string[] {
+  const issues: string[] = [];
+  if (!Array.isArray(entries)) return ["vocabulary must be an array"];
+  const ids = new Set<string>();
+  for (const [index, entry] of entries.entries()) {
+    if (!validRegionId(entry?.regionId)) {
+      issues.push("vocabulary[" + index + "].regionId is invalid");
+      continue;
+    }
+    if (ids.has(entry.regionId)) issues.push("vocabulary duplicates " + entry.regionId);
+    ids.add(entry.regionId);
+    if (!nonEmpty(entry.label) || !nonEmpty(entry.namespace)) {
+      issues.push("vocabulary[" + index + "] requires label and namespace");
+    }
+    const isStandard = (STANDARD_ANATOMICAL_REGION_IDS as readonly string[]).includes(entry.regionId);
+    if (isStandard && entry.origin !== "standard") issues.push("standard region " + entry.regionId + " must use origin=standard");
+    if (!isStandard && entry.origin !== "creator") issues.push("custom region " + entry.regionId + " must use origin=creator");
+    if (!isStandard && typeof entry.regionId === "string" && !entry.regionId.startsWith(entry.namespace + ":")) {
+      issues.push("custom region " + entry.regionId + " must match its namespace");
+    }
+  }
+  return issues;
+}
+
 function validateParameters(parameters: MorphologyParameter[], path: string, issues: string[]): void {
   if (!Array.isArray(parameters)) {
     issues.push(path + " must be an array");
@@ -359,19 +384,20 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
       !nonEmpty(profile.bodyPlan.label) || !Array.isArray(profile.bodyPlan.regionIds)) {
     issues.push("bodyPlan requires id, version, label, and regionIds");
   }
+  if (profile.bodyPlan && !["humanoid", "non_humanoid", "hybrid", "creator_defined"].includes(profile.bodyPlan.family)) {
+    issues.push("bodyPlan.family is unsupported");
+  }
   const declaredRegions = new Set<string>(profile.bodyPlan?.regionIds ?? []);
   if (declaredRegions.size !== (profile.bodyPlan?.regionIds?.length ?? 0)) issues.push("bodyPlan.regionIds contains duplicates");
   for (const regionId of declaredRegions) if (!validRegionId(regionId)) issues.push("bodyPlan.regionIds contains invalid ID " + regionId);
-  const vocabularyIds: string[] = [];
-  if (!Array.isArray(profile.vocabulary)) issues.push("vocabulary must be an array");
-  else profile.vocabulary.forEach((entry, index) => {
-    if (!validRegionId(entry?.regionId)) issues.push("vocabulary[" + index + "].regionId is invalid");
-    else vocabularyIds.push(entry.regionId);
-    if (!nonEmpty(entry?.label) || !nonEmpty(entry?.namespace)) issues.push("vocabulary[" + index + "] requires label and namespace");
-  });
-  if (!unique(vocabularyIds)) issues.push("vocabulary contains duplicate region IDs");
+  issues.push(...validateAnatomicalVocabulary(profile.vocabulary ?? []));
+  const vocabularyIds = new Set((profile.vocabulary ?? []).map(entry => entry.regionId));
   for (const regionId of vocabularyIds) {
     if (declaredRegions.size && !declaredRegions.has(regionId)) issues.push("vocabulary region " + regionId + " is absent from bodyPlan.regionIds");
+  }
+  for (const regionId of declaredRegions) {
+    const custom = !(STANDARD_ANATOMICAL_REGION_IDS as readonly string[]).includes(regionId);
+    if (custom && !vocabularyIds.has(regionId)) issues.push("custom body-plan region " + regionId + " requires a vocabulary entry");
   }
 
   const relationships = Array.isArray(profile.relationships) ? profile.relationships : [];
@@ -390,16 +416,19 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   }
   const parentEdges = relationships.filter(item => item.kind === "parent_of");
   for (const start of declaredRegions) {
-    const visited = new Set<string>();
-    const pending = [start];
+    const pending: Array<{ regionId: string; path: Set<string> }> = [{ regionId: start, path: new Set([start]) }];
     while (pending.length) {
       const current = pending.pop()!;
-      if (visited.has(current)) {
-        issues.push("parent_of relationships contain a cycle involving " + current);
-        break;
+      for (const edge of parentEdges) {
+        if (edge.fromRegionId !== current.regionId) continue;
+        if (current.path.has(edge.toRegionId)) {
+          issues.push("parent_of relationships contain a cycle involving " + edge.toRegionId);
+          continue;
+        }
+        const nextPath = new Set(current.path);
+        nextPath.add(edge.toRegionId);
+        pending.push({ regionId: edge.toRegionId, path: nextPath });
       }
-      visited.add(current);
-      for (const edge of parentEdges) if (edge.fromRegionId === current) pending.push(edge.toRegionId);
     }
   }
 
@@ -438,9 +467,26 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   if (!profile.presentation || !nonEmpty(profile.presentation.version) ||
       !Array.isArray(profile.presentation.goals) || !Array.isArray(profile.presentation.cues)) {
     issues.push("presentation requires version, goals, and cues");
+  } else {
+    const validGoals = ["silhouette_dominance", "perceived_weight", "proportional_emphasis", "motion_presence", "comparative_scale", "visual_anticipation", "transformation_recognition", "environmental_consequence", "custom"];
+    if (profile.presentation.goals.some(goal => !validGoals.includes(goal))) issues.push("presentation contains an unsupported perceptual goal");
+    const cueIds = profile.presentation.cues.map(cue => cue.id);
+    if (cueIds.some(id => !nonEmpty(id)) || !unique(cueIds)) issues.push("presentation cue IDs must be non-empty and unique");
+    for (const cue of profile.presentation.cues) {
+      if (!nonEmpty(cue.cueType) || !Array.isArray(cue.goals) || cue.goals.some(goal => !validGoals.includes(goal))) {
+        issues.push("presentation cue " + cue.id + " has invalid type or goals");
+      }
+      for (const regionId of cue.targetRegionIds ?? []) {
+        if (!validRegionId(regionId) || (declaredRegions.size && !declaredRegions.has(regionId))) issues.push("presentation cue " + cue.id + " references an invalid region");
+      }
+    }
   }
   if (!Array.isArray(profile.attachments)) issues.push("attachments must be an array");
-  else checkRegionReferences(profile.attachments, "attachments");
+  else {
+    checkRegionReferences(profile.attachments, "attachments");
+    const attachmentIds = profile.attachments.map(item => item.id);
+    if (attachmentIds.some(id => !nonEmpty(id)) || !unique(attachmentIds)) issues.push("attachment IDs must be non-empty and unique");
+  }
   return issues;
 }
 
@@ -471,10 +517,11 @@ export function validateCharacterBodyArchetype(input: unknown): string[] {
   if (!Array.isArray(archetype.regionIds) || archetype.regionIds.some(id => !validRegionId(id))) {
     issues.push("archetype.regionIds must contain valid semantic region IDs");
   } else if (!unique(archetype.regionIds)) issues.push("archetype.regionIds contains duplicates");
+  const archetypeRegions = new Set(archetype.regionIds ?? []);
   validateMorphology(archetype.morphology, issues);
   if (!Array.isArray(archetype.growthPreferences)) issues.push("archetype.growthPreferences must be an array");
   else archetype.growthPreferences.forEach((preference, index) => {
-    if (!validRegionId(preference?.regionId)) issues.push("growthPreferences[" + index + "].regionId is invalid");
+    if (!validRegionId(preference?.regionId) || !archetypeRegions.has(preference.regionId)) issues.push("growthPreferences[" + index + "].regionId is invalid or absent from archetype.regionIds");
     if (!Array.isArray(preference?.dimensions) || preference.dimensions.some(value => !["scale", "length", "volume", "shape", "proportion", "distribution", "growth_field"].includes(value))) {
       issues.push("growthPreferences[" + index + "].dimensions is invalid");
     }
@@ -485,8 +532,8 @@ export function validateCharacterBodyArchetype(input: unknown): string[] {
     if (!nonEmpty(requirement?.capability) || !["required", "preferred", "optional"].includes(requirement?.requirement)) {
       issues.push("capabilityRequirements[" + index + "] is invalid");
     }
-    if (!Array.isArray(requirement?.regionIds) || requirement.regionIds.some(id => !validRegionId(id))) {
-      issues.push("capabilityRequirements[" + index + "].regionIds is invalid");
+    if (!Array.isArray(requirement?.regionIds) || requirement.regionIds.some(id => !validRegionId(id) || !archetypeRegions.has(id))) {
+      issues.push("capabilityRequirements[" + index + "].regionIds is invalid or absent from archetype.regionIds");
     }
   });
   if (archetype.parentArchetype && (!nonEmpty(archetype.parentArchetype.archetypeId) || !nonEmpty(archetype.parentArchetype.archetypeVersion))) {
