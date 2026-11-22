@@ -10,7 +10,9 @@ export const CHARACTER_PRESENTATION_MOTION_SCHEMA_VERSION = 1 as const;
 export type AuthoritativePosture = "stand" | "hunch" | "crawl";
 export type MotionRegion =
   | "root" | "spine" | "chest" | "shoulders" | "arms" | "hands"
-  | "pelvis" | "pelvic_floor" | "perineum" | "groin" | "gluteal"\n  | "thighs" | "legs" | "knees" | "feet" | "head" | "face"\n  | "clothing" | "attachments" | "full_body" | string;
+  | "pelvis" | "pelvic_floor" | "perineum" | "groin" | "gluteal"
+  | "thighs" | "legs" | "knees" | "feet" | "head" | "face"
+  | "clothing" | "attachments" | "full_body" | string;
 export type MotionLayerMode = "additive" | "overlay" | "replace";
 export type MotionInterruptionPolicy = "never" | "when_higher_priority" | "when_same_owner" | "always";
 export type MotionLifecyclePhase =
