@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
 import { ThreeObjectScaleGrowthModel } from "./model-adapters.js";
+import { BiologicalBreathingGrowthModel } from "./biological-breathing-model.js";
 
 const subject = {
   subjectId: "test-subject",
@@ -79,4 +80,17 @@ test("baseline model reset restores its original object scale", () => {
   model.reset();
   assert.equal(root.scale.x, 3);
   assert.equal(model.readTelemetry(0).currentScale, 1);
+});
+
+test("biological breathing decorator drives baseline Three.js scale independently of pulse", () => {
+  const root = new THREE.Group();
+  const base = new ThreeObjectScaleGrowthModel(root);
+  const model = new BiologicalBreathingGrowthModel(base);
+  model.initialize(subject, context);
+  model.startBreathing();
+  model.advance(0.175, 0.175);
+  const telemetry = model.readTelemetry(0.175);
+  assert.ok(Math.abs((telemetry.biologicalBreath?.actualScale ?? 0) - 1.04) < 1e-12);
+  assert.ok((telemetry.currentScale ?? 0) > 1.039);
+  assert.ok(root.scale.x > (telemetry.currentScale ?? 0));
 });
