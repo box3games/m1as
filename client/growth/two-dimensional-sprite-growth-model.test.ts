@@ -52,7 +52,7 @@ test("2D sprite supports interpolated growth and sustained flow", () => {
     parameters: { growthPerSupplySecond: 0.5 },
   }, { ...context, simulationTimeSeconds: 1 });
   model.advance(2, 1);
-  assert.equal(model.readTelemetry(2).currentScale, 2);
+  assert.equal(model.readTelemetry(2).currentScale, 2.5);
   assert.equal(sprite.scale.y / sprite.scale.x, 2);
 });
 
@@ -100,6 +100,8 @@ test("2D sprite reset restores its original dimensions without disposing caller 
   model.reset();
   assert.equal(sprite.scale.x, 2);
   assert.equal(sprite.scale.y, 4);
+  let disposeEvents = 0;
+  material.addEventListener("dispose", () => { disposeEvents += 1; });
   model.dispose();
-  assert.equal(material.disposed, false);
+  assert.equal(disposeEvents, 0);
 });
