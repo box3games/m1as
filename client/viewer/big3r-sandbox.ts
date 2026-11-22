@@ -31,6 +31,7 @@ import { captureCharacterPresentation, capturePerspectiveCamera } from "../exper
 import { captureExperientialScale } from "../experiments/experiential-scale-adapter.js";
 import { applyPresentationAccentEvaluation } from "../experiments/presentation-accent-adapter.js";
 import { validateExperientialScaleProfileSet, type ExperientialScaleProfileSet } from "../growth/experiential-scale.js";
+import { TwoDimensionalSpriteLab } from "./two-dimensional-sprite-lab.js";
 
 
 const BOX_TIER_NAMES = [
@@ -129,6 +130,7 @@ export class Big3rSandboxController {
         this.userId = options.userId;
         this.engineFactory = options.engineFactory;
         this.bindEvents();
+        new TwoDimensionalSpriteLab(this.stageContainer);
     }
 
     isActive(): boolean {
