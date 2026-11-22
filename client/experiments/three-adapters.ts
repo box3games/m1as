@@ -68,13 +68,20 @@ function projectBounds(bounds: Bounds3, camera: THREE.Camera): {
   const maxY = Math.max(...projected.map(p => p.y));
   const minZ = Math.min(...projected.map(p => p.z));
   const maxZ = Math.max(...projected.map(p => p.z));
-  const left = THREE.MathUtils.clamp((minX + 1) * 0.5, 0, 1);
-  const right = THREE.MathUtils.clamp((maxX + 1) * 0.5, 0, 1);
-  const top = THREE.MathUtils.clamp((1 - maxY) * 0.5, 0, 1);
-  const bottom = THREE.MathUtils.clamp((1 - minY) * 0.5, 0, 1);
+  // Preserve the full projected footprint, including offscreen bounds. Clipping
+  // is applied only to visible occupancy so representation prediction can see
+  // a subject growing beyond the viewport instead of reading a false zero-size box.
+  const left = (minX + 1) * 0.5;
+  const right = (maxX + 1) * 0.5;
+  const top = (1 - maxY) * 0.5;
+  const bottom = (1 - minY) * 0.5;
   const intersectsViewport = maxX >= -1 && minX <= 1 && maxY >= -1 && minY <= 1 && maxZ >= -1 && minZ <= 1;
-  const width = intersectsViewport ? Math.max(0, right - left) : 0;
-  const height = intersectsViewport ? Math.max(0, bottom - top) : 0;
+  const clippedLeft = Math.max(0, left);
+  const clippedRight = Math.min(1, right);
+  const clippedTop = Math.max(0, top);
+  const clippedBottom = Math.min(1, bottom);
+  const width = intersectsViewport ? Math.max(0, clippedRight - clippedLeft) : 0;
+  const height = intersectsViewport ? Math.max(0, clippedBottom - clippedTop) : 0;
   return {
     bounds: { min: { x: left, y: top }, max: { x: right, y: bottom }, coordinateSpace: 'screen' },
     occupancy: width * height,
