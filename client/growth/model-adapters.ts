@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { GrowthStimulusType } from "../GrowthEventQueue.js";
 import type { M1ASVFXEngine } from "../M1ASVFXEngine.js";
 import type {
-  GrowthModel, GrowthModelCommand, GrowthModelContext, GrowthModelDescriptor,
+  BiologicalBreathTelemetry, GrowthModel, GrowthModelCommand, GrowthModelContext, GrowthModelDescriptor,
   GrowthModelResult, GrowthModelSubject, GrowthModelTelemetry,
 } from "./model-contract.js";
 
@@ -37,6 +37,7 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
   private lastSimulationTimeSeconds = 0;
   private holdActive = false;
   private holdElapsedSeconds = 0;
+  private biologicalVisualMultiplier = 1;
 
   constructor(private readonly root: THREE.Object3D) {}
 
@@ -119,6 +120,18 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
     this.applyScale();
   }
 
+  applyBiologicalBreathState(state: BiologicalBreathTelemetry, growthDelta: number): void {
+    if (Number.isFinite(growthDelta) && growthDelta > 0) {
+      this.currentScale += growthDelta;
+      this.targetScale = Math.max(this.targetScale, this.currentScale);
+    }
+    this.biologicalVisualMultiplier = Math.max(
+      0.01,
+      1 + state.visualExpansion * 0.025 + state.pressureWave * 0.01,
+    );
+    this.applyScale();
+  }
+
   readTelemetry(simulationTimeSeconds: number): GrowthModelTelemetry {
     return {
       simulationTimeSeconds,
@@ -126,7 +139,7 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
       targetScale: this.targetScale,
       flowMultiplier: this.flowMultiplier,
       supplyRemainingSeconds: this.flowRemainingSeconds,
-      modelData: { holdActive: this.holdActive, holdElapsedSeconds: this.holdElapsedSeconds },
+      modelData: { holdActive: this.holdActive, holdElapsedSeconds: this.holdElapsedSeconds, biologicalVisualMultiplier: this.biologicalVisualMultiplier },
     };
   }
 
@@ -140,6 +153,7 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
     this.flowMultiplier = 1;
     this.holdActive = false;
     this.holdElapsedSeconds = 0;
+    this.biologicalVisualMultiplier = 1;
     this.applyScale();
   }
 
@@ -149,9 +163,9 @@ export class ThreeObjectScaleGrowthModel implements GrowthModel {
 
   private applyScale(): void {
     this.root.scale.set(
-      this.baseScale.x * this.currentScale,
-      this.baseScale.y * this.currentScale,
-      this.baseScale.z * this.currentScale,
+      this.baseScale.x * this.currentScale * this.biologicalVisualMultiplier,
+      this.baseScale.y * this.currentScale * this.biologicalVisualMultiplier,
+      this.baseScale.z * this.currentScale * this.biologicalVisualMultiplier,
     );
     this.root.updateMatrixWorld(true);
   }
@@ -231,6 +245,10 @@ export class M1ASVFXGrowthModel implements GrowthModel {
       accepted: true,
       telemetry: this.readTelemetry(context.simulationTimeSeconds),
     };
+  }
+
+  applyBiologicalBreathState(state: BiologicalBreathTelemetry, growthDelta: number): void {
+    this.engine.applyBiologicalBreathState(state, growthDelta);
   }
 
   advance(_simulationTimeSeconds: number, _deltaSeconds: number): void {
