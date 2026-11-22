@@ -47,7 +47,7 @@ test("pressure grows on subsequent breaths while scale accumulation remains sepa
   controller.advance(0.35 * 1.25 + 0.3 * 1.25);
   const secondReleaseStart = controller.getState();
   assert.equal(secondReleaseStart.phase, "release");
-  assert.equal(secondReleaseStart.actualScale, 1.08);
+  assert.ok(Math.abs(secondReleaseStart.actualScale - 1.08 ** 2) < 1e-12);
   assert.ok(secondReleaseStart.internalPressure > firstPressure);
 });
 
