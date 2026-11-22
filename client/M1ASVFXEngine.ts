@@ -11,6 +11,7 @@ import {
     CascadeBurstPayload,
 } from './GrowthEventQueue.js';
 import { VfxrPresentationEffectRegistry, VfxrSubjectAuraEffect } from './vfxr/presentation-effects.js';
+import { DeformationIntegrityMonitor } from './animation/deformation-integrity-monitor.js';
 import {
     inspectCharacterAnimationCapabilities,
     type CharacterAnimationCapabilityReport,
@@ -111,6 +112,7 @@ export class M1ASVFXEngine {
     private actions = new Map<string, THREE.AnimationAction>();
     private activeAction: THREE.AnimationAction | null = null;
     private animationCapabilityReport: CharacterAnimationCapabilityReport | null = null;
+    private readonly deformationIntegrityMonitor = new DeformationIntegrityMonitor();
     private bones = new Map<string, THREE.Bone>();
     private subjectMaterials: THREE.MeshStandardMaterial[] = [];
     private readonly presentationAccentChannels = new Map<string, { target: string; value: number }>();
@@ -373,6 +375,10 @@ export class M1ASVFXEngine {
     /** Read-only rig/clip discovery; does not execute or alter animation playback. */
     public getCharacterAnimationCapabilities(): CharacterAnimationCapabilityReport | null {
         return this.animationCapabilityReport;
+    }
+    /** Observational detector registry; inspection never mutates character or growth state. */
+    public getDeformationIntegrityMonitor(): DeformationIntegrityMonitor {
+        return this.deformationIntegrityMonitor;
     }
     public get presentationAccentHostId(): string { return this.presentationEffects.presentationAccentHostId; }
 
