@@ -163,7 +163,8 @@ export class TwoDimensionalSpriteLab {
       this.disposeExperiment();
       this.texture?.dispose();
       this.texture = texture;
-      const imageAspect = texture.image.width / texture.image.height;
+      const image = texture.image as HTMLImageElement;
+      const imageAspect = image.naturalWidth / image.naturalHeight;
       if (!Number.isFinite(imageAspect) || imageAspect <= 0) throw new Error("The selected image has invalid dimensions.");
       this.config = {
         ...config,
