@@ -98,7 +98,7 @@ test("runner splits fixed steps at event boundaries and supports optional breath
   };
   const runner = new TwoDimensionalSpriteExperimentRunner(model, config);
   await runner.initialize();
-  const result = runner.run();
+  const result = await runner.run();
   assert.ok(result.samples.some(sample => sample.simulationTimeSeconds === 0.25));
   assert.ok(result.samples.some(sample => sample.simulationTimeSeconds === 1.25));
   assert.equal(result.samples[result.samples.length - 1]?.telemetry.modelData?.biologicalBreathingActive, false);
