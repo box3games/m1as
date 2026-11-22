@@ -185,12 +185,17 @@ export function validateCharacterPresentationMotionProfile(input: unknown): stri
       issues.push(`${path}.interruption is unsupported`);
     }
     if (!Array.isArray(layer?.sourceChannels)) issues.push(`${path}.sourceChannels must be an array`);
-    for (const constraint of layer?.constraints ?? []) {
-      if (!nonEmpty(constraint.jointOrRegionId)) issues.push(`${path}.constraints contains an unnamed joint/region`);
-      if (constraint.minimum !== undefined && !finite(constraint.minimum)) issues.push(`${path}.constraints minimum must be finite`);
-      if (constraint.maximum !== undefined && !finite(constraint.maximum)) issues.push(`${path}.constraints maximum must be finite`);
-      if (constraint.minimum !== undefined && constraint.maximum !== undefined && constraint.minimum > constraint.maximum) {
-        issues.push(`${path}.constraints minimum exceeds maximum`);
+    if (layer?.constraints !== undefined && !Array.isArray(layer.constraints)) {
+      issues.push(`${path}.constraints must be an array`);
+    } else {
+      for (const constraint of layer?.constraints ?? []) {
+        if (!constraint || !nonEmpty(constraint.jointOrRegionId)) issues.push(`${path}.constraints contains an unnamed joint/region`);
+        if (constraint?.minimum !== undefined && !finite(constraint.minimum)) issues.push(`${path}.constraints minimum must be finite`);
+        if (constraint?.maximum !== undefined && !finite(constraint.maximum)) issues.push(`${path}.constraints maximum must be finite`);
+        if (constraint?.minimum !== undefined && constraint?.maximum !== undefined &&
+            finite(constraint.minimum) && finite(constraint.maximum) && constraint.minimum > constraint.maximum) {
+          issues.push(`${path}.constraints minimum exceeds maximum`);
+        }
       }
     }
   }
