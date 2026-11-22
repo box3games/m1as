@@ -197,3 +197,31 @@ test("invalid camera bounds and perceived-mass ranges are rejected", () => {
     authoredRange: { minimum: 1, maximum: 1 },
   }), /maximum > minimum/);
 });
+
+test("combined measurements reject camera or perceived-mass references from another stage", () => {
+  const camera = {
+    stageId: "colossal-stage",
+    referenceProfileId: "colossal-camera",
+    referenceProfileVersion: "1",
+    cameraId: "colossal-camera",
+    projection: "perspective" as const,
+    viewportWidth: 1000,
+    viewportHeight: 1000,
+    bounds: { left: 0.2, top: 0.2, right: 0.8, bottom: 0.8 },
+    referenceProjectedAreaFraction: 0.1,
+    visible: true,
+    clipped: false,
+  };
+  assert.throws(() => measureScalePerception({
+    subject,
+    stageProfile: stage,
+    camera,
+    perceivedMassProfile: {
+      stageId: "lab-room",
+      id: "presence",
+      version: "1",
+      authoredValue: 5,
+      authoredRange: { minimum: 0, maximum: 10 },
+    },
+  }), /must match the active stage profile/);
+});
