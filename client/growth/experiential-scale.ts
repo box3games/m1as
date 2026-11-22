@@ -89,15 +89,15 @@ export interface ExperientialScaleSnapshot {
 }
 
 function requireText(value: unknown, name: string): asserts value is string {
-  if (typeof value !== "string" || !value.trim()) throw new TypeError(\`\${name} must be a non-empty string.\`);
+  if (typeof value !== "string" || !value.trim()) throw new TypeError(`${name} must be a non-empty string.`);
 }
 function requireFinite(value: unknown, name: string): asserts value is number {
-  if (typeof value !== "number" || !Number.isFinite(value)) throw new TypeError(\`\${name} must be finite.\`);
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new TypeError(`${name} must be finite.`);
 }
 function validateRange(range: { minimum: number; maximum: number }, name: string): void {
-  requireFinite(range.minimum, \`\${name}.minimum\`);
-  requireFinite(range.maximum, \`\${name}.maximum\`);
-  if (range.maximum <= range.minimum) throw new RangeError(\`\${name}.maximum must exceed minimum.\`);
+  requireFinite(range.minimum, `${name}.minimum`);
+  requireFinite(range.maximum, `${name}.maximum`);
+  if (range.maximum <= range.minimum) throw new RangeError(`${name}.maximum must exceed minimum.`);
 }
 
 /** Runtime validation for imported JSON; no authored numeric defaults are invented. */
@@ -105,7 +105,7 @@ export function validateExperientialScaleProfileSet(input: unknown): asserts inp
   if (!input || typeof input !== "object") throw new TypeError("Profile set must be an object.");
   const value = input as ExperientialScaleProfileSet;
   if (value.schemaVersion !== EXPERIENTIAL_SCALE_PROFILE_SCHEMA_VERSION) {
-    throw new RangeError(\`Unsupported experiential-scale profile schema version: \${String(value.schemaVersion)}.\`);
+    throw new RangeError(`Unsupported experiential-scale profile schema version: ${String(value.schemaVersion)}.`);
   }
   requireText(value.id, "profileSet.id");
   requireText(value.version, "profileSet.version");
@@ -115,32 +115,32 @@ export function validateExperientialScaleProfileSet(input: unknown): asserts inp
     throw new TypeError("Profile set must include stages, cameras, and perceivedMass maps.");
   }
   for (const [key, profile] of Object.entries(value.stages)) {
-    requireText(profile.id, \`stages.\${key}.id\`);
-    requireText(profile.version, \`stages.\${key}.version\`);
-    requireText(profile.worldUnit, \`stages.\${key}.worldUnit\`);
+    requireText(profile.id, `stages.${key}.id`);
+    requireText(profile.version, `stages.${key}.version`);
+    requireText(profile.worldUnit, `stages.${key}.worldUnit`);
     for (const axis of ["x", "y", "z"] as const) {
-      requireFinite(profile.referenceDimensions?.[axis], \`stages.\${key}.referenceDimensions.\${axis}\`);
-      if (profile.referenceDimensions[axis] <= 0) throw new RangeError(\`stages.\${key}.referenceDimensions.\${axis} must be positive.\`);
+      requireFinite(profile.referenceDimensions?.[axis], `stages.${key}.referenceDimensions.${axis}`);
+      if (profile.referenceDimensions[axis] <= 0) throw new RangeError(`stages.${key}.referenceDimensions.${axis} must be positive.`);
     }
     if (profile.referenceVolume !== undefined) {
-      requireFinite(profile.referenceVolume, \`stages.\${key}.referenceVolume\`);
-      if (profile.referenceVolume <= 0) throw new RangeError(\`stages.\${key}.referenceVolume must be positive.\`);
+      requireFinite(profile.referenceVolume, `stages.${key}.referenceVolume`);
+      if (profile.referenceVolume <= 0) throw new RangeError(`stages.${key}.referenceVolume must be positive.`);
     }
   }
   for (const [key, profile] of Object.entries(value.cameras)) {
-    requireText(profile.id, \`cameras.\${key}.id\`);
-    requireText(profile.version, \`cameras.\${key}.version\`);
-    requireText(profile.stageId, \`cameras.\${key}.stageId\`);
-    requireText(profile.cameraMode, \`cameras.\${key}.cameraMode\`);
-    requireFinite(profile.referenceProjectedAreaFraction, \`cameras.\${key}.referenceProjectedAreaFraction\`);
-    if (profile.referenceProjectedAreaFraction <= 0) throw new RangeError(\`cameras.\${key}.referenceProjectedAreaFraction must be positive.\`);
+    requireText(profile.id, `cameras.${key}.id`);
+    requireText(profile.version, `cameras.${key}.version`);
+    requireText(profile.stageId, `cameras.${key}.stageId`);
+    requireText(profile.cameraMode, `cameras.${key}.cameraMode`);
+    requireFinite(profile.referenceProjectedAreaFraction, `cameras.${key}.referenceProjectedAreaFraction`);
+    if (profile.referenceProjectedAreaFraction <= 0) throw new RangeError(`cameras.${key}.referenceProjectedAreaFraction must be positive.`);
   }
   for (const [key, profile] of Object.entries(value.perceivedMass)) {
-    requireText(profile.id, \`perceivedMass.\${key}.id\`);
-    requireText(profile.version, \`perceivedMass.\${key}.version\`);
-    requireText(profile.stageId, \`perceivedMass.\${key}.stageId\`);
-    requireFinite(profile.authoredValue, \`perceivedMass.\${key}.authoredValue\`);
-    validateRange(profile.authoredRange, \`perceivedMass.\${key}.authoredRange\`);
+    requireText(profile.id, `perceivedMass.${key}.id`);
+    requireText(profile.version, `perceivedMass.${key}.version`);
+    requireText(profile.stageId, `perceivedMass.${key}.stageId`);
+    requireFinite(profile.authoredValue, `perceivedMass.${key}.authoredValue`);
+    validateRange(profile.authoredRange, `perceivedMass.${key}.authoredRange`);
   }
   const accent = value.presentationAccent;
   requireText(accent?.id, "presentationAccent.id");
@@ -149,16 +149,16 @@ export function validateExperientialScaleProfileSet(input: unknown): asserts inp
   const ids = new Set<string>();
   for (const channel of accent.channels) {
     requireText(channel.id, "presentationAccent channel id");
-    if (ids.has(channel.id)) throw new RangeError(\`Duplicate presentation accent channel: \${channel.id}.\`);
+    if (ids.has(channel.id)) throw new RangeError(`Duplicate presentation accent channel: ${channel.id}.`);
     ids.add(channel.id);
-    if (typeof channel.enabled !== "boolean") throw new TypeError(\`Channel \${channel.id}.enabled must be boolean.\`);
+    if (typeof channel.enabled !== "boolean") throw new TypeError(`Channel ${channel.id}.enabled must be boolean.`);
     if (!["actual_scale_geometric_mean", "stage_relative_linear", "camera_relative_area", "perceived_mass"].includes(channel.source)) {
-      throw new RangeError(\`Channel \${channel.id} has an unsupported source.\`);
+      throw new RangeError(`Channel ${channel.id} has an unsupported source.`);
     }
-    validateRange(channel.inputRange, \`channel \${channel.id}.inputRange\`);
-    validateRange(channel.outputRange, \`channel \${channel.id}.outputRange\`);
+    validateRange(channel.inputRange, `channel ${channel.id}.inputRange`);
+    validateRange(channel.outputRange, `channel ${channel.id}.outputRange`);
     if (!["linear", "ease_in", "ease_out", "smoothstep"].includes(channel.curve)) {
-      throw new RangeError(\`Channel \${channel.id} has an unsupported curve.\`);
+      throw new RangeError(`Channel ${channel.id} has an unsupported curve.`);
     }
   }
 }
@@ -192,7 +192,7 @@ export function evaluatePresentationAccents(
   const channels = profile.channels.filter(channel => channel.enabled).map(channel => {
     const sourceValue = sources[channel.source];
     if (sourceValue === undefined || !Number.isFinite(sourceValue)) {
-      throw new RangeError(\`Presentation accent channel "\${channel.id}" has no available source measurement.\`);
+      throw new RangeError(`Presentation accent channel "${channel.id}" has no available source measurement.`);
     }
     let normalized = (sourceValue - channel.inputRange.minimum) /
       (channel.inputRange.maximum - channel.inputRange.minimum);
