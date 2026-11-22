@@ -1359,8 +1359,8 @@ export class M1ASVFXEngine {
       vfx.mesh.quaternion.copy(this.camera.quaternion);
     }
 
-    this.presentationEffects.update(dt);
     this.controls.update();
+    this.presentationEffects.update(dt);
     this.renderer.render(this.scene, this.camera);
     this.emitTelemetry();
     try { this.onFrame?.(this.simulationTimeSeconds, this.simulationFrameNumber); } catch { /* observers cannot interrupt rendering */ }
