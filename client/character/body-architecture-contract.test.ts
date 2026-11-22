@@ -6,11 +6,14 @@ import {
   CHARACTER_BODY_ARCHITECTURE_SCHEMA_VERSION,
   CharacterBodyArchetypeRegistry,
   createAnatomicalRegionId,
+  instantiateCharacterBodyArchetype,
   parseBodyArchetypeRegistry,
   serializeBodyArchetypeRegistry,
   validateBodyArchetypeRegistry,
   validateCharacterBodyArchetype,
   validateCharacterBodyIdentity,
+  validateCharacterBodyStateSnapshot,
+  validateCharacterDevelopmentHistory,
   validateCharacterBodyProfile,
   type BodyArchetypeRegistryDocument,
   type BodyMorphologyCompositionProfile,
@@ -215,4 +218,67 @@ test("character identity keeps archetype lineage separate from growth history", 
     sourceArchetype: { archetypeId: archetype.id, archetypeVersion: archetype.version },
     growthHistoryRef: "growth-log-1",
   }), []);
+});
+
+
+test("archetype instantiation creates an editable profile draft without a character or growth history", () => {
+  const draft = instantiateCharacterBodyArchetype({
+    baseProfile: bodyProfile,
+    archetype,
+    bodyProfileId: "derived-profile",
+    bodyProfileVersion: "1",
+  });
+  assert.equal(draft.bodyProfile.id, "derived-profile");
+  assert.equal(draft.bodyProfile.designIntent?.sourceArchetype?.archetypeId, archetype.id);
+  assert.deepEqual(draft.sourceArchetype, { archetypeId: archetype.id, archetypeVersion: archetype.version });
+  assert.equal(draft.growthPreferences[0].regionId, "pelvis");
+  assert.equal(draft.bodyProfile.morphology.silhouette[0].value, 1.35);
+  assert.throws(() => instantiateCharacterBodyArchetype({
+    baseProfile: { ...bodyProfile, bodyPlan: { ...bodyProfile.bodyPlan, id: "other-plan" } },
+    archetype,
+    bodyProfileId: "bad",
+    bodyProfileVersion: "1",
+  }), /incompatible/);
+});
+
+test("body-state snapshots require explicit dimensional units and provenance", () => {
+  assert.deepEqual(validateCharacterBodyStateSnapshot({
+    characterId: "character-1",
+    bodyProfileId: "body-1",
+    bodyProfileVersion: "1",
+    simulationTimeSeconds: 2.5,
+    actualDimensions: { x: 1.2, y: 2.1, z: 0.8, unit: "world_units" },
+    regionalMorphology: [{ regionId: "pelvis", parameters: [{ key: "fullness", value: 1.2, unit: "authored_index" }] }],
+    provenance: "growth-event:42",
+    growthEventRefs: ["growth-event:42"],
+  }), []);
+  assert.ok(validateCharacterBodyStateSnapshot({
+    characterId: "character-1",
+    bodyProfileId: "body-1",
+    bodyProfileVersion: "1",
+    simulationTimeSeconds: 2.5,
+    actualDimensions: { x: 1, y: 2, z: 3, unit: "" },
+    regionalMorphology: [],
+    provenance: "",
+  }).length > 0);
+});
+
+test("development history validates revision parents and preserves separate growth references", () => {
+  const history = {
+    characterId: "character-1",
+    growthHistoryRef: "authoritative-growth-log",
+    revisions: [
+      { revisionId: "r1", bodyProfileId: "body-1", bodyProfileVersion: "1", createdAt: "2026-11-22", changedDomains: ["morphology"] },
+      { revisionId: "r2", bodyProfileId: "body-1", bodyProfileVersion: "2", parentRevisionId: "r1", createdAt: "2026-11-22", changedDomains: ["composition"] },
+    ],
+  };
+  assert.deepEqual(validateCharacterDevelopmentHistory(history), []);
+  const cyclic = {
+    ...history,
+    revisions: [
+      { ...history.revisions[0], parentRevisionId: "r2" },
+      history.revisions[1],
+    ],
+  };
+  assert.ok(validateCharacterDevelopmentHistory(cyclic).some(issue => issue.includes("cycle")));
 });
