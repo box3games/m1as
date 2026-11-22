@@ -117,6 +117,7 @@ export class DeformationIntegrityMonitor {
     const usable = detectorResults.filter(result => result.status === "completed");
     const allUnsupported = detectorResults.length > 0 && detectorResults.every(result => result.status === "unsupported");
     const anyFailed = detectorResults.some(result => result.status === "failed");
+    const anyUnsupported = detectorResults.some(result => result.status === "unsupported");
     const anyCritical = observations.some(item => item.status === "detected" && item.severity === "critical");
     const anyWarning = observations.some(item => item.status === "detected" && item.severity === "warning");
     const anyNotTested = detectorResults.some(result => result.status === "not_tested");
@@ -124,7 +125,7 @@ export class DeformationIntegrityMonitor {
       anyCritical ? "critical" :
       anyWarning ? "warning" :
       anyFailed ? "failed" :
-      usable.length === 0 && allUnsupported ? "unsupported" :
+      allUnsupported || anyUnsupported ? "unsupported" :
       usable.length === 0 || anyNotTested ? "not_tested" :
       observations.some(item => item.status === "failed") ? "failed" :
       observations.some(item => item.status === "unsupported") ? "unsupported" :
