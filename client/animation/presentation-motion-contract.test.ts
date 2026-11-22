@@ -25,7 +25,7 @@ const profile: CharacterPresentationMotionProfile = {
       id: "posture-override", enabled: true, asset: { kind: "clip", id: "hunch" },
       regions: ["spine"], mode: "replace", priority: 100, weight: 1,
       blendInSeconds: 0.2, blendOutSeconds: 0.2, interruption: "never",
-      allowPostureOverride: true, sourceChannels: ["perceivedMass"],
+      sourceChannels: ["perceivedMass"],
     },
     {
       id: "unsupported", enabled: true, asset: { kind: "clip", id: "missing" },
@@ -54,7 +54,7 @@ const context: MotionResolutionContext = {
     rigId: "rig-1", rigVersion: "1", adapterKind: "skeletal_glb",
     supportedRegions: ["chest", "shoulders", "spine", "head"],
     supportedLayerModes: ["additive", "overlay", "replace"],
-    postureControlledRegions: ["spine"], postureOverrideAllowed: false,
+    postureControlledRegions: ["spine"],
     supportsJointConstraints: true, supportsPerRegionTelemetry: true,
     availableClipIds: ["hunch"], availableScriptIds: ["breath-script"],
   },
