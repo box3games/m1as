@@ -162,6 +162,7 @@ export class TwoDimensionalSpriteLab {
         URL.revokeObjectURL(imageUrl);
       }
       this.disposeExperiment();
+      this.texture?.dispose();
       this.texture = texture;
       this.config = {
         ...config,
@@ -270,8 +271,6 @@ export class TwoDimensionalSpriteLab {
       return;
     }
     const sample = this.runner.simulationTimeSeconds;
-    const t = this.runner["model" as never] as unknown;
-    void t;
     const config = this.config;
     const progress = config ? Math.min(100, sample / config.durationSeconds * 100) : 0;
     const spriteScale = this.sprite?.scale.x ?? 0;
@@ -318,7 +317,8 @@ export class TwoDimensionalSpriteLab {
       simulationTimeSeconds: this.runner.simulationTimeSeconds,
       complete: this.runner.isComplete,
       latestSample: this.telemetry.textContent,
-      commandResults: this.latestResult?.commandResults ?? [],
+      samples: this.runner.capturedSamples,
+      commandResults: this.runner.capturedCommandResults,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
