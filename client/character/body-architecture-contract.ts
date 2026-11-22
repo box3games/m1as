@@ -555,6 +555,100 @@ export function validateCharacterBodyStateSnapshot(input: unknown): string[] {
   return issues;
 }
 
+export interface CharacterBodyArchetypeInstantiationDraft {
+  bodyProfile: CharacterBodyProfile;
+  sourceArchetype: { archetypeId: string; archetypeVersion: string };
+  growthPreferences: ArchetypeGrowthPreference[];
+  capabilityRequirements: ArchetypeCapabilityRequirement[];
+}
+
+/**
+ * Applies an archetype to a compatible editable body-profile template.
+ * It returns a draft, not a live character and does not execute growth.
+ */
+export function instantiateCharacterBodyArchetype(input: {
+  baseProfile: CharacterBodyProfile;
+  archetype: CharacterBodyArchetype;
+  bodyProfileId: string;
+  bodyProfileVersion: string;
+}): CharacterBodyArchetypeInstantiationDraft {
+  const profileIssues = validateCharacterBodyProfile(input.baseProfile);
+  if (profileIssues.length) throw new TypeError("Invalid base body profile: " + profileIssues.join("; "));
+  const archetypeIssues = validateCharacterBodyArchetype(input.archetype);
+  if (archetypeIssues.length) throw new TypeError("Invalid body archetype: " + archetypeIssues.join("; "));
+  if (input.baseProfile.bodyPlan.id !== input.archetype.bodyPlanId) {
+    throw new TypeError("Archetype body plan is incompatible with the supplied body profile template.");
+  }
+  const availableRegions = new Set(input.baseProfile.bodyPlan.regionIds);
+  const missingRegions = input.archetype.regionIds.filter(regionId => !availableRegions.has(regionId));
+  if (missingRegions.length) {
+    throw new TypeError("Archetype requires regions absent from the body profile template: " + missingRegions.join(", "));
+  }
+  if (!nonEmpty(input.bodyProfileId) || !nonEmpty(input.bodyProfileVersion)) {
+    throw new TypeError("bodyProfileId and bodyProfileVersion must be non-empty.");
+  }
+  const sourceArchetype = {
+    archetypeId: input.archetype.id,
+    archetypeVersion: input.archetype.version,
+  };
+  const cloned = JSON.parse(JSON.stringify(input.baseProfile)) as CharacterBodyProfile;
+  cloned.id = input.bodyProfileId;
+  cloned.version = input.bodyProfileVersion;
+  cloned.morphology = JSON.parse(JSON.stringify(input.archetype.morphology)) as BodyMorphologyCompositionProfile;
+  cloned.designIntent = {
+    id: input.archetype.id + ":" + input.archetype.version,
+    version: "1",
+    summary: input.archetype.description,
+    targetMorphology: JSON.parse(JSON.stringify(input.archetype.morphology)) as BodyMorphologyCompositionProfile,
+    perceptualGoals: [...(input.archetype.presentationIntent?.goals ?? [])],
+    sourceArchetype,
+  };
+  if (input.archetype.presentationIntent) {
+    cloned.presentation = JSON.parse(JSON.stringify(input.archetype.presentationIntent)) as PerceptualCharacterPresentationProfile;
+  }
+  return {
+    bodyProfile: cloned,
+    sourceArchetype,
+    growthPreferences: JSON.parse(JSON.stringify(input.archetype.growthPreferences)) as ArchetypeGrowthPreference[],
+    capabilityRequirements: JSON.parse(JSON.stringify(input.archetype.capabilityRequirements)) as ArchetypeCapabilityRequirement[],
+  };
+}
+
+export function validateCharacterDevelopmentHistory(input: unknown): string[] {
+  if (!input || typeof input !== "object") return ["character development history must be an object"];
+  const history = input as CharacterDevelopmentHistory;
+  const issues: string[] = [];
+  if (!nonEmpty(history.characterId)) issues.push("development history characterId must be non-empty");
+  if (!Array.isArray(history.revisions)) return [...issues, "development history revisions must be an array"];
+  const byId = new Map<string, CharacterDesignRevision>();
+  for (const [index, revision] of history.revisions.entries()) {
+    if (!revision || !nonEmpty(revision.revisionId) || !nonEmpty(revision.bodyProfileId) ||
+        !nonEmpty(revision.bodyProfileVersion) || !nonEmpty(revision.createdAt) ||
+        !Array.isArray(revision.changedDomains)) {
+      issues.push("revisions[" + index + "] is incomplete");
+      continue;
+    }
+    if (byId.has(revision.revisionId)) issues.push("duplicate design revision " + revision.revisionId);
+    byId.set(revision.revisionId, revision);
+  }
+  for (const revision of byId.values()) {
+    if (revision.parentRevisionId && !byId.has(revision.parentRevisionId)) {
+      issues.push("revision " + revision.revisionId + " references missing parent " + revision.parentRevisionId);
+    }
+    const visited = new Set<string>([revision.revisionId]);
+    let parentId = revision.parentRevisionId;
+    while (parentId && byId.has(parentId)) {
+      if (visited.has(parentId)) {
+        issues.push("design revision lineage contains a cycle involving " + parentId);
+        break;
+      }
+      visited.add(parentId);
+      parentId = byId.get(parentId)?.parentRevisionId;
+    }
+  }
+  return issues;
+}
+
 export function validateCharacterBodyIdentity(input: unknown): string[] {
   if (!input || typeof input !== "object") return ["character body identity must be an object"];
   const identity = input as CharacterBodyIdentity;
