@@ -74,11 +74,11 @@ test("runner executes JSON growth events at simulation times and captures teleme
   const { sprite, model } = makeModel();
   const runner = new TwoDimensionalSpriteExperimentRunner(model, baseConfig);
   await runner.initialize();
-  const result = runner.run();
+  const result = await runner.run();
   assert.equal(result.endedAtSeconds, 3);
   assert.equal(result.commandResults.length, 1);
   assert.equal(result.commandResults[0].accepted, true);
-  assert.equal(result.samples.at(-1)?.telemetry.currentScale, 2);
+  assert.equal(result.samples[result.samples.length - 1]?.telemetry.currentScale, 2);
   assert.equal(sprite.scale.x, 4);
   assert.equal(sprite.scale.y, 8);
   assert.ok(result.samples.some(sample => sample.simulationTimeSeconds === 1));
@@ -101,7 +101,7 @@ test("runner splits fixed steps at event boundaries and supports optional breath
   const result = runner.run();
   assert.ok(result.samples.some(sample => sample.simulationTimeSeconds === 0.25));
   assert.ok(result.samples.some(sample => sample.simulationTimeSeconds === 1.25));
-  assert.equal(result.samples.at(-1)?.telemetry.modelData?.biologicalBreathingActive, false);
+  assert.equal(result.samples[result.samples.length - 1]?.telemetry.modelData?.biologicalBreathingActive, false);
   assert.ok(result.samples.some(sample => sample.telemetry.biologicalBreath !== undefined));
 });
 
