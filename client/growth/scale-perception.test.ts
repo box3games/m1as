@@ -49,6 +49,9 @@ test("stage normalization rejects mismatched world units", () => {
 
 test("camera-relative 2D mass uses projected area and preserves offscreen bounds", () => {
   const result = computeCameraRelativeProjectedScale({
+    stageId: "lab-room",
+    referenceProfileId: "lab-inspection",
+    referenceProfileVersion: "1",
     cameraId: "inspection-camera",
     projection: "perspective",
     viewportWidth: 1920,
@@ -68,6 +71,9 @@ test("camera-relative 2D mass uses projected area and preserves offscreen bounds
 
 test("camera movement can change projected mass without changing actual dimensions", () => {
   const near = computeCameraRelativeProjectedScale({
+    stageId: "lab-room",
+    referenceProfileId: "lab-near",
+    referenceProfileVersion: "1",
     cameraId: "near",
     projection: "perspective",
     viewportWidth: 1000,
@@ -78,6 +84,9 @@ test("camera movement can change projected mass without changing actual dimensio
     clipped: false,
   });
   const far = computeCameraRelativeProjectedScale({
+    stageId: "lab-room",
+    referenceProfileId: "lab-far",
+    referenceProfileVersion: "1",
     cameraId: "far",
     projection: "perspective",
     viewportWidth: 1000,
@@ -94,6 +103,7 @@ test("camera movement can change projected mass without changing actual dimensio
 
 test("perceived mass normalizes against its authored profile without clamping", () => {
   const normal = normalizePerceivedMass({
+    stageId: "lab-room",
     id: "hologram-presence",
     version: "2",
     authoredValue: 7.5,
@@ -103,6 +113,7 @@ test("perceived mass normalizes against its authored profile without clamping", 
   assert.equal(normal.outOfRange, false);
 
   const amplified = normalizePerceivedMass({
+    stageId: "lab-room",
     id: "hologram-presence",
     version: "2",
     authoredValue: 15,
@@ -114,12 +125,14 @@ test("perceived mass normalizes against its authored profile without clamping", 
 
 test("perceived mass remains independent from physical scale and projected area", () => {
   const low = normalizePerceivedMass({
+    stageId: "lab-room",
     id: "presence",
     version: "1",
     authoredValue: 1,
     authoredRange: { minimum: 0, maximum: 10 },
   });
   const high = normalizePerceivedMass({
+    stageId: "lab-room",
     id: "presence",
     version: "1",
     authoredValue: 9,
@@ -134,6 +147,9 @@ test("combined measurement snapshot keeps the four measurements distinct", () =>
     subject,
     stageProfile: stage,
     camera: {
+      stageId: "lab-room",
+      referenceProfileId: "lab-hologram-camera",
+      referenceProfileVersion: "1",
       cameraId: "holo-cam",
       projection: "orthographic",
       viewportWidth: 1280,
@@ -144,6 +160,7 @@ test("combined measurement snapshot keeps the four measurements distinct", () =>
       clipped: false,
     },
     perceivedMassProfile: {
+      stageId: "lab-room",
       id: "colossal-hologram",
       version: "1",
       authoredValue: 20,
@@ -159,6 +176,9 @@ test("combined measurement snapshot keeps the four measurements distinct", () =>
 
 test("invalid camera bounds and perceived-mass ranges are rejected", () => {
   assert.throws(() => computeCameraRelativeProjectedScale({
+    stageId: "lab-room",
+    referenceProfileId: "bad-camera",
+    referenceProfileVersion: "1",
     cameraId: "bad",
     projection: "perspective",
     viewportWidth: 100,
@@ -170,6 +190,7 @@ test("invalid camera bounds and perceived-mass ranges are rejected", () => {
   }), /non-negative width and height/);
 
   assert.throws(() => normalizePerceivedMass({
+    stageId: "lab-room",
     id: "bad",
     version: "1",
     authoredValue: 2,
