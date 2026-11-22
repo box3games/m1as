@@ -71,7 +71,13 @@ export function inspectCharacterAnimationCapabilities(input: {
 
   const supportedRegions = regionsForNames(boneNames);
   if (boneNames.length > 0) supportedRegions.push("full_body");
-  const postureControlledRegions = [...supportedRegions];
+  // These are the regions the current engine directly drives through its
+  // posture/growth solver or locomotion root transform. Other discovered
+  // regions remain available for future adapter-specific evaluation.
+  const postureOwned = new Set<MotionRegion>([
+    "root", "spine", "chest", "shoulders", "arms", "legs", "full_body",
+  ]);
+  const postureControlledRegions = supportedRegions.filter(region => postureOwned.has(region));
 
   return {
     rig: {
