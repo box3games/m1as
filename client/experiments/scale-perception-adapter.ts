@@ -47,7 +47,9 @@ export function captureScalePerception(
 
   root.updateWorldMatrix(true, true);
   camera.updateWorldMatrix(true, false);
-  camera.updateProjectionMatrix?.();
+  if (camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera) {
+    camera.updateProjectionMatrix();
+  }
 
   const worldBounds = new THREE.Box3().setFromObject(root);
   if (worldBounds.isEmpty()) {
