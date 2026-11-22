@@ -370,7 +370,7 @@ export class M1ASVFXEngine {
         return true;
     }
     /** Read-only queue and character diagnostics for interchangeable-model adapters. */
-    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean } {
+    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean; biologicalVisualExpansion: number; biologicalInternalPressure: number; biologicalPressureWave: number } {
         return {
             currentScale: this.getCurrentVisualScale(),
             targetScale: this.growthModelMode === 'baseline-scale' ? this.baselineTargetScale : this.growthQueue.currentTargetScale,
@@ -385,6 +385,9 @@ export class M1ASVFXEngine {
             posture: this.posture,
             goldenBuffer: this.storedGoldenBuffer,
             isHolding: this.isHolding,
+            biologicalVisualExpansion: this.biologicalVisualExpansion,
+            biologicalInternalPressure: this.biologicalInternalPressure,
+            biologicalPressureWave: this.biologicalPressureWave,
         };
     }
     /** Elapsed simulation time accumulated from this engine's existing frame dt. */
