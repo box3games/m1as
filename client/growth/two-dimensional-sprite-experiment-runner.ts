@@ -275,37 +275,53 @@ export class TwoDimensionalSpriteExperimentRunner {
     await this.executeEventsAtCurrentTime();
   }
 
-  async run(): Promise<TwoDimensionalSpriteExperimentResult> {
-    if (!this.initialized) throw new Error("Initialize the experiment runner before running it.");
-    if (this.completed) throw new Error("This experiment runner has already completed.");
+  get isComplete(): boolean {
+    return this.completed;
+  }
+
+  get simulationTimeSeconds(): number {
+    return this.currentTimeSeconds;
+  }
+
+  /** Advances one deterministic simulation slice, stopping at the next event boundary. */
+  async step(): Promise<TwoDimensionalSpriteExperimentSample | null> {
+    if (!this.initialized) throw new Error("Initialize the experiment runner before stepping it.");
+    if (this.completed) return null;
 
     const endTime = this.config.durationSeconds;
     const epsilon = 1e-10;
-    while (this.currentTimeSeconds + epsilon < endTime) {
-      const nextEvent = this.config.events[this.nextEventIndex];
-      const nextEventTime = nextEvent?.atSeconds ?? Number.POSITIVE_INFINITY;
-      if (nextEventTime <= this.currentTimeSeconds + epsilon) {
-        await this.executeEventsAtCurrentTime();
-        continue;
-      }
+    if (this.currentTimeSeconds + epsilon >= endTime) {
+      this.completed = true;
+      return null;
+    }
 
-      const step = Math.min(
+    const nextEvent = this.config.events[this.nextEventIndex];
+    const nextEventTime = nextEvent?.atSeconds ?? Number.POSITIVE_INFINITY;
+    if (nextEventTime <= this.currentTimeSeconds + epsilon) {
+      await this.executeEventsAtCurrentTime();
+    } else {
+      const delta = Math.min(
         this.config.timestepSeconds,
         endTime - this.currentTimeSeconds,
         nextEventTime - this.currentTimeSeconds,
       );
-      if (step <= epsilon) {
-        await this.executeEventsAtCurrentTime();
-        continue;
+      if (delta > epsilon) {
+        this.currentTimeSeconds += delta;
+        this.model.advance(this.currentTimeSeconds, delta);
+        this.capture();
       }
-      this.currentTimeSeconds += step;
-      this.model.advance(this.currentTimeSeconds, step);
-      this.capture();
       await this.executeEventsAtCurrentTime();
     }
-    await this.executeEventsAtCurrentTime();
 
-    this.completed = true;
+    if (this.currentTimeSeconds + epsilon >= endTime) this.completed = true;
+    return this.samples[this.samples.length - 1] ?? null;
+  }
+
+  async run(): Promise<TwoDimensionalSpriteExperimentResult> {
+    if (!this.initialized) throw new Error("Initialize the experiment runner before running it.");
+    if (this.completed) throw new Error("This experiment runner has already completed.");
+    while (!this.completed) await this.step();
+
     return {
       experimentId: this.config.experimentId,
       configurationVersion: this.config.configurationVersion,
