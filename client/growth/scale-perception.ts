@@ -37,6 +37,9 @@ export interface StageRelativeScale {
 }
 
 export interface CameraProjectedScaleInput {
+  stageId: string;
+  referenceProfileId: string;
+  referenceProfileVersion: string;
   cameraId: string;
   projection: "perspective" | "orthographic";
   viewportWidth: number;
@@ -50,6 +53,9 @@ export interface CameraProjectedScaleInput {
 }
 
 export interface CameraRelativeProjectedScale {
+  stageId: string;
+  referenceProfileId: string;
+  referenceProfileVersion: string;
   cameraId: string;
   projection: "perspective" | "orthographic";
   viewportWidth: number;
@@ -64,6 +70,8 @@ export interface CameraRelativeProjectedScale {
 }
 
 export interface PerceivedMassProfile {
+  /** Stage this authored normalization range belongs to. */
+  stageId: string;
   id: string;
   version: string;
   authoredValue: number;
@@ -71,6 +79,7 @@ export interface PerceivedMassProfile {
 }
 
 export interface PerceivedMassMeasurement {
+  stageId: string;
   profileId: string;
   profileVersion: string;
   authoredValue: number;
@@ -147,6 +156,9 @@ export function computeStageRelativeScale(
 export function computeCameraRelativeProjectedScale(
   input: CameraProjectedScaleInput,
 ): CameraRelativeProjectedScale {
+  if (!input.stageId.trim() || !input.referenceProfileId.trim() || !input.referenceProfileVersion.trim()) {
+    throw new TypeError("Camera stage and reference profile identity are required.");
+  }
   if (!input.cameraId.trim()) throw new TypeError("cameraId is required.");
   assertPositiveFinite(input.viewportWidth, "viewportWidth");
   assertPositiveFinite(input.viewportHeight, "viewportHeight");
@@ -165,6 +177,9 @@ export function computeCameraRelativeProjectedScale(
   const projectedAreaFraction = projectedWidthFraction * projectedHeightFraction;
 
   return {
+    stageId: input.stageId,
+    referenceProfileId: input.referenceProfileId,
+    referenceProfileVersion: input.referenceProfileVersion,
     cameraId: input.cameraId,
     projection: input.projection,
     viewportWidth: input.viewportWidth,
@@ -187,7 +202,7 @@ export function computeCameraRelativeProjectedScale(
 export function normalizePerceivedMass(
   profile: PerceivedMassProfile,
 ): PerceivedMassMeasurement {
-  if (!profile.id.trim() || !profile.version.trim()) {
+  if (!profile.stageId.trim() || !profile.id.trim() || !profile.version.trim()) {
     throw new TypeError("Perceived-mass profile ID and version are required.");
   }
   const { minimum, maximum } = profile.authoredRange;
@@ -198,6 +213,7 @@ export function normalizePerceivedMass(
     throw new RangeError("Perceived-mass authored value must be finite.");
   }
   return {
+    stageId: profile.stageId,
     profileId: profile.id,
     profileVersion: profile.version,
     authoredValue: profile.authoredValue,
@@ -213,6 +229,9 @@ export function measureScalePerception(input: {
   camera: CameraProjectedScaleInput;
   perceivedMassProfile: PerceivedMassProfile;
 }): ScalePerceptionMeasurements {
+  if (input.camera.stageId !== input.stageProfile.id || input.perceivedMassProfile.stageId !== input.stageProfile.id) {
+    throw new RangeError("Camera and perceived-mass profiles must match the active stage profile.");
+  }
   return {
     subjectId: input.subject.subjectId,
     actualDimensions: { ...input.subject.dimensions },
