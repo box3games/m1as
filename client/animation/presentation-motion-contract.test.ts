@@ -75,7 +75,7 @@ test("additive breath cue is accepted without owning posture-controlled spine", 
   assert.deepEqual(result.regions, ["chest", "shoulders"]);
 });
 
-test("posture-controlled regions cannot be replaced without explicit rig permission", () => {
+test("posture-controlled regions cannot be replaced by presentation motion", () => {
   const intent: MotionIntent = { intentId: "i2", layerId: "posture-override", subjectId: "subject-1", simulationTimeSeconds: 1, sourceSnapshot: snapshot };
   const [result] = resolveCharacterMotionIntents(profile, [intent], context);
   assert.equal(result.status, "rejected");
