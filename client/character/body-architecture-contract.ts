@@ -767,10 +767,16 @@ export class CharacterBodyArchetypeRegistry {
   }
 
   register(archetype: CharacterBodyArchetype): void {
-    const issues = validateCharacterBodyArchetype(archetype);
-    if (issues.length) throw new TypeError("Invalid body archetype: " + issues.join("; "));
     const key = archetype.id + "@" + archetype.version;
     if (this.entries.has(key)) throw new Error("Archetype revision already exists: " + key);
+    const candidate = [...this.entries.values(), archetype];
+    const issues = validateBodyArchetypeRegistry({
+      schemaVersion: BODY_ARCHETYPE_REGISTRY_SCHEMA_VERSION,
+      registryId: this.registryId,
+      revision: this.revision,
+      archetypes: candidate,
+    });
+    if (issues.length) throw new TypeError("Invalid body archetype registration: " + issues.join("; "));
     this.entries.set(key, JSON.parse(JSON.stringify(archetype)) as CharacterBodyArchetype);
   }
 
@@ -798,7 +804,12 @@ export class CharacterBodyArchetypeRegistry {
     const issues = validateBodyArchetypeRegistry(document);
     if (issues.length) throw new TypeError("Invalid archetype registry: " + issues.join("; "));
     const registry = new CharacterBodyArchetypeRegistry(document.registryId, document.revision);
-    for (const archetype of document.archetypes) registry.register(archetype);
+    for (const archetype of document.archetypes) {
+      registry.entries.set(
+        archetype.id + "@" + archetype.version,
+        JSON.parse(JSON.stringify(archetype)) as CharacterBodyArchetype,
+      );
+    }
     return registry;
   }
 }
