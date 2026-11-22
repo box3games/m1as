@@ -29,6 +29,8 @@ export interface BiologicalBreathState {
   cycleElapsedSeconds: number;
   cycleDurationSeconds: number;
   actualScale: number;
+  cycleStartScale: number;
+  cycleTargetScale: number;
   visualExpansion: number;
   internalPressure: number;
   pressureWave: number;
@@ -68,6 +70,8 @@ export class BiologicalBreathController {
       cycleElapsedSeconds: 0,
       cycleDurationSeconds: this.durationForCycle(0),
       actualScale: this.config.initialScale,
+      cycleStartScale: this.config.initialScale,
+      cycleTargetScale: this.config.initialScale * this.config.growthMultiplierPerCycle,
       visualExpansion: 0,
       internalPressure: 0,
       pressureWave: 0,
@@ -127,7 +131,9 @@ export class BiologicalBreathController {
     } else if (this.state.phase === "hold") {
       this.state.phase = "release";
     } else {
-      this.state.actualScale *= this.config.growthMultiplierPerCycle;
+      this.state.cycleStartScale = this.state.cycleTargetScale;
+      this.state.cycleTargetScale = this.state.cycleStartScale * this.config.growthMultiplierPerCycle;
+      this.state.actualScale = this.state.cycleStartScale;
       this.state.completedCycles += 1;
       this.state.cycleIndex += 1;
       this.state.phase = "inhale";
@@ -147,12 +153,16 @@ export class BiologicalBreathController {
       Math.pow(this.config.pressureMultiplierPerCycle, this.state.cycleIndex);
 
     if (this.state.phase === "inhale") {
+      this.state.actualScale = this.state.cycleStartScale +
+        (this.state.cycleTargetScale - this.state.cycleStartScale) * smoothStep(progress);
       this.state.visualExpansion = smoothStep(progress);
       this.state.internalPressure = cyclePressure * 0.25 * progress;
     } else if (this.state.phase === "hold") {
+      this.state.actualScale = this.state.cycleTargetScale;
       this.state.visualExpansion = 1;
       this.state.internalPressure = cyclePressure * (0.25 + 0.75 * smoothStep(progress));
     } else {
+      this.state.actualScale = this.state.cycleTargetScale;
       this.state.visualExpansion = 1 - smoothStep(progress);
       this.state.internalPressure = cyclePressure * (1 - smoothStep(progress));
     }
