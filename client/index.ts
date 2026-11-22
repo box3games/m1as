@@ -103,3 +103,7 @@ export {
   type IntegrityGeometrySubject,
   type DeformationIntegrityReport,
 } from "./animation/deformation-integrity-monitor.js";
+
+export {
+  AabbBroadPhaseIntegrityDetector,
+} from "./animation/deformation-integrity-monitor.js";
