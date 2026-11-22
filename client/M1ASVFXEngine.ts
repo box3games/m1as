@@ -310,6 +310,12 @@ export class M1ASVFXEngine {
                     rigId: this.subjectRoot.uuid,
                     rigVersion: "three-glb-runtime-v1",
                     boneNames: Array.from(this.bones.values(), bone => bone.name),
+                    boneNodes: Array.from(this.bones.values(), bone => ({
+                        boneId: bone.name,
+                        ...(bone.parent && (bone.parent as THREE.Bone).isBone
+                            ? { parentBoneId: bone.parent.name }
+                            : {}),
+                    })),
                     clips: (gltf.animations ?? []).map(clip => ({
                         name: clip.name.toLowerCase(),
                         durationSeconds: clip.duration,
