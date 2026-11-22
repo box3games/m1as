@@ -123,7 +123,7 @@ export class M1ASVFXEngine {
 
     // Venous Pulse & Fractal Bulge
     private pulsePhase = 0;
-    private venousPulseEnergy = 0;
+    private venousPulseEnergy = 0;\n    private biologicalVisualExpansion = 0;\n    private biologicalInternalPressure = 0;\n    private biologicalPressureWave = 0;
 
     // Input & Controls
     private mode: GrowthTriggerMode = 'click';
@@ -437,6 +437,23 @@ export class M1ASVFXEngine {
         };
     }
 
+
+    /** Apply continuous biological growth without manufacturing discrete queue events. */
+    public applyBiologicalBreathState(state: BiologicalBreathTelemetry, growthDelta: number): void {
+        if (!Number.isFinite(growthDelta) || growthDelta < 0) return;
+        if (growthDelta > 0 && this.growthModelMode === 'm1as-vfx') {
+            this.growthQueue.feedSustainedGrowth(growthDelta, GrowthStimulusType.Buff);
+            this.projectedTargetScale += growthDelta;
+            this.upperBodyExcess += growthDelta * 0.25;
+        }
+        this.biologicalVisualExpansion = Math.max(0, Math.min(1, state.visualExpansion));
+        this.biologicalInternalPressure = Math.max(0, state.internalPressure);
+        this.biologicalPressureWave = Number.isFinite(state.pressureWave) ? state.pressureWave : 0;
+        this.venousPulseEnergy = Math.max(
+            this.venousPulseEnergy,
+            Math.min(1, this.biologicalInternalPressure * 0.15 + this.biologicalVisualExpansion * 0.2),
+        );
+    }
 
     public setTransparentBackground(transparent: boolean): void {
         if (transparent) {
@@ -784,7 +801,7 @@ export class M1ASVFXEngine {
 
         const fractalPulse =
             (Math.sin(this.pulsePhase) * 0.6 + Math.sin(this.pulsePhase * 2.17) * 0.4) *
-            (0.03 * this.venousPulseEnergy + instability * 0.04);
+            (0.03 * this.venousPulseEnergy + instability * 0.04 + this.biologicalVisualExpansion * 0.018 + this.biologicalPressureWave * 0.012);
 
         const rawHeight = this.baseModelHeight * finalScale;
         const occupancyRatio = rawHeight / this.roomCeilingHeight;
