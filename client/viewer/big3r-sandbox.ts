@@ -394,17 +394,19 @@ export class Big3rSandboxController {
                             biologicalVisualExpansion: growthState.biologicalVisualExpansion,
                             biologicalInternalPressure: growthState.biologicalInternalPressure,
                             biologicalPressureWave: growthState.biologicalPressureWave,
+                            biologicalBreathingActive: growthState.biologicalBreathingActive,
                         },
                         provenance: "M1ASVFXEngine.getGrowthModelTelemetry",
                     };
                     character.vfxState = {
                         status: "available",
                         value: {
-                            biologicalBreath: {
+                            biologicalBreath: growthState.biologicalBreath ?? {
                                 visualExpansion: growthState.biologicalVisualExpansion,
                                 internalPressure: growthState.biologicalInternalPressure,
                                 pressureWave: growthState.biologicalPressureWave,
                             },
+                            biologicalBreathingActive: growthState.biologicalBreathingActive,
                             posture: growthState.posture,
                             goldenBuffer: growthState.goldenBuffer,
                         },
@@ -544,7 +546,37 @@ export class Big3rSandboxController {
                 : "Baseline GLB Scaling Model";
         });
 
-        panel.append(label, status);
+        const m1asEngine = engine as M1ASVFXEngine;
+        const breathingStart = document.createElement("button");
+        breathingStart.type = "button";
+        breathingStart.textContent = "Start Biological Breathing";
+        const breathingPause = document.createElement("button");
+        breathingPause.type = "button";
+        breathingPause.textContent = "Pause Breathing";
+        const breathingStatus = document.createElement("span");
+        breathingStatus.textContent = "Biological breathing is inactive.";
+        const refreshBreathingControls = () => {
+            const active = m1asEngine.getBiologicalBreathingActive();
+            breathingStart.disabled = active || engine.getGrowthModel?.() !== "m1as-vfx";
+            breathingPause.disabled = !active;
+            breathingStatus.textContent = active
+                ? "Biological breathing active · scale accumulation and pressure pulse are independent."
+                : "Biological breathing paused · accumulated scale is retained.";
+        };
+        breathingStart.addEventListener("click", () => {
+            const started = m1asEngine.startBiologicalBreathing();
+            if (!started) {
+                breathingStatus.textContent = "Biological breathing currently requires the M1AS VFX model.";
+            }
+            refreshBreathingControls();
+        });
+        breathingPause.addEventListener("click", () => {
+            m1asEngine.pauseBiologicalBreathing();
+            refreshBreathingControls();
+        });
+        select.addEventListener("change", refreshBreathingControls);
+        refreshBreathingControls();
+        panel.append(label, status, breathingStart, breathingPause, breathingStatus);
         this.controlBar.prepend(panel);
         this.growthModelControls = panel;
         this.growthModelSelect = select;
