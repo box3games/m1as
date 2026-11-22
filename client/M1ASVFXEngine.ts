@@ -10,6 +10,7 @@ import {
     GrowthEvent,
     CascadeBurstPayload,
 } from './GrowthEventQueue.js';
+import { VfxrPresentationEffectRegistry, VfxrSubjectAuraEffect } from './vfxr/presentation-effects.js';
 
 export type GrowthTriggerMode = 'click' | 'tap' | 'hold' | 'chaos-delayed';
 export type GrowthModelMode = 'm1as-vfx' | 'baseline-scale';
@@ -108,6 +109,7 @@ export class M1ASVFXEngine {
     private bones = new Map<string, THREE.Bone>();
     private subjectMaterials: THREE.MeshStandardMaterial[] = [];
     private readonly presentationAccentChannels = new Map<string, { target: string; value: number }>();
+    private readonly presentationEffects = new VfxrPresentationEffectRegistry();
     private baseModelHeight = 1.0;
 
     // Golden-Ratio Body Orchestration (phi = 1.618)
@@ -234,6 +236,9 @@ export class M1ASVFXEngine {
         this.scene.add(dirLight);
 
         this.scene.add(this.subjectRoot);
+        this.presentationEffects.register(new VfxrSubjectAuraEffect(
+            this.scene, this.subjectRoot, this.camera,
+        ));
         this.loadGlb();
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -339,35 +344,29 @@ export class M1ASVFXEngine {
     public getRenderer(): THREE.WebGLRenderer { return this.renderer; }
     public getControls(): OrbitControls { return this.controls; }
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
-    public get presentationAccentHostId(): string { return "m1as-vfx-engine"; }
+    public get presentationAccentHostId(): string { return this.presentationEffects.presentationAccentHostId; }
 
-    /** Apply a data-driven accent without changing subject scale or growth state. */
-    public applyPresentationAccent(
-        channelId: string,
-        target: string,
-        value: number,
-    ): { status: "available"; value: number; hostId: string; provenance: string } |
-       { status: "unsupported" | "failed"; reason: string } {
-        if (!Number.isFinite(value)) return { status: "failed", reason: "Accent value must be finite." };
-        if (target !== "m1as.subject.emissive-intensity") {
-            return { status: "unsupported", reason: `M1ASVFXEngine does not support accent target "${target}".` };
+    /** Route authored targets through the registered VFXR effect hosts. */
+    public applyPresentationAccent(channelId: string, target: string, value: number) {
+        if (!Number.isFinite(value)) return { status: "failed" as const, reason: "Accent value must be finite." };
+        if (target === "m1as.subject.emissive-intensity") {
+            if (value < 0) return { status: "failed" as const, reason: "Emissive intensity cannot be negative." };
+            this.presentationAccentChannels.set(channelId, { target, value });
+            return {
+                status: "available" as const, value,
+                hostId: "m1as-vfx-engine",
+                provenance: "M1ASVFXEngine presentation-accent material channel",
+            };
         }
-        if (value < 0) return { status: "failed", reason: "Emissive intensity cannot be negative." };
-        this.presentationAccentChannels.set(channelId, { target, value });
-        return {
-            status: "available",
-            value,
-            hostId: "m1as-vfx-engine",
-            provenance: "M1ASVFXEngine presentation-accent material channel",
-        };
+        return this.presentationEffects.applyPresentationAccent(channelId, target, value);
     }
 
-    /** Remove channels no longer present in the active authored profile. */
     public clearPresentationAccentChannels(activeChannelIds: readonly string[]): void {
         const active = new Set(activeChannelIds);
         for (const channelId of this.presentationAccentChannels.keys()) {
             if (!active.has(channelId)) this.presentationAccentChannels.delete(channelId);
         }
+        this.presentationEffects.clearPresentationAccentChannels(activeChannelIds);
     }
 
     private getPresentationAccentEmissiveIntensity(): number {
@@ -1360,6 +1359,7 @@ export class M1ASVFXEngine {
       vfx.mesh.quaternion.copy(this.camera.quaternion);
     }
 
+    this.presentationEffects.update(dt);
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
     this.emitTelemetry();
@@ -1373,6 +1373,7 @@ export class M1ASVFXEngine {
         this.canvas.removeEventListener('pointerdown', this.onPointerDown);
         this.canvas.removeEventListener('pointerup', this.onPointerUp);
         if (this.vfxBlobUrl) URL.revokeObjectURL(this.vfxBlobUrl);
+        this.presentationEffects.dispose();
         this.controls.dispose();
         this.renderer.dispose();
     }
