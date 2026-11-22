@@ -197,6 +197,25 @@ export function validateCharacterPresentationMotionProfile(input: unknown): stri
   return issues;
 }
 
+/** Validate a runtime rig declaration before any intent is offered to it. */
+export function validateMotionRigCapabilities(input: unknown): string[] {
+  const issues: string[] = [];
+  if (!input || typeof input !== "object") return ["rig capabilities must be an object"];
+  const rig = input as MotionRigCapabilities;
+  if (!nonEmpty(rig.rigId)) issues.push("rigId must be a non-empty string");
+  if (!nonEmpty(rig.rigVersion)) issues.push("rigVersion must be a non-empty string");
+  if (!["skeletal_glb", "procedural_rig", "sprite_2d", "subject_2_5d", "hologram", "other"].includes(rig.adapterKind)) {
+    issues.push("adapterKind is unsupported");
+  }
+  for (const key of ["supportedRegions", "supportedLayerModes", "postureControlledRegions", "availableClipIds", "availableScriptIds"] as const) {
+    if (!Array.isArray(rig[key]) || rig[key].some(value => !nonEmpty(value))) issues.push(`${key} must be an array of non-empty identifiers`);
+  }
+  if (typeof rig.postureOverrideAllowed !== "boolean") issues.push("postureOverrideAllowed must be boolean");
+  if (typeof rig.supportsJointConstraints !== "boolean") issues.push("supportsJointConstraints must be boolean");
+  if (typeof rig.supportsPerRegionTelemetry !== "boolean") issues.push("supportsPerRegionTelemetry must be boolean");
+  return issues;
+}
+
 /**
  * Deterministic compatibility pass. It never changes a requested weight or
  * substitutes another clip. Unsupported/conflicting intents are explicitly rejected.
@@ -208,6 +227,8 @@ export function resolveCharacterMotionIntents(
 ): MotionResolution[] {
   const issues = validateCharacterPresentationMotionProfile(profile);
   if (issues.length) throw new TypeError(`Invalid motion profile: ${issues.join("; ")}`);
+  const rigIssues = validateMotionRigCapabilities(context.rig);
+  if (rigIssues.length) throw new TypeError(`Invalid motion rig capabilities: ${rigIssues.join("; ")}`);
   const byId = new Map(profile.layers.map(layer => [layer.id, layer]));
   const ordered = intents.map((intent, index) => ({ intent, index, layer: byId.get(intent.layerId) }))
     .sort((a, b) => (b.layer?.priority ?? Number.NEGATIVE_INFINITY) -
@@ -228,6 +249,9 @@ export function resolveCharacterMotionIntents(
     if (!context.rig.supportedLayerModes.includes(layer.mode)) { reject(`Rig does not support the ${layer.mode} layer mode.`); continue; }
     if (layer.regions.some(region => !context.rig.supportedRegions.includes(region))) {
       reject("One or more requested regions are unsupported by this rig."); continue;
+    }
+    if ((layer.constraints?.length ?? 0) > 0 && !context.rig.supportsJointConstraints) {
+      reject("Rig does not support the constraints declared by this motion layer."); continue;
     }
     const availableAssets = layer.asset.kind === "clip" ? context.rig.availableClipIds : context.rig.availableScriptIds;
     if (!availableAssets.includes(layer.asset.id)) { reject(`Rig does not expose the referenced ${layer.asset.kind}.`); continue; }
