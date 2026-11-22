@@ -30,6 +30,8 @@ export interface PresentationAccentChannel {
   outputRange: { minimum: number; maximum: number };
   curve: "linear" | "ease_in" | "ease_out" | "smoothstep";
   clampInput?: boolean;
+  /** Registered presentation host target; omitted channels are evaluated but not applied. */
+  effectTarget?: string;
 }
 export interface PresentationAccentProfile {
   id: string;
@@ -56,7 +58,10 @@ export interface PresentationAccentChannelValue {
   source: PresentationAccentSource;
   sourceValue: number;
   mappedTargetValue: number;
-  appliedValue: { status: "not_captured"; reason: string };
+  effectTarget?: string;
+  appliedValue:
+    | { status: "available"; value: number; hostId: string; provenance: string }
+    | { status: "unsupported" | "not_captured" | "failed"; reason: string };
 }
 export interface PresentationAccentEvaluation {
   profileId: string;
@@ -195,10 +200,11 @@ export function evaluatePresentationAccents(
     const curved = applyCurve(normalized, channel.curve);
     return {
       channelId: channel.id, source: channel.source, sourceValue,
+      ...(channel.effectTarget ? { effectTarget: channel.effectTarget } : {}),
       mappedTargetValue: channel.outputRange.minimum + curved * (channel.outputRange.maximum - channel.outputRange.minimum),
       appliedValue: {
         status: "not_captured" as const,
-        reason: "The presentation-effect host has not reported an applied value for this channel.",
+        reason: channel.effectTarget ? "The presentation-effect adapter has not applied this channel yet." : "No effectTarget is configured for this accent channel.",
       },
     };
   });

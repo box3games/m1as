@@ -107,6 +107,7 @@ export class M1ASVFXEngine {
     private activeAction: THREE.AnimationAction | null = null;
     private bones = new Map<string, THREE.Bone>();
     private subjectMaterials: THREE.MeshStandardMaterial[] = [];
+    private readonly presentationAccentChannels = new Map<string, { target: string; value: number }>();
     private baseModelHeight = 1.0;
 
     // Golden-Ratio Body Orchestration (phi = 1.618)
@@ -338,6 +339,43 @@ export class M1ASVFXEngine {
     public getRenderer(): THREE.WebGLRenderer { return this.renderer; }
     public getControls(): OrbitControls { return this.controls; }
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
+    /** Apply a data-driven accent without changing subject scale or growth state. */
+    public applyPresentationAccent(
+        channelId: string,
+        target: string,
+        value: number,
+    ): { status: "available"; value: number; hostId: string; provenance: string } |
+       { status: "unsupported" | "failed"; reason: string } {
+        if (!Number.isFinite(value)) return { status: "failed", reason: "Accent value must be finite." };
+        if (target !== "m1as.subject.emissive-intensity") {
+            return { status: "unsupported", reason: `M1ASVFXEngine does not support accent target "${target}".` };
+        }
+        if (value < 0) return { status: "failed", reason: "Emissive intensity cannot be negative." };
+        this.presentationAccentChannels.set(channelId, { target, value });
+        return {
+            status: "available",
+            value,
+            hostId: "m1as-vfx-engine",
+            provenance: "M1ASVFXEngine presentation-accent material channel",
+        };
+    }
+
+    /** Remove channels no longer present in the active authored profile. */
+    public clearPresentationAccentChannels(activeChannelIds: readonly string[]): void {
+        const active = new Set(activeChannelIds);
+        for (const channelId of this.presentationAccentChannels.keys()) {
+            if (!active.has(channelId)) this.presentationAccentChannels.delete(channelId);
+        }
+    }
+
+    private getPresentationAccentEmissiveIntensity(): number {
+        let intensity = 0;
+        for (const channel of this.presentationAccentChannels.values()) {
+            if (channel.target === "m1as.subject.emissive-intensity") intensity += channel.value;
+        }
+        return intensity;
+    }
+
     public getCurrentVisualScale(): number { return this.growthModelMode === 'baseline-scale' ? this.baselineCurrentScale : this.growthQueue.currentVisualScale; }
     public getGrowthModel(): GrowthModelMode { return this.growthModelMode; }
     public setGrowthModel(mode: GrowthModelMode): boolean {
@@ -859,7 +897,7 @@ export class M1ASVFXEngine {
         for (const mat of this.subjectMaterials) {
             if (mat.emissive) {
                 mat.emissive.setHex(0x10b981);
-                mat.emissiveIntensity = veinWave * 0.45;
+                mat.emissiveIntensity = veinWave * 0.45 + this.getPresentationAccentEmissiveIntensity();
             }
         }
 
@@ -1286,6 +1324,8 @@ export class M1ASVFXEngine {
     let cameraInstability = queueTelemetry.instabilityScore;
     if (this.growthModelMode === 'baseline-scale') {
       this.advanceBaselineGrowth(dt);
+      const accentEmissive = this.getPresentationAccentEmissiveIntensity();
+      for (const material of this.subjectMaterials) material.emissiveIntensity = accentEmissive;
       cameraScale = this.baselineCurrentScale;
       cameraInstability = 0;
     } else {

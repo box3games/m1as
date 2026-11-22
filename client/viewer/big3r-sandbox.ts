@@ -29,6 +29,7 @@ import {
 } from "../growth/grow-time.js";
 import { captureCharacterPresentation, capturePerspectiveCamera } from "../experiments/three-adapters.js";
 import { captureExperientialScale } from "../experiments/experiential-scale-adapter.js";
+import { applyPresentationAccentEvaluation } from "../experiments/presentation-accent-adapter.js";
 import { validateExperientialScaleProfileSet, type ExperientialScaleProfileSet } from "../growth/experiential-scale.js";
 
 
@@ -426,17 +427,13 @@ export class Big3rSandboxController {
                     };
                     const camera = capturePerspectiveCamera(engine.getCamera(), viewport, {
                         target: engine.getControls().target,
-                        cameraMode: "sandbox",
+                        cameraMode: this.camRigSelect ? `rig-${this.camRigSelect.value}` : "sandbox",
                     });
+                    const activeStageId = `sandbox-box-tier-${this.currentBoxTier}`;
+                    const activeCameraMode = this.camRigSelect ? `rig-${this.camRigSelect.value}` : "sandbox";
                     const character = captureCharacterPresentation(
                         engine.getSubjectRoot(), engine.getCamera(), manifest.worldUnit,
                     );
-                    const growthState = engine.getGrowthModelTelemetry();
-                    if (character.experientialScale?.status === "available") {
-                        growthState.experientialScale = character.experientialScale.value;
-                    }
-                    const activeStageId = `sandbox-box-tier-${this.currentBoxTier}`;
-                    const activeCameraMode = this.camRigSelect ? `rig-${this.camRigSelect.value}` : "sandbox";
                     character.experientialScale = captureExperientialScale({
                         subjectId: "active-glb-subject",
                         root: engine.getSubjectRoot(),
@@ -448,6 +445,27 @@ export class Big3rSandboxController {
                         cameraMode: activeCameraMode,
                         profiles: this.experientialScaleProfiles,
                     });
+                    if (character.experientialScale.status === "available" &&
+                        character.experientialScale.value.presentationAccent.status === "available") {
+                        const snapshot = character.experientialScale.value;
+                        const applied = applyPresentationAccentEvaluation(
+                            snapshot.presentationAccent.value, engine,
+                        );
+                        character.experientialScale = {
+                            ...character.experientialScale,
+                            value: { ...snapshot, presentationAccent: {
+                                status: "available",
+                                value: applied,
+                                provenance: "presentation-accent-effect-host-application",
+                            } },
+                        };
+                    } else {
+                        engine.clearPresentationAccentChannels([]);
+                    }
+                    const growthState = engine.getGrowthModelTelemetry();
+                    if (character.experientialScale.status === "available") {
+                        growthState.experientialScale = character.experientialScale.value;
+                    }
                     character.deformationState = {
                         status: "available",
                         value: {
