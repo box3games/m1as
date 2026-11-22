@@ -13,18 +13,25 @@ test("a completed breath increases actual scale and makes the next breath longer
   assert.equal(afterFirst.phase, "inhale");
 });
 
-test("visual expansion and pressure pulse do not change actual scale mid-cycle", () => {
+test("actual scale accumulates during inhale while the pulse remains independent", () => {
   const controller = new BiologicalBreathController();
-  controller.advance(0.35);
+  controller.advance(0.175);
+  const midInhale = controller.getState();
+  assert.equal(midInhale.phase, "inhale");
+  assert.ok(midInhale.actualScale > 1 && midInhale.actualScale < 1.08);
+  assert.ok(midInhale.visualExpansion > 0 && midInhale.visualExpansion < 1);
+
+  controller.advance(0.175);
   const inhaleEnd = controller.getState();
   assert.equal(inhaleEnd.phase, "hold");
+  assert.equal(inhaleEnd.actualScale, 1.08);
   assert.equal(inhaleEnd.visualExpansion, 1);
-  assert.equal(inhaleEnd.actualScale, 1);
 
   controller.advance(0.15);
   const held = controller.getState();
   assert.equal(held.phase, "hold");
-  assert.equal(held.actualScale, 1);
+  assert.equal(held.actualScale, 1.08);
+  assert.equal(held.visualExpansion, 1);
   assert.ok(held.internalPressure > inhaleEnd.internalPressure);
 });
 
@@ -33,7 +40,7 @@ test("pressure grows on subsequent breaths while scale accumulation remains sepa
   controller.advance(0.35 + 0.3);
   const firstPressure = controller.getState().internalPressure;
   assert.equal(controller.getState().phase, "release");
-  assert.equal(controller.getState().actualScale, 1);
+  assert.equal(controller.getState().actualScale, 1.08);
 
   controller.advance(0.35);
   assert.equal(controller.getState().actualScale, 1.08);
@@ -51,7 +58,7 @@ test("release settles visual expansion and pressure without shrinking accumulate
   assert.equal(release.phase, "release");
   assert.ok(release.visualExpansion < 1);
   assert.ok(release.internalPressure < 1);
-  assert.equal(release.actualScale, 1);
+  assert.equal(release.actualScale, 1.08);
 
   controller.advance(0.175);
   assert.equal(controller.getState().actualScale, 1.08);
@@ -66,7 +73,7 @@ test("pressure wave is a separate oscillating response", () => {
   const second = controller.getState();
   assert.notEqual(first.pressureWavePhaseRadians, second.pressureWavePhaseRadians);
   assert.notEqual(first.pressureWave, second.pressureWave);
-  assert.equal(second.actualScale, 1);
+  assert.equal(second.actualScale, 1.08);
 });
 
 test("large simulation steps cross multiple cycles deterministically", () => {
