@@ -134,4 +134,19 @@ The following renderer-independent foundations are now present:
 
 The 3D volume output is explicitly a bounding-volume ratio proxy, not physical mass. The 2D relative-mass output is projected visual area divided by a stage/camera-authored reference footprint. Camera and perceived-mass profiles identify their stage, preventing accidental comparison across unrelated level references.
 
-**Integration boundary:** this first slice is intentionally independent of the existing GLB adapters, M1ASVFXEngine, queue, sandbox, VFXR, and experiment recorder. Those systems have not yet been changed to consume these new controllers. The next integration step must expose these measurements and breath outputs through adapters without replacing or flooding the existing discrete growth queue.
+**Initial integration boundary:** the scale/perception measurement functions remain renderer-independent and are not yet automatically populated from every live camera/stage combination. Their values must be supplied by explicit stage and camera reference profiles.
+
+## 12. Biological breathing adapter and sandbox integration
+
+The next integration slice now connects the breathing controller to the existing growth path:
+
+- `client/growth/model-contract.ts` exposes a shared biological-breath telemetry shape and an optional `applyBiologicalBreathState` adapter seam.
+- `client/growth/biological-breathing-model.ts` composes the profile with any GrowthModel implementation that supports the seam. It preserves ordinary discrete/flow/hold commands and supports start, pause, telemetry and reset.
+- `client/growth/model-adapters.ts` maps the profile to baseline Three.js scaling or the M1AS VFX engine without changing the legacy discrete command contract.
+- `client/M1ASVFXEngine.ts` can run the controller from its existing simulation delta. Each inhale contributes a continuous positive delta through `GrowthEventQueue.feedSustainedGrowth`; it does not enqueue one discrete event per frame. Hold pressure and the pressure-wave signal contribute separately to the existing organic deformation response.
+- The sandbox growth-model panel exposes start/pause controls for biological breathing. Starting requires the M1AS VFX model and an idle queue/hold/flow state. Discrete queue events may still be introduced after breathing starts, allowing a deliberate hybrid experiment. Model switching remains locked while the breath profile is retained; reset clears it.
+- Experiment presentation capture now records the engine's current scale, target, velocity, instability, breathing phase/progression, pressure, pulse, posture and Golden Buffer through the existing deformation/VFX measurement fields.
+
+The wrapper and engine use the same biological controller implementation. The wrapper is the interchangeable-model composition seam; the engine-owned instance is the live sandbox path, which follows the engine's existing simulation clock. Recorder capture remains observational and does not advance or mutate the profile.
+
+**Not yet integrated:** automatic stage-reference selection, camera-relative 2D normalization from live projected bounds, authored perceived-mass profiles, representation-tier prediction/remodeling, and VFXR/hologram registration. Those remain the next scale/perception and extensibility tasks.
