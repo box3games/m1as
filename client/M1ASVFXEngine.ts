@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { BiologicalBreathController, type BiologicalBreathConfig } from './growth/biological-breathing.js';
 import type { BiologicalBreathTelemetry } from './growth/model-contract.js';
+import type { ExperientialScaleSnapshot } from './growth/experiential-scale.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
     GrowthEventQueue,
@@ -378,7 +379,7 @@ export class M1ASVFXEngine {
         return true;
     }
     /** Read-only queue and character diagnostics for interchangeable-model adapters. */
-    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean; biologicalVisualExpansion: number; biologicalInternalPressure: number; biologicalPressureWave: number; biologicalBreathingActive: boolean; biologicalBreath?: BiologicalBreathTelemetry } {
+    public getGrowthModelTelemetry(): { experientialScale?: ExperientialScaleSnapshot; currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean; biologicalVisualExpansion: number; biologicalInternalPressure: number; biologicalPressureWave: number; biologicalBreathingActive: boolean; biologicalBreath?: BiologicalBreathTelemetry } {
         return {
             currentScale: this.getCurrentVisualScale(),
             targetScale: this.growthModelMode === 'baseline-scale' ? this.baselineTargetScale : this.growthQueue.currentTargetScale,

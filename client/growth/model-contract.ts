@@ -5,6 +5,7 @@
  * A model owns its execution mechanics; the experiment system observes it.
  */
 import type { ScalePerceptionMeasurements } from './scale-perception.js';
+import type { ExperientialScaleSnapshot } from './experiential-scale.js';
 
 export type GrowthModelId = string;
 
@@ -97,6 +98,8 @@ export interface GrowthModelTelemetry {
   biologicalBreath?: BiologicalBreathTelemetry;
   /** Optional observational snapshot; never feeds back into execution scale. */
   scalePerception?: ScalePerceptionMeasurements;
+  /** Presentation observation attached by the host; never feeds back into growth execution. */
+  experientialScale?: ExperientialScaleSnapshot;
   /** Model-specific values remain namespaced and do not replace common fields. */
   modelData?: Record<string, unknown>;
 }

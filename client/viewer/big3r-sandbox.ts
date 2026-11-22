@@ -432,6 +432,9 @@ export class Big3rSandboxController {
                         engine.getSubjectRoot(), engine.getCamera(), manifest.worldUnit,
                     );
                     const growthState = engine.getGrowthModelTelemetry();
+                    if (character.experientialScale?.status === "available") {
+                        growthState.experientialScale = character.experientialScale.value;
+                    }
                     const activeStageId = `sandbox-box-tier-${this.currentBoxTier}`;
                     const activeCameraMode = this.camRigSelect ? `rig-${this.camRigSelect.value}` : "sandbox";
                     character.experientialScale = captureExperientialScale({
@@ -470,6 +473,7 @@ export class Big3rSandboxController {
                             biologicalBreathingActive: growthState.biologicalBreathingActive,
                             posture: growthState.posture,
                             goldenBuffer: growthState.goldenBuffer,
+                            ...(growthState.experientialScale ? { experientialScale: growthState.experientialScale } : {}),
                         },
                         provenance: "M1ASVFXEngine biological and presentation telemetry",
                     };
