@@ -25,8 +25,16 @@ const REGION_PATTERNS: Array<[MotionRegion, RegExp]> = [
   ["arms", /arm|elbow|forearm/],
   ["hands", /hand|wrist|finger/],
   ["pelvis", /pelvis|hip/],
-  ["legs", /leg|thigh|knee|calf/],
+  ["pelvic_floor", /pelvic.?floor/],
+  ["perineum", /perineum|perineal/],
+  ["groin", /groin/],
+  ["gluteal", /glute|buttock/],
+  ["thighs", /thigh/],
+  ["legs", /leg|calf/],
+  ["knees", /knee/],
   ["feet", /foot|feet|ankle|toe/],
+  ["clothing", /cloth|garment|outfit|armor/],
+  ["attachments", /accessory|attachment|wearable|prop/],
   ["root", /root|hips|origin/],
 ];
 
