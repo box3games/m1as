@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "sprite-growth-breathing-demo",
+  "configurationVersion": "2d-sprite-demo-v1",
+  "subject": {
+    "subjectId": "character-demo-01",
+    "assetId": "character-demo-transparent-png",
+    "assetKind": "png",
+    "initialDimensions": {
+      "x": 2,
+      "y": 4,
+      "z": 0
+    },
+    "worldUnit": "m"
+  },
+  "durationSeconds": 12,
+  "timestepSeconds": 0.05,
+  "biologicalBreathing": {
+    "enabled": true,
+    "profile": {
+      "initialScale": 1,
+      "growthMultiplierPerCycle": 1.08,
+      "baseCycleDurationSeconds": 2,
+      "durationMultiplierPerCycle": 1.15,
+      "inhaleFraction": 0.35,
+      "holdFraction": 0.3,
+      "growthEnvelopeExponent": 1,
+      "visualPulseExponent": 1,
+      "pressureMultiplierPerCycle": 1.2,
+      "basePressure": 1,
+      "waveResponseWeight": 0.35,
+      "waveCyclesPerSecond": 1.5
+    }
+  },
+  "events": [
+    {
+      "atSeconds": 0,
+      "action": {
+        "kind": "growth",
+        "command": {
+          "kind": "discrete",
+          "commandId": "initial-growth",
+          "stimulus": "demo-trigger",
+          "amount": {
+            "kind": "relative_change",
+            "fraction": 0.25
+          },
+          "requestedDurationSeconds": 2
+        }
+      }
+    },
+    {
+      "atSeconds": 0,
+      "action": {
+        "kind": "breathing",
+        "active": true
+      }
+    },
+    {
+      "atSeconds": 5,
+      "action": {
+        "kind": "growth",
+        "command": {
+          "kind": "flow",
+          "commandId": "sustained-feed",
+          "flowMultiplier": 1,
+          "supplySeconds": 3,
+          "parameters": {
+            "growthPerSupplySecond": 0.08
+          }
+        }
+      }
+    }
+  ]
+}
