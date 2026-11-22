@@ -38,8 +38,8 @@ export class BiologicalBreathingGrowthModel implements GrowthModel {
     };
   }
 
-  initialize(subject: GrowthModelSubject, context: GrowthModelContext): void {
-    this.inner.initialize(subject, context);
+  async initialize(subject: GrowthModelSubject, context: GrowthModelContext): Promise<void> {
+    await this.inner.initialize(subject, context);
     const initialScale = this.config.initialScale ?? this.inner.readTelemetry(context.simulationTimeSeconds).currentScale ?? 1;
     this.controller = new BiologicalBreathController({ ...this.config, initialScale });
     this.previousBreathScale = initialScale;
@@ -60,8 +60,8 @@ export class BiologicalBreathingGrowthModel implements GrowthModel {
     return this.active;
   }
 
-  apply(command: GrowthModelCommand, context: GrowthModelContext): GrowthModelResult {
-    return this.inner.apply(command, context);
+  async apply(command: GrowthModelCommand, context: GrowthModelContext): Promise<GrowthModelResult> {
+    return await this.inner.apply(command, context);
   }
 
   advance(simulationTimeSeconds: number, deltaSeconds: number): void {
