@@ -83,6 +83,15 @@ export function validateCharacterRigTopology(
   if (!topology.rigVersion.trim()) errors.push("rigVersion must be non-empty.");
   const boneIds = new Set(topology.boneIds);
   if (boneIds.size !== topology.boneIds.length) errors.push("boneIds contains duplicates.");
+  const hierarchyIds = new Set(topology.boneHierarchy.map(relation => relation.boneId));
+  if (hierarchyIds.size !== topology.boneHierarchy.length) errors.push("boneHierarchy contains duplicate bone relations.");
+  for (const relation of topology.boneHierarchy) {
+    if (!boneIds.has(relation.boneId)) errors.push(`Bone hierarchy references missing bone ${relation.boneId}.`);
+    if (relation.parentBoneId && !boneIds.has(relation.parentBoneId)) {
+      errors.push(`Bone ${relation.boneId} references missing parent bone ${relation.parentBoneId}.`);
+    }
+    if (relation.parentBoneId === relation.boneId) errors.push(`Bone ${relation.boneId} cannot parent itself.`);
+  }
   const regionIds = new Set<string>();
   for (const region of topology.regions) {
     if (!region.regionId.trim()) errors.push("A region mapping has an empty regionId.");
@@ -162,6 +171,7 @@ export function buildCharacterRigTopology(input: {
     rigId: input.rigId,
     rigVersion: input.rigVersion ?? "runtime-discovery-v1",
     boneIds,
+    boneHierarchy: input.bones.map(bone => ({ boneId: bone.boneId, ...(bone.parentBoneId ? { parentBoneId: bone.parentBoneId } : {}) })),
     regions: [...byRegion.values()].sort((a, b) => a.regionId.localeCompare(b.regionId)),
   };
   return { topology, validation: validateCharacterRigTopology(topology) };
