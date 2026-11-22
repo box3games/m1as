@@ -263,7 +263,13 @@ export class M1ASVFXGrowthModel implements GrowthModel {
       targetScale: state.targetScale,
       activeEventCount: state.pendingEvents,
       deformation: { instability: state.instability, goldenBuffer: state.goldenBuffer },
-      modelData: { posture: state.posture, isHolding: state.isHolding, ...this.engine.getGrowthFlowTelemetry() },
+      visualEffects: {
+        biologicalVisualExpansion: state.biologicalVisualExpansion,
+        biologicalInternalPressure: state.biologicalInternalPressure,
+        biologicalPressureWave: state.biologicalPressureWave,
+      },
+      biologicalBreath: state.biologicalBreath,
+      modelData: { posture: state.posture, isHolding: state.isHolding, biologicalBreathingActive: state.biologicalBreathingActive, ...this.engine.getGrowthFlowTelemetry() },
     };
   }
 
