@@ -53,7 +53,7 @@ test("authored mappings override heuristics and can map multiple bones with hier
 
 test("topology validation reports missing bones, missing parents, and hierarchy cycles", () => {
   const validation = validateCharacterRigTopology({
-    rigId: "invalid-rig", rigVersion: "1", boneIds: ["a"],
+    rigId: "invalid-rig", rigVersion: "1", boneIds: ["a"], boneHierarchy: [{ boneId: "a", parentBoneId: "missing-parent" }],
     regions: [
       { regionId: "pelvis", boneIds: ["missing"], deformable: true, provenance: "authored_mapping", parentRegionId: "perineum" },
       { regionId: "perineum", boneIds: ["a"], deformable: true, provenance: "authored_mapping", parentRegionId: "pelvis" },
@@ -62,6 +62,7 @@ test("topology validation reports missing bones, missing parents, and hierarchy 
   assert.equal(validation.valid, false);
   assert.ok(validation.errors.some(error => error.includes("missing bone")));
   assert.ok(validation.errors.some(error => error.includes("cycle")));
+  assert.ok(validation.errors.some(error => error.includes("missing parent bone")));
 });
 
 test("empty subjects do not receive fabricated capabilities", () => {
