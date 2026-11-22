@@ -283,6 +283,18 @@ export class TwoDimensionalSpriteExperimentRunner {
     return this.currentTimeSeconds;
   }
 
+  get latestTelemetry(): GrowthModelTelemetry | null {
+    return this.samples[this.samples.length - 1]?.telemetry ?? null;
+  }
+
+  get capturedSamples(): readonly TwoDimensionalSpriteExperimentSample[] {
+    return this.samples;
+  }
+
+  get capturedCommandResults(): readonly GrowthModelResult[] {
+    return this.commandResults;
+  }
+
   /** Advances one deterministic simulation slice, stopping at the next event boundary. */
   async step(): Promise<TwoDimensionalSpriteExperimentSample | null> {
     if (!this.initialized) throw new Error("Initialize the experiment runner before stepping it.");
