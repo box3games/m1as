@@ -203,7 +203,7 @@ export function normalizePerceivedMass(
   profile: PerceivedMassProfile,
 ): PerceivedMassMeasurement {
   if (!profile.stageId.trim() || !profile.id.trim() || !profile.version.trim()) {
-    throw new TypeError("Perceived-mass profile ID and version are required.");
+    throw new TypeError("Perceived-mass stage, profile ID, and version are required.");
   }
   const { minimum, maximum } = profile.authoredRange;
   if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || maximum <= minimum) {
