@@ -24,7 +24,7 @@ test("stage-relative scale preserves independent axis ratios and volume ratio", 
   const result = computeStageRelativeScale(subject, stage);
   assert.deepEqual(result.axisRatios, { x: 2, y: 1, z: 0.5 });
   assert.equal(result.geometricMeanLinearRatio, 1);
-  assert.equal(result.volumeRatio, 0.5);
+  assert.equal(result.relativeVolume3D, 0.5);
 });
 
 test("stage changes recompute reference ratios without mutating actual dimensions", () => {
@@ -151,7 +151,7 @@ test("combined measurement snapshot keeps the four measurements distinct", () =>
     },
   });
   assert.deepEqual(result.actualDimensions, subject.dimensions);
-  assert.equal(result.stageRelative.volumeRatio, 0.5);
+  assert.equal(result.stageRelative.relativeVolume3D, 0.5);
   assert.equal(result.cameraRelative.relativeMass2D, 2);
   assert.equal(result.perceivedMass.normalizedValue, 2);
   assert.equal(result.perceivedMass.outOfRange, true);
