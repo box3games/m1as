@@ -4,6 +4,7 @@ import {
   CHARACTER_PRESENTATION_MOTION_SCHEMA_VERSION,
   resolveCharacterMotionIntents,
   validateCharacterPresentationMotionProfile,
+  validateMotionRigCapabilities,
   type CharacterPresentationMotionProfile,
   type MotionIntent,
   type MotionResolutionContext,
@@ -104,4 +105,26 @@ test("replace-layer conflicts are deterministic and do not attenuate accepted we
   assert.equal(results[1].status, "accepted");
   assert.equal(results[1].resolvedWeight, 0.4);
   assert.match(results[0].reason ?? "", /higher-priority/);
+});
+
+test("rig declarations are validated and unsupported constraint enforcement is explicit", () => {
+  assert.deepEqual(validateMotionRigCapabilities(context.rig), []);
+  assert.ok(validateMotionRigCapabilities({ ...context.rig, supportedRegions: "spine" }).length > 0);
+  const constrainedProfile: CharacterPresentationMotionProfile = {
+    ...profile,
+    layers: [{ ...profile.layers[0], constraints: [{
+      jointOrRegionId: "chest", minimum: -0.2, maximum: 0.2, unit: "radians", source: "rig_limit",
+    }] }],
+  };
+  const noConstraintRig = {
+    ...context,
+    rig: { ...context.rig, supportsJointConstraints: false },
+  };
+  const intent: MotionIntent = {
+    intentId: "constraint-check", layerId: "breath", subjectId: "subject-1",
+    simulationTimeSeconds: 1, sourceSnapshot: snapshot,
+  };
+  const [result] = resolveCharacterMotionIntents(constrainedProfile, [intent], noConstraintRig);
+  assert.equal(result.status, "rejected");
+  assert.match(result.reason ?? "", /does not support the constraints/);
 });
