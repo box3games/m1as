@@ -84,3 +84,9 @@ export {
   resolveCharacterMotionIntents,
 } from "./animation/presentation-motion-contract.js";
 export type * from "./animation/presentation-motion-contract.js";
+
+export {
+  inspectCharacterAnimationCapabilities,
+  type CharacterAnimationCapabilityReport,
+  type CharacterAnimationClipCapability,
+} from "./animation/character-animation-capability-adapter.js";
