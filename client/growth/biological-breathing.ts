@@ -14,6 +14,8 @@ export interface BiologicalBreathConfig {
   durationMultiplierPerCycle: number;
   inhaleFraction: number;
   holdFraction: number;
+  growthEnvelopeExponent: number;
+  visualPulseExponent: number;
   /** Release is the remaining fraction of the cycle. */
   pressureMultiplierPerCycle: number;
   basePressure: number;
@@ -44,6 +46,8 @@ export const DEFAULT_BIOLOGICAL_BREATH_CONFIG: BiologicalBreathConfig = {
   durationMultiplierPerCycle: 1.25,
   inhaleFraction: 0.35,
   holdFraction: 0.3,
+  growthEnvelopeExponent: 1,
+  visualPulseExponent: 1,
   pressureMultiplierPerCycle: 1.2,
   basePressure: 1,
   waveResponseWeight: 0.35,
@@ -153,9 +157,10 @@ export class BiologicalBreathController {
       Math.pow(this.config.pressureMultiplierPerCycle, this.state.cycleIndex);
 
     if (this.state.phase === "inhale") {
+      const growthEnvelope = Math.pow(smoothStep(progress), this.config.growthEnvelopeExponent);
       this.state.actualScale = this.state.cycleStartScale +
-        (this.state.cycleTargetScale - this.state.cycleStartScale) * smoothStep(progress);
-      this.state.visualExpansion = smoothStep(progress);
+        (this.state.cycleTargetScale - this.state.cycleStartScale) * growthEnvelope;
+      this.state.visualExpansion = Math.pow(smoothStep(progress), this.config.visualPulseExponent);
       this.state.internalPressure = cyclePressure * 0.25 * progress;
     } else if (this.state.phase === "hold") {
       this.state.actualScale = this.state.cycleTargetScale;
