@@ -113,3 +113,26 @@ test("runner rejects breathing events unless breathing is enabled", async () => 
   };
   assert.throws(() => new TwoDimensionalSpriteExperimentRunner(model, config), /Breathing events require/);
 });
+
+test("runner exposes deterministic incremental steps and read-only telemetry snapshots", async () => {
+  const { model } = makeModel();
+  const runner = new TwoDimensionalSpriteExperimentRunner(model, {
+    ...baseConfig,
+    durationSeconds: 1,
+    timestepSeconds: 0.25,
+    events: [],
+  });
+  await runner.initialize();
+  assert.equal(runner.simulationTimeSeconds, 0);
+  assert.equal(runner.isComplete, false);
+  assert.equal(runner.latestTelemetry?.currentScale, 1);
+  await runner.step();
+  assert.equal(runner.simulationTimeSeconds, 0.25);
+  assert.equal(runner.capturedSamples.length, 2);
+  await runner.step();
+  await runner.step();
+  await runner.step();
+  assert.equal(runner.isComplete, true);
+  assert.equal(runner.simulationTimeSeconds, 1);
+  assert.equal(await runner.step(), null);
+});
