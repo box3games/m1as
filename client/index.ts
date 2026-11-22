@@ -94,3 +94,12 @@ export {
   type AuthoredCharacterRegionMapping,
   type CharacterRigBoneNode,
 } from "./animation/character-animation-capability-adapter.js";
+
+export {
+  DeformationIntegrityMonitor,
+  type CharacterIntegrityDetector,
+  type IntegrityDetectorContext,
+  type IntegrityDetectorResult,
+  type IntegrityGeometrySubject,
+  type DeformationIntegrityReport,
+} from "./animation/deformation-integrity-monitor.js";
