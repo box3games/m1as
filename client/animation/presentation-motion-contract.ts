@@ -5,14 +5,13 @@
  * It does not play clips, mutate bones, change growth, or own authoritative posture.
  */
 
+import type { SemanticRegionId } from "../character/body-architecture-contract.js";
+
 export const CHARACTER_PRESENTATION_MOTION_SCHEMA_VERSION = 1 as const;
 
 export type AuthoritativePosture = "stand" | "hunch" | "crawl";
-export type MotionRegion =
-  | "root" | "spine" | "chest" | "shoulders" | "arms" | "hands"
-  | "pelvis" | "pelvic_floor" | "perineum" | "groin" | "gluteal"
-  | "thighs" | "legs" | "knees" | "feet" | "head" | "face"
-  | "clothing" | "attachments" | "full_body" | string;
+/** Shared extensible semantic anatomy IDs; custom IDs are namespace-qualified. */
+export type MotionRegion = SemanticRegionId;
 export type MotionLayerMode = "additive" | "overlay" | "replace";
 export type MotionInterruptionPolicy = "never" | "when_higher_priority" | "when_same_owner" | "always";
 export type MotionLifecyclePhase =
