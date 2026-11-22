@@ -78,6 +78,21 @@ export { type GrowthModel, type GrowthModelId, type GrowthModelDescriptor, type 
 
 export { ThreeObjectScaleGrowthModel, M1ASVFXGrowthModel } from "./growth/model-adapters.js";
 export { TwoDimensionalSpriteGrowthModel } from "./growth/two-dimensional-sprite-growth-model.js";
+export {
+  TWO_D_SPRITE_EXPERIMENT_SCHEMA_VERSION,
+  TwoDimensionalSpriteExperimentRunner,
+  parseTwoDimensionalSpriteExperimentConfig,
+  validateTwoDimensionalSpriteExperimentConfig,
+} from "./growth/two-dimensional-sprite-experiment-runner.js";
+export type {
+  TwoDimensionalSpriteExperimentConfig,
+  TwoDimensionalSpriteExperimentEvent,
+  TwoDimensionalSpriteExperimentAction,
+  TwoDimensionalSpriteExperimentSample,
+  TwoDimensionalSpriteExperimentResult,
+  SpriteExperimentValidationIssue,
+  SpriteExperimentValidationResult,
+} from "./growth/two-dimensional-sprite-experiment-runner.js";
 
 export {
   validateCharacterPresentationMotionProfile,
