@@ -22,7 +22,7 @@ export interface StageScaleReferenceProfile {
   version: string;
   worldUnit: string;
   referenceDimensions: ScaleVector3;
-  /** Optional authored volume in cubic world units; never inferred from scale. */
+  /** Optional authored reference bounding-box volume in cubic world units. */
   referenceVolume?: number;
 }
 
@@ -32,7 +32,8 @@ export interface StageRelativeScale {
   worldUnit: string;
   axisRatios: ScaleVector3;
   geometricMeanLinearRatio: number;
-  volumeRatio?: number;
+  /** Bounding-volume ratio proxy; never physical mass. */
+  relativeVolume3D?: number;
 }
 
 export interface CameraProjectedScaleInput {
@@ -122,11 +123,11 @@ export function computeStageRelativeScale(
   };
   const geometricMeanLinearRatio = Math.cbrt(axisRatios.x * axisRatios.y * axisRatios.z);
 
-  let volumeRatio: number | undefined;
+  let relativeVolume3D: number | undefined;
   if (profile.referenceVolume !== undefined) {
     assertPositiveFinite(profile.referenceVolume, "profile.referenceVolume");
-    const subjectVolume = subject.dimensions.x * subject.dimensions.y * subject.dimensions.z;
-    volumeRatio = subjectVolume / profile.referenceVolume;
+    const subjectBoundingVolume = subject.dimensions.x * subject.dimensions.y * subject.dimensions.z;
+    relativeVolume3D = subjectBoundingVolume / profile.referenceVolume;
   }
 
   return {
@@ -135,7 +136,7 @@ export function computeStageRelativeScale(
     worldUnit: subject.worldUnit,
     axisRatios,
     geometricMeanLinearRatio,
-    ...(volumeRatio === undefined ? {} : { volumeRatio }),
+    ...(relativeVolume3D === undefined ? {} : { relativeVolume3D }),
   };
 }
 
