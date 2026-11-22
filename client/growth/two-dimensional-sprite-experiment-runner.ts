@@ -155,6 +155,7 @@ export function validateTwoDimensionalSpriteExperimentConfig(
     issues.push({ path: "events", message: "Events must be an array." });
   } else {
     let previousTime = -1;
+    const commandIds = new Set<string>();
     value.events.forEach((event, index) => {
       const path = "events[" + index + "]";
       if (!isRecord(event)) {
@@ -173,9 +174,17 @@ export function validateTwoDimensionalSpriteExperimentConfig(
         issues.push({ path: path + ".action", message: "Event action is required." });
       } else if (event.action.kind === "growth") {
         issues.push(...validateGrowthCommand(event.action.command, path + ".action.command"));
+        if (isRecord(event.action.command) && nonEmpty(event.action.command.commandId)) {
+          const commandId = event.action.command.commandId;
+          if (commandIds.has(commandId)) issues.push({ path: path + ".action.command.commandId", message: "Command IDs must be unique within an experiment." });
+          commandIds.add(commandId);
+        }
       } else if (event.action.kind === "breathing") {
         if (typeof event.action.active !== "boolean") {
           issues.push({ path: path + ".action.active", message: "Breathing active must be boolean." });
+        }
+        if (!isRecord(value.biologicalBreathing) || value.biologicalBreathing.enabled !== true) {
+          issues.push({ path: path + ".action", message: "Breathing events require biologicalBreathing.enabled = true." });
         }
       } else {
         issues.push({ path: path + ".action.kind", message: "Unsupported event action." });
@@ -320,7 +329,7 @@ export class TwoDimensionalSpriteExperimentRunner {
       this.nextEventIndex += 1;
       if (event.action.kind === "breathing") {
         if (!(this.model instanceof BiologicalBreathingGrowthModel)) {
-          throw new Error("Breathing events require biologicalBreathing.enabled in the experiment config.");
+          throw new Error("Invalid configuration: breathing events require biologicalBreathing.enabled = true.");
         }
         if (event.action.active) this.model.startBreathing();
         else this.model.stopBreathing();
