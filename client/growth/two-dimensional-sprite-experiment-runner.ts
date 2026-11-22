@@ -263,10 +263,10 @@ export class TwoDimensionalSpriteExperimentRunner {
     await this.model.initialize(this.config.subject, this.context);
     this.initialized = true;
     this.capture();
-    this.executeEventsAtCurrentTime();
+    await this.executeEventsAtCurrentTime();
   }
 
-  run(): TwoDimensionalSpriteExperimentResult {
+  async run(): Promise<TwoDimensionalSpriteExperimentResult> {
     if (!this.initialized) throw new Error("Initialize the experiment runner before running it.");
     if (this.completed) throw new Error("This experiment runner has already completed.");
 
@@ -276,7 +276,7 @@ export class TwoDimensionalSpriteExperimentRunner {
       const nextEvent = this.config.events[this.nextEventIndex];
       const nextEventTime = nextEvent?.atSeconds ?? Number.POSITIVE_INFINITY;
       if (nextEventTime <= this.currentTimeSeconds + epsilon) {
-        this.executeEventsAtCurrentTime();
+        await this.executeEventsAtCurrentTime();
         continue;
       }
 
@@ -286,14 +286,15 @@ export class TwoDimensionalSpriteExperimentRunner {
         nextEventTime - this.currentTimeSeconds,
       );
       if (step <= epsilon) {
-        this.executeEventsAtCurrentTime();
+        await this.executeEventsAtCurrentTime();
         continue;
       }
       this.currentTimeSeconds += step;
       this.model.advance(this.currentTimeSeconds, step);
       this.capture();
-      this.executeEventsAtCurrentTime();
+      await this.executeEventsAtCurrentTime();
     }
+    await this.executeEventsAtCurrentTime();
 
     this.completed = true;
     return {
@@ -311,7 +312,7 @@ export class TwoDimensionalSpriteExperimentRunner {
     this.model.dispose();
   }
 
-  private executeEventsAtCurrentTime(): void {
+  private async executeEventsAtCurrentTime(): Promise<void> {
     const epsilon = 1e-10;
     while (this.nextEventIndex < this.config.events.length) {
       const event = this.config.events[this.nextEventIndex];
@@ -324,7 +325,7 @@ export class TwoDimensionalSpriteExperimentRunner {
         if (event.action.active) this.model.startBreathing();
         else this.model.stopBreathing();
       } else {
-        const result = this.model.apply(event.action.command, {
+        const result = await this.model.apply(event.action.command, {
           ...this.context,
           simulationTimeSeconds: this.currentTimeSeconds,
         });
