@@ -68,6 +68,19 @@ export type GrowthModelCommand =
       parameters?: Record<string, number | string | boolean>;
     };
 
+export interface BiologicalBreathTelemetry {
+  completedCycles: number;
+  cycleIndex: number;
+  phase: "inhale" | "hold" | "release";
+  cycleElapsedSeconds: number;
+  cycleDurationSeconds: number;
+  actualScale: number;
+  visualExpansion: number;
+  internalPressure: number;
+  pressureWave: number;
+  pressureWavePhaseRadians: number;
+}
+
 export interface GrowthModelTelemetry {
   simulationTimeSeconds: number;
   currentScale?: number;
@@ -78,6 +91,8 @@ export interface GrowthModelTelemetry {
   activeEventCount?: number;
   deformation?: Record<string, number>;
   visualEffects?: Record<string, number | string | boolean>;
+  /** Shared biological profile output, separate from model-specific telemetry. */
+  biologicalBreath?: BiologicalBreathTelemetry;
   /** Model-specific values remain namespaced and do not replace common fields. */
   modelData?: Record<string, unknown>;
 }
@@ -93,6 +108,11 @@ export interface GrowthModel {
   readonly descriptor: GrowthModelDescriptor;
   initialize(subject: GrowthModelSubject, context: GrowthModelContext): Promise<void> | void;
   apply(command: GrowthModelCommand, context: GrowthModelContext): Promise<GrowthModelResult> | GrowthModelResult;
+  /** Optional presentation/execution seam for a biological breath profile. */
+  applyBiologicalBreathState?(
+    state: BiologicalBreathTelemetry,
+    growthDelta: number,
+  ): void;
   advance(simulationTimeSeconds: number, deltaSeconds: number): void;
   readTelemetry(simulationTimeSeconds: number): GrowthModelTelemetry;
   reset(): void;
