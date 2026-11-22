@@ -168,7 +168,7 @@ export class BiologicalBreathController {
       this.state.internalPressure = cyclePressure * (0.25 + 0.75 * smoothStep(progress));
     } else {
       this.state.actualScale = this.state.cycleTargetScale;
-      this.state.visualExpansion = 1 - smoothStep(progress);
+      this.state.visualExpansion = 1 - Math.pow(smoothStep(progress), this.config.visualPulseExponent);
       this.state.internalPressure = cyclePressure * (1 - smoothStep(progress));
     }
 
@@ -206,6 +206,10 @@ export class BiologicalBreathController {
         !Number.isFinite(config.holdFraction) || config.holdFraction <= 0 ||
         config.inhaleFraction + config.holdFraction >= 1) {
       throw new RangeError("Inhale and hold fractions must be positive and sum to less than 1.");
+    }
+    if (!Number.isFinite(config.growthEnvelopeExponent) || config.growthEnvelopeExponent <= 0 ||
+        !Number.isFinite(config.visualPulseExponent) || config.visualPulseExponent <= 0) {
+      throw new RangeError("Growth and visual pulse envelope exponents must be finite and greater than zero.");
     }
     if (!Number.isFinite(config.basePressure) || config.basePressure < 0 ||
         !Number.isFinite(config.waveResponseWeight) || config.waveResponseWeight < 0 ||
