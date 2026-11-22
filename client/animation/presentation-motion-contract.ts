@@ -70,10 +70,16 @@ export interface CharacterRigRegionBinding {
   provenance: "runtime_discovery" | "authored_mapping";
 }
 
+export interface CharacterRigBoneRelation {
+  boneId: string;
+  parentBoneId?: string;
+}
+
 export interface CharacterRigTopology {
   rigId: string;
   rigVersion: string;
   boneIds: string[];
+  boneHierarchy: CharacterRigBoneRelation[];
   regions: CharacterRigRegionBinding[];
 }
 
