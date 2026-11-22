@@ -176,12 +176,12 @@ export function validateCharacterPresentationMotionProfile(input: unknown): stri
     }
     if (!Array.isArray(layer?.regions) || layer.regions.length === 0 ||
         layer.regions.some(region => !nonEmpty(region))) issues.push(`${path}.regions must contain region IDs`);
-    if (!["additive", "overlay", "replace"].includes(layer?.mode)) issues.push(`${path}.mode is unsupported`);
+    if (!layer || !["additive", "overlay", "replace"].includes(layer.mode)) issues.push(`${path}.mode is unsupported`);
     if (!finite(layer?.priority)) issues.push(`${path}.priority must be finite`);
     if (!finite(layer?.weight) || layer.weight < 0 || layer.weight > 1) issues.push(`${path}.weight must be between 0 and 1`);
     if (!finite(layer?.blendInSeconds) || layer.blendInSeconds < 0) issues.push(`${path}.blendInSeconds must be non-negative`);
     if (!finite(layer?.blendOutSeconds) || layer.blendOutSeconds < 0) issues.push(`${path}.blendOutSeconds must be non-negative`);
-    if (!["never", "when_higher_priority", "when_same_owner", "always"].includes(layer?.interruption)) {
+    if (!layer || !["never", "when_higher_priority", "when_same_owner", "always"].includes(layer.interruption)) {
       issues.push(`${path}.interruption is unsupported`);
     }
     if (!Array.isArray(layer?.sourceChannels)) issues.push(`${path}.sourceChannels must be an array`);
