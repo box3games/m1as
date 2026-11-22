@@ -86,7 +86,11 @@ export {
 export type * from "./animation/presentation-motion-contract.js";
 
 export {
+  buildCharacterRigTopology,
+  validateCharacterRigTopology,
   inspectCharacterAnimationCapabilities,
   type CharacterAnimationCapabilityReport,
   type CharacterAnimationClipCapability,
+  type AuthoredCharacterRegionMapping,
+  type CharacterRigBoneNode,
 } from "./animation/character-animation-capability-adapter.js";
