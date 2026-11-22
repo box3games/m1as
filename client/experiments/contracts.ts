@@ -5,6 +5,8 @@
  * reserve resources, mutate a character, or prescribe a simulation loop.
  */
 
+import type { ScalePerceptionMeasurements } from '../growth/scale-perception.js';
+
 export const EXPERIMENT_SCHEMA_VERSION = 1 as const;
 
 export type ExperimentId = string;
@@ -277,6 +279,8 @@ export interface CharacterPresentationSample {
   animationState?: Measurement<string>;
   deformationState?: Measurement<Record<string, number>>;
   vfxState?: Measurement<Record<string, unknown>>;
+  /** Independent actual/stage/camera/perceived-mass snapshot for this presentation sample. */
+  scalePerception?: Measurement<ScalePerceptionMeasurements>;
 }
 
 export interface WorldLandmarkSample {
