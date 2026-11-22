@@ -341,7 +341,7 @@ export class M1ASVFXEngine {
     public getGrowthModel(): GrowthModelMode { return this.growthModelMode; }
     public setGrowthModel(mode: GrowthModelMode): boolean {
         if (mode === this.growthModelMode) return true;
-        if (this.isHolding || this.growFlowRemainingSeconds > 0) return false;
+        if (this.isHolding || this.growFlowRemainingSeconds > 0 || this.biologicalBreathingActive) return false;
         if (this.growthModelMode === 'm1as-vfx') {
             const queueSettled =
                 this.growthQueue.pendingCount === 0 &&
@@ -378,7 +378,7 @@ export class M1ASVFXEngine {
         return true;
     }
     /** Read-only queue and character diagnostics for interchangeable-model adapters. */
-    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean; biologicalVisualExpansion: number; biologicalInternalPressure: number; biologicalPressureWave: number } {
+    public getGrowthModelTelemetry(): { currentScale: number; targetScale: number; projectedTargetScale: number; growthVelocity: number; instability: number; pendingEvents: number; posture: PostureState; goldenBuffer: number; isHolding: boolean; biologicalVisualExpansion: number; biologicalInternalPressure: number; biologicalPressureWave: number; biologicalBreathingActive: boolean; biologicalBreath?: BiologicalBreathTelemetry } {
         return {
             currentScale: this.getCurrentVisualScale(),
             targetScale: this.growthModelMode === 'baseline-scale' ? this.baselineTargetScale : this.growthQueue.currentTargetScale,
@@ -395,7 +395,7 @@ export class M1ASVFXEngine {
             isHolding: this.isHolding,
             biologicalVisualExpansion: this.biologicalVisualExpansion,
             biologicalInternalPressure: this.biologicalInternalPressure,
-            biologicalPressureWave: this.biologicalPressureWave,
+            biologicalPressureWave: this.biologicalPressureWave,\n            biologicalBreathingActive: this.biologicalBreathingActive,\n            biologicalBreath: this.getBiologicalBreathSnapshot(),
         };
     }
     /** Elapsed simulation time accumulated from this engine's existing frame dt. */
