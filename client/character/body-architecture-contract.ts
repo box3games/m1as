@@ -201,6 +201,27 @@ export interface CharacterAttachmentDefinition {
   compatibleBodyPlanIds?: string[];
 }
 
+export interface CharacterDesignIntent {
+  id: string;
+  version: string;
+  summary?: string;
+  targetMorphology: BodyMorphologyCompositionProfile;
+  perceptualGoals: PerceptualGoal[];
+  sourceArchetype?: { archetypeId: string; archetypeVersion: string };
+}
+
+export interface CharacterBodyStateSnapshot {
+  characterId: string;
+  bodyProfileId: string;
+  bodyProfileVersion: string;
+  simulationTimeSeconds: number;
+  /** Measured dimensions with explicit units; physical mass is never inferred here. */
+  actualDimensions: { x: number; y: number; z: number; unit: string };
+  regionalMorphology: RegionalMorphologyProfile[];
+  provenance: string;
+  growthEventRefs?: string[];
+}
+
 export interface CharacterBodyProfile {
   schemaVersion: typeof CHARACTER_BODY_ARCHITECTURE_SCHEMA_VERSION;
   id: string;
@@ -212,7 +233,9 @@ export interface CharacterBodyProfile {
   rigBindings: RigRegionBinding[];
   growthCapabilities: RegionalGrowthCapability[];
   deformationCapabilities: RegionalDeformationCapability[];
+  /** Authored/current morphology definition, separate from the creator's target intent. */
   morphology: BodyMorphologyCompositionProfile;
+  designIntent?: CharacterDesignIntent;
   presentation: PerceptualCharacterPresentationProfile;
   attachments: CharacterAttachmentDefinition[];
 }
@@ -457,7 +480,7 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   else {
     checkRegionReferences(profile.growthCapabilities, "growthCapabilities");
     profile.growthCapabilities.forEach((item, index) => {
-      if (!Array.isArray(item.dimensions) || item.dimensions.some(value => !["scale", "length", "volume", "shape", "proportion", "distribution", "growth_field"].includes(value))) {
+      if (!item || !Array.isArray(item.dimensions) || item.dimensions.some(value => !["scale", "length", "volume", "shape", "proportion", "distribution", "growth_field"].includes(value))) {
         issues.push("growthCapabilities[" + index + "].dimensions is invalid");
       }
     });
@@ -466,12 +489,20 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   else {
     checkRegionReferences(profile.deformationCapabilities, "deformationCapabilities");
     profile.deformationCapabilities.forEach((item, index) => {
-      if (!Array.isArray(item.dimensions) || item.dimensions.some(value => !nonEmpty(value))) {
+      if (!item || !Array.isArray(item.dimensions) || item.dimensions.some(value => !nonEmpty(value))) {
         issues.push("deformationCapabilities[" + index + "].dimensions is invalid");
       }
     });
   }
   validateMorphology(profile.morphology, issues);
+  if (profile.designIntent) {
+    if (!nonEmpty(profile.designIntent.id) || !nonEmpty(profile.designIntent.version)) issues.push("designIntent requires id and version");
+    validateMorphology(profile.designIntent.targetMorphology, issues);
+    const validIntentGoals = ["silhouette_dominance", "perceived_weight", "proportional_emphasis", "motion_presence", "comparative_scale", "visual_anticipation", "transformation_recognition", "environmental_consequence", "custom"];
+    if (!Array.isArray(profile.designIntent.perceptualGoals) || profile.designIntent.perceptualGoals.some(goal => !validIntentGoals.includes(goal))) {
+      issues.push("designIntent.perceptualGoals is invalid");
+    }
+  }
   if (!profile.presentation || !nonEmpty(profile.presentation.version) ||
       !Array.isArray(profile.presentation.goals) || !Array.isArray(profile.presentation.cues)) {
     issues.push("presentation requires version, goals, and cues");
@@ -499,6 +530,28 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
     const attachmentIds = profile.attachments.filter(Boolean).map(item => item.id);
     if (attachmentIds.some(id => !nonEmpty(id)) || !unique(attachmentIds)) issues.push("attachment IDs must be non-empty and unique");
   }
+  return issues;
+}
+
+export function validateCharacterBodyStateSnapshot(input: unknown): string[] {
+  if (!input || typeof input !== "object") return ["body state snapshot must be an object"];
+  const snapshot = input as CharacterBodyStateSnapshot;
+  const issues: string[] = [];
+  if (!nonEmpty(snapshot.characterId) || !nonEmpty(snapshot.bodyProfileId) || !nonEmpty(snapshot.bodyProfileVersion)) {
+    issues.push("body state snapshot requires character and body profile identity");
+  }
+  if (!finite(snapshot.simulationTimeSeconds) || snapshot.simulationTimeSeconds < 0) {
+    issues.push("body state simulationTimeSeconds must be finite and non-negative");
+  }
+  const dimensions = snapshot.actualDimensions;
+  if (!dimensions || !finite(dimensions.x) || !finite(dimensions.y) || !finite(dimensions.z) ||
+      !nonEmpty(dimensions.unit)) issues.push("actualDimensions requires finite x/y/z values and an explicit unit");
+  if (!Array.isArray(snapshot.regionalMorphology)) issues.push("regionalMorphology must be an array");
+  else snapshot.regionalMorphology.forEach((region, index) => {
+    if (!region || !validRegionId(region.regionId)) issues.push("regionalMorphology[" + index + "].regionId is invalid");
+    else validateParameters(region.parameters, "regionalMorphology[" + index + "].parameters", issues);
+  });
+  if (!nonEmpty(snapshot.provenance)) issues.push("body state provenance must be non-empty");
   return issues;
 }
 
@@ -569,8 +622,9 @@ export function validateBodyArchetypeRegistry(input: unknown): string[] {
     if (versions.has(key)) issues.push("registry contains duplicate archetype revision " + key);
     versions.add(key);
   });
-  const byRevision = new Map(registry.archetypes.map(item => [item.id + "@" + item.version, item]));
-  for (const archetype of registry.archetypes) {
+  const validArchetypes = registry.archetypes.filter(item => item && typeof item === "object");
+  const byRevision = new Map(validArchetypes.map(item => [item.id + "@" + item.version, item]));
+  for (const archetype of validArchetypes) {
     const parent = archetype.parentArchetype;
     if (!parent) continue;
     const parentKey = parent.archetypeId + "@" + parent.archetypeVersion;
