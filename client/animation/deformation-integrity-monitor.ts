@@ -60,6 +60,7 @@ export interface DeformationIntegrityReport {
     status: "completed" | "unsupported" | "not_tested" | "failed";
     reason?: string;
     observationCount: number;
+    verificationLevel?: "broad_phase_candidate" | "surface_exact" | "constraint_metric" | "unknown";
   }>;
 }
 
@@ -149,7 +150,7 @@ export class DeformationIntegrityMonitor {
               provenance: observation.provenance || detector.id,
             });
           }
-          detectorResults.push({ detectorId: detector.id, status: "completed", observationCount: result.observations.length });
+          detectorResults.push({ detectorId: detector.id, status: "completed", observationCount: result.observations.length, ...(result.verificationLevel ? { verificationLevel: result.verificationLevel } : {}) });
         } else {
           detectorResults.push({ detectorId: detector.id, status: result.status, reason: result.reason, observationCount: 0 });
         }
@@ -168,10 +169,11 @@ export class DeformationIntegrityMonitor {
     const anyUnsupported = detectorResults.some(result => result.status === "unsupported");
     const anyCritical = observations.some(item => item.status === "detected" && item.severity === "critical");
     const anyWarning = observations.some(item => item.status === "detected" && item.severity === "warning");
+    const anyBroadPhaseCandidate = detectorResults.some(result => result.verificationLevel === "broad_phase_candidate" && result.observationCount > 0);
     const anyNotTested = detectorResults.some(result => result.status === "not_tested");
     const deformationStatus: ScaleDeformationTelemetry["deformationStatus"] =
       anyCritical ? "critical" :
-      anyWarning ? "warning" :
+      anyWarning || anyBroadPhaseCandidate ? "warning" :
       anyFailed ? "failed" :
       allUnsupported || anyUnsupported ? "unsupported" :
       usable.length === 0 || anyNotTested || broadPhaseOnlyWithoutCandidates ? "not_tested" :
