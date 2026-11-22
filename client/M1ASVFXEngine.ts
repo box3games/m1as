@@ -1410,6 +1410,7 @@ export class M1ASVFXEngine {
         this.canvas.removeEventListener('pointerup', this.onPointerUp);
         if (this.vfxBlobUrl) URL.revokeObjectURL(this.vfxBlobUrl);
         this.presentationEffects.dispose();
+        this.deformationIntegrityMonitor.dispose();
         this.controls.dispose();
         this.renderer.dispose();
     }
