@@ -5,7 +5,7 @@ import { inspectCharacterAnimationCapabilities } from "./character-animation-cap
 test("discovers actual rig bones, clip targets, and conservative region capabilities", () => {
   const report = inspectCharacterAnimationCapabilities({
     rigId: "glb-subject-1",
-    boneNames: ["mixamorigSpine", "mixamorigChest", "mixamorigLeftArm", "mixamorigHead"],
+    boneNames: ["mixamorigSpine", "mixamorigChest", "mixamorigLeftArm", "mixamorigHead", "mixamorigPerineum", "mixamorigLeftThigh"],
     clips: [
       { name: "Idle", durationSeconds: 2, trackNames: ["mixamorigSpine.quaternion", "mixamorigHead.position"] },
       { name: "Walk", durationSeconds: 1.2, trackNames: ["mixamorigLeftArm.quaternion", "mixamorigHips.position"] },
@@ -14,6 +14,10 @@ test("discovers actual rig bones, clip targets, and conservative region capabili
   assert.deepEqual(report.rig.availableClipIds, ["Idle", "Walk"]);
   assert.ok(report.rig.supportedRegions.includes("spine"));
   assert.ok(report.rig.supportedRegions.includes("arms"));
+  assert.ok(report.rig.supportedRegions.includes("perineum"));
+  assert.ok(report.rig.supportedRegions.includes("thighs"));
+  assert.deepEqual(report.bonesByRegion.perineum, ["mixamorigPerineum"]);
+  assert.deepEqual(report.bonesByRegion.thighs, ["mixamorigLeftThigh"]);
   assert.ok(report.rig.postureControlledRegions.includes("full_body"));
   assert.deepEqual(report.rig.supportedLayerModes, []);
   assert.equal(report.rig.supportsPerRegionTelemetry, false);
