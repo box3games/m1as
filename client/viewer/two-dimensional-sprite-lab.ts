@@ -56,11 +56,11 @@ export class TwoDimensionalSpriteLab {
         <div class="big3r-2d-sprite-lab__preview-wrap">
           <div class="big3r-2d-sprite-lab__preview" data-role="preview"></div>
           <div class="big3r-2d-sprite-lab__controls">
-            <button data-action="play" type="button" disabled>Play</button>
-            <button data-action="pause" type="button" disabled>Pause</button>
-            <button data-action="step" type="button" disabled>Step</button>
-            <button data-action="reset" type="button" disabled>Reset</button>
-            <button data-action="export" type="button" disabled>Export Telemetry</button>
+            <button data-role="play" data-action="play" type="button" disabled>Play</button>
+            <button data-role="pause" data-action="pause" type="button" disabled>Pause</button>
+            <button data-role="step" data-action="step" type="button" disabled>Step</button>
+            <button data-role="reset" data-action="reset" type="button" disabled>Reset</button>
+            <button data-role="export" data-action="export" type="button" disabled>Export Telemetry</button>
           </div>
         </div>
         <div class="big3r-2d-sprite-lab__readouts">
