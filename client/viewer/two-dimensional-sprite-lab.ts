@@ -227,8 +227,10 @@ export class TwoDimensionalSpriteLab {
     if (!this.running || !this.runner) return;
     let steps = 0;
     while (this.accumulatedWallTime >= stepDuration && steps < 8 && this.running) {
-      this.accumulatedWallTime -= stepDuration;
+      const previousSimulationTime = this.runner.simulationTimeSeconds;
       await this.runner.step();
+      const advancedSimulationTime = this.runner.simulationTimeSeconds - previousSimulationTime;
+      this.accumulatedWallTime = Math.max(0, this.accumulatedWallTime - advancedSimulationTime);
       steps += 1;
       this.updateTelemetry();
       if (this.runner.isComplete) {
