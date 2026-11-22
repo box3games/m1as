@@ -11,6 +11,10 @@ import {
     CascadeBurstPayload,
 } from './GrowthEventQueue.js';
 import { VfxrPresentationEffectRegistry, VfxrSubjectAuraEffect } from './vfxr/presentation-effects.js';
+import {
+    inspectCharacterAnimationCapabilities,
+    type CharacterAnimationCapabilityReport,
+} from './animation/character-animation-capability-adapter.js';
 
 export type GrowthTriggerMode = 'click' | 'tap' | 'hold' | 'chaos-delayed';
 export type GrowthModelMode = 'm1as-vfx' | 'baseline-scale';
@@ -106,6 +110,7 @@ export class M1ASVFXEngine {
     private mixer: THREE.AnimationMixer | null = null;
     private actions = new Map<string, THREE.AnimationAction>();
     private activeAction: THREE.AnimationAction | null = null;
+    private animationCapabilityReport: CharacterAnimationCapabilityReport | null = null;
     private bones = new Map<string, THREE.Bone>();
     private subjectMaterials: THREE.MeshStandardMaterial[] = [];
     private readonly presentationAccentChannels = new Map<string, { target: string; value: number }>();
@@ -301,7 +306,22 @@ export class M1ASVFXEngine {
                     this.playAnimation('idle');
                 }
 
-                const loadData = { boneCount: this.bones.size, animationClips: Array.from(this.actions.keys()), normalizedHeight: this.baseModelHeight };
+                this.animationCapabilityReport = inspectCharacterAnimationCapabilities({
+                    rigId: this.subjectRoot.uuid,
+                    rigVersion: "three-glb-runtime-v1",
+                    boneNames: Array.from(this.bones.values(), bone => bone.name),
+                    clips: (gltf.animations ?? []).map(clip => ({
+                        name: clip.name.toLowerCase(),
+                        durationSeconds: clip.duration,
+                        trackNames: clip.tracks.map(track => track.name),
+                    })),
+                });
+                const loadData = {
+                    boneCount: this.bones.size,
+                    animationClips: Array.from(this.actions.keys()),
+                    normalizedHeight: this.baseModelHeight,
+                    animationCapabilities: this.animationCapabilityReport,
+                };
                 try { this.onDiagnostic?.("info", "asset-load", "M1AS VFX engine loaded GLB subject.", loadData); } catch { /* diagnostics cannot affect engine */ }
                 this.subjectRoot.add(this.loadedModel);
                 this.emitTelemetry();
@@ -344,6 +364,10 @@ export class M1ASVFXEngine {
     public getRenderer(): THREE.WebGLRenderer { return this.renderer; }
     public getControls(): OrbitControls { return this.controls; }
     public getSubjectRoot(): THREE.Group { return this.subjectRoot; }
+    /** Read-only rig/clip discovery; does not execute or alter animation playback. */
+    public getCharacterAnimationCapabilities(): CharacterAnimationCapabilityReport | null {
+        return this.animationCapabilityReport;
+    }
     public get presentationAccentHostId(): string { return this.presentationEffects.presentationAccentHostId; }
 
     /** Route authored targets through the registered VFXR effect hosts. */
