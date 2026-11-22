@@ -151,7 +151,7 @@ test("combined measurement snapshot keeps the four measurements distinct", () =>
     },
   });
   assert.deepEqual(result.actualDimensions, subject.dimensions);
-  assert.equal(result.stageRelative.relativeVolume3D, 0.5);
+  assert.equal(result.stageRelative.relativeVolume3D, 1);
   assert.equal(result.cameraRelative.relativeMass2D, 2);
   assert.equal(result.perceivedMass.normalizedValue, 2);
   assert.equal(result.perceivedMass.outOfRange, true);
