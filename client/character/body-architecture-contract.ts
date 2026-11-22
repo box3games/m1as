@@ -418,7 +418,7 @@ export function validateCharacterBodyProfile(input: unknown): string[] {
   for (const regionId of declaredRegions) if (!validRegionId(regionId)) issues.push("bodyPlan.regionIds contains invalid ID " + regionId);
   if (!Array.isArray(profile.vocabulary)) issues.push("vocabulary must be an array");
   issues.push(...validateAnatomicalVocabulary(Array.isArray(profile.vocabulary) ? profile.vocabulary : []));
-  const vocabularyIds = new Set((Array.isArray(profile.vocabulary) ? profile.vocabulary : [])
+  const vocabularyIds = new Set<string>((Array.isArray(profile.vocabulary) ? profile.vocabulary : [])
     .filter(entry => entry && validRegionId(entry.regionId))
     .map(entry => entry.regionId));
   for (const regionId of vocabularyIds) {
