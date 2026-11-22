@@ -30,15 +30,18 @@ test("visual expansion and pressure pulse do not change actual scale mid-cycle",
 
 test("pressure grows on subsequent breaths while scale accumulation remains separate", () => {
   const controller = new BiologicalBreathController();
-  controller.advance(1);
+  controller.advance(0.35 + 0.3);
   const firstPressure = controller.getState().internalPressure;
-  assert.equal(controller.getState().actualScale, 1.08);
+  assert.equal(controller.getState().phase, "release");
+  assert.equal(controller.getState().actualScale, 1);
 
-  controller.advance(0.35 * 1.25);
-  const secondHoldStart = controller.getState();
-  assert.equal(secondHoldStart.phase, "hold");
-  assert.equal(secondHoldStart.actualScale, 1.08);
-  assert.ok(secondHoldStart.internalPressure > firstPressure);
+  controller.advance(0.35);
+  assert.equal(controller.getState().actualScale, 1.08);
+  controller.advance(0.35 * 1.25 + 0.3 * 1.25);
+  const secondReleaseStart = controller.getState();
+  assert.equal(secondReleaseStart.phase, "release");
+  assert.equal(secondReleaseStart.actualScale, 1.08);
+  assert.ok(secondReleaseStart.internalPressure > firstPressure);
 });
 
 test("release settles visual expansion and pressure without shrinking accumulated scale", () => {
