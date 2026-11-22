@@ -454,6 +454,11 @@ export class M1ASVFXEngine {
     /** Begin or resume the authored biological breathing growth profile. */
     public startBiologicalBreathing(config: Partial<BiologicalBreathConfig> = {}): boolean {
         if (this.growthModelMode !== 'm1as-vfx') return false;
+        const queueSettled = this.growthQueue.pendingCount === 0 &&
+            Math.abs(this.growthQueue.currentVisualScale - this.growthQueue.currentTargetScale) <= 0.002 &&
+            Math.abs(this.growthQueue.currentGrowthVelocity) <= 0.02 &&
+            this.growthQueue.currentInstability <= 0.02;
+        if (!queueSettled || this.isHolding || this.growFlowRemainingSeconds > 0) return false;
         if (!this.biologicalBreathController) {
             const initialScale = this.getCurrentVisualScale();
             this.biologicalBreathController = new BiologicalBreathController({ ...config, initialScale });
