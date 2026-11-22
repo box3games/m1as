@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { BiologicalBreathTelemetry } from './growth/model-contract.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
     GrowthEventQueue,
@@ -123,7 +124,10 @@ export class M1ASVFXEngine {
 
     // Venous Pulse & Fractal Bulge
     private pulsePhase = 0;
-    private venousPulseEnergy = 0;\n    private biologicalVisualExpansion = 0;\n    private biologicalInternalPressure = 0;\n    private biologicalPressureWave = 0;
+    private venousPulseEnergy = 0;
+    private biologicalVisualExpansion = 0;
+    private biologicalInternalPressure = 0;
+    private biologicalPressureWave = 0;
 
     // Input & Controls
     private mode: GrowthTriggerMode = 'click';
@@ -505,6 +509,9 @@ export class M1ASVFXEngine {
         this.growFlowGrowthPerSupplySecond = 0.1;
         this.upperBodyExcess = 0.0;
         this.storedGoldenBuffer = 0.0;
+        this.biologicalVisualExpansion = 0;
+        this.biologicalInternalPressure = 0;
+        this.biologicalPressureWave = 0;
         this.posture = 'stand';
         this.growthQueue.reset(1.0);
         this.subjectRoot.position.set(0, 0, 0);
