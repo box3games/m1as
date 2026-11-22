@@ -4,6 +4,8 @@
  * Models consume the same semantic commands and report comparable telemetry.
  * A model owns its execution mechanics; the experiment system observes it.
  */
+import type { ScalePerceptionMeasurements } from './scale-perception.js';
+
 export type GrowthModelId = string;
 
 export interface GrowthModelCapabilities {
@@ -93,6 +95,8 @@ export interface GrowthModelTelemetry {
   visualEffects?: Record<string, number | string | boolean>;
   /** Shared biological profile output, separate from model-specific telemetry. */
   biologicalBreath?: BiologicalBreathTelemetry;
+  /** Optional observational snapshot; never feeds back into execution scale. */
+  scalePerception?: ScalePerceptionMeasurements;
   /** Model-specific values remain namespaced and do not replace common fields. */
   modelData?: Record<string, unknown>;
 }
