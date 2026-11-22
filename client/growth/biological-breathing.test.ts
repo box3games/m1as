@@ -96,3 +96,20 @@ test("invalid time and invalid progression profiles are rejected", () => {
     durationMultiplierPerCycle: 0.9,
   }), /must be at least 1/);
 });
+
+test("growth and visual pulse envelopes can be tuned independently", () => {
+  const controller = new BiologicalBreathController({
+    growthEnvelopeExponent: 1,
+    visualPulseExponent: 2,
+  });
+  controller.advance(0.175);
+  const midInhale = controller.getState();
+  assert.ok(Math.abs(midInhale.actualScale - 1.04) < 1e-12);
+  assert.ok(Math.abs(midInhale.visualExpansion - 0.25) < 1e-12);
+
+  controller.advance(0.175 + 0.3 + 0.175);
+  const midRelease = controller.getState();
+  assert.equal(midRelease.phase, "release");
+  assert.ok(Math.abs(midRelease.actualScale - 1.08) < 1e-12);
+  assert.ok(Math.abs(midRelease.visualExpansion - 0.75) < 1e-12);
+});
