@@ -210,3 +210,7 @@ export {
   generateColossusDimensions,
 } from "./evaluation/colossus-profile-contract.js";
 export type * from "./evaluation/colossus-profile-contract.js";
+
+
+export { buildColossusWorldGenerationPlan } from "./evaluation/world-generation-plan-contract.js";
+export type * from "./evaluation/world-generation-plan-contract.js";
