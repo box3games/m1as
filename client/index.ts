@@ -190,3 +190,9 @@ export {
   validateGrowthPresentationTransition,
 } from "./evaluation/infinity-growth-presentation-contract.js";
 export type * from "./evaluation/infinity-growth-presentation-contract.js";
+
+export {
+  validateScaleReferenceHierarchy,
+  promoteScaleParent,
+} from "./evaluation/scale-reference-hierarchy-contract.js";
+export type * from "./evaluation/scale-reference-hierarchy-contract.js";
