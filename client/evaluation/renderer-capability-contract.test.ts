@@ -56,3 +56,16 @@ test("renderer coordinate spaces must be unique and explicitly supported", () =>
     coordinateSpaces: ["world-everywhere" as never],
   }), /Invalid or duplicate/);
 });
+
+test("2D and 2.5D renderers may declare their own local and viewport spaces", () => {
+  assert.doesNotThrow(() => validateRendererCapabilityDescriptor({
+    ...sprite,
+    representationKind: "2.5d-plane",
+    coordinateSpaces: ["plane-local", "viewport-normalized"],
+    capabilities: {
+      "plane-bounds": { status: "native" },
+      "screen-projection": { status: "native" },
+      depth: { status: "approximated", notes: "Plane depth is represented by its stage layer." },
+    },
+  }));
+});
