@@ -1,4 +1,5 @@
 import type { CameraRigMode } from "../big3r/camera/CameraRig5Mode.js";
+import type { PortableAnchorSnapshot } from "./portable-anchor-contract.js";
 import type {
   PortableAdapterExecution,
   PortableEngineAdapter,
@@ -17,6 +18,7 @@ import type {
  * and volume remain unadvertised until their native owners expose stable APIs.
  */
 export interface Big3rStagePresentationPort {
+  getPortableAnchorSnapshot(subjectId: string, configurationVersion: string): PortableAnchorSnapshot | { status: "not_captured"; reason: string };
   getCameraRigMode(): CameraRigMode;
   setCameraRigMode(mode: CameraRigMode): void;
   getRoomDoubleSided(): boolean;
@@ -68,6 +70,11 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
         operations: ["get-current"],
         limitations: ["Read-only snapshot of the active growth model's current visual scale; changes remain owned by that growth model."],
       },
+      anchors: {
+        status: "native" as const,
+        operations: ["get-current"],
+        limitations: ["Read-only runtime anchors include subject origin and measured geometry bounds, stage origin, camera position and orbit focus. Anatomical anchors and authored environment landmarks are not yet registered."],
+      },
       "stage-scaling": {
         status: "native" as const,
         operations: ["get-current"],
@@ -102,7 +109,7 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
     if (
       (command.domain === "camera" && ["get-mode", "set-mode"].includes(command.operation)) ||
       (command.domain === "stage" && ["get-room-double-sided", "set-room-double-sided"].includes(command.operation)) ||
-      ((command.domain === "actual-scaling" || command.domain === "stage-scaling") && command.operation === "get-current" && command.payload === null)
+      ((command.domain === "actual-scaling" || command.domain === "stage-scaling" || command.domain === "anchors") && command.operation === "get-current" && command.payload === null)
     ) {
       return { status: "native", notes: [], translatedCommand: command };
     }
@@ -113,6 +120,10 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
     command: PortableEvaluationCommand,
     _context: PortableEvaluationContext,
   ): PortableAdapterExecution {
+    if (command.domain === "anchors" && command.operation === "get-current") {
+      const snapshot = this.stage.getPortableAnchorSnapshot(_context.subject.subjectId, _context.configurationVersion);
+      return { accepted: true, output: snapshot };
+    }
     if (command.domain === "camera" && command.operation === "get-mode") {
       return { accepted: true, output: { mode: this.stage.getCameraRigMode() } };
     }
