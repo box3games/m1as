@@ -6,9 +6,19 @@ import {
 } from "../growth/two-dimensional-sprite-experiment-runner.js";
 import { TwoDimensionalSpriteGrowthModel } from "../growth/two-dimensional-sprite-growth-model.js";
 
+export interface StreamedGlbGrowthSubject {
+  assetId: string;
+  displayName: string;
+  assetKind: "glb" | "gltf";
+}
+
+export interface CharacterGrowthLabOptions {
+  executeGrowthRecipe: (recipe: unknown) => Promise<string>;
+}
+
 /**
- * Standalone 2D sprite experiment surface embedded in BIG3R Sandbox.
- * It owns its preview renderer and object URLs, not the user's source files.
+ * Character Growth Lab. The primary workspace controls the already-mounted
+ * M1AS GLB subject; the independent sprite adapter remains an optional test surface.
  */
 export class TwoDimensionalSpriteLab {
   private readonly root: HTMLElement;
@@ -26,6 +36,12 @@ export class TwoDimensionalSpriteLab {
   private readonly resetButton: HTMLButtonElement;
   private readonly exportButton: HTMLButtonElement;
   private readonly preview: HTMLElement;
+  private readonly recipeInput: HTMLTextAreaElement;
+  private readonly recipeFileInput: HTMLInputElement;
+  private readonly recipeStatus: HTMLElement;
+  private readonly executeRecipeButton: HTMLButtonElement;
+  private readonly options: CharacterGrowthLabOptions;
+  private activeStreamedSubject: StreamedGlbGrowthSubject | null = null;
   private texture: THREE.Texture | null = null;
   private sprite: THREE.Sprite | null = null;
   private runner: TwoDimensionalSpriteExperimentRunner | null = null;
@@ -36,17 +52,32 @@ export class TwoDimensionalSpriteLab {
   private running = false;
   private disposed = false;
 
-  constructor(host: HTMLElement) {
+  constructor(host: HTMLElement, options: CharacterGrowthLabOptions) {
+    this.options = options;
     this.root = document.createElement("section");
     this.root.className = "big3r-2d-sprite-lab";
     this.root.innerHTML = `
       <div class="big3r-2d-sprite-lab__header">
         <div>
-          <h3>2D Character Growth Lab</h3>
-          <p>Load a transparent character image and a JSON experiment. This preview runs independently of the active GLB stage.</p>
+          <h3>Character Growth Lab</h3>
+          <p>Primary workspace: the authenticated M1AS-streamed GLB already mounted in the BIG3R stage. No second model load.</p>
         </div>
-        <span class="big3r-2d-sprite-lab__tag">SPRITE EXPERIMENT</span>
+        <span class="big3r-2d-sprite-lab__tag">M1AS GLB GROWTH</span>
       </div>
+      <section class="big3r-glb-growth-workspace">
+        <div class="big3r-glb-growth-workspace__subject" data-role="glb-subject">No M1AS GLB mounted. Choose a streamed GLB from the M1AS asset list.</div>
+        <label class="big3r-glb-growth-workspace__label">Master growth recipe JSON
+          <textarea data-role="glb-recipe" rows="12" spellcheck="false"></textarea>
+        </label>
+        <div class="big3r-glb-growth-workspace__actions">
+          <input data-role="glb-recipe-file" type="file" accept="application/json,.json" hidden>
+          <button data-role="glb-load-recipe" type="button">Load Recipe</button>
+          <button data-role="glb-run-recipe" type="button" disabled>Schedule on GLB</button>
+          <button data-role="glb-save-recipe" type="button">Save Recipe JSON</button>
+        </div>
+        <div class="big3r-2d-sprite-lab__status" data-role="glb-recipe-status">Mount an M1AS GLB to enable recipe execution. Commands can use atSeconds offsets on the engine simulation clock.</div>
+      </section>
+      <h4 class="big3r-sprite-adapter-heading">Optional 2D Sprite Adapter Test</h4>
       <div class="big3r-2d-sprite-lab__files">
         <label>Character image <input data-role="image" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
         <label>Experiment JSON <input data-role="config" type="file" accept="application/json,.json"></label>
@@ -75,6 +106,10 @@ export class TwoDimensionalSpriteLab {
       if (!element) throw new Error(`2D Sprite Lab missing element: ${role}`);
       return element;
     };
+    this.recipeInput = get("glb-recipe");
+    this.recipeFileInput = get("glb-recipe-file");
+    this.recipeStatus = get("glb-recipe-status");
+    this.executeRecipeButton = get("glb-run-recipe");
     this.imageInput = get("image");
     this.configInput = get("config");
     this.status = get("status");
@@ -97,6 +132,31 @@ export class TwoDimensionalSpriteLab {
     this.scene.add(this.spriteLayer);
 
     this.root.querySelector<HTMLButtonElement>('[data-action="load"]')?.addEventListener("click", () => void this.loadExperiment());
+    get<HTMLButtonElement>("glb-load-recipe").addEventListener("click", () => this.recipeFileInput.click());
+    this.recipeFileInput.addEventListener("change", async () => {
+      const file = this.recipeFileInput.files?.item(0);
+      if (!file) return;
+      try {
+        this.recipeInput.value = await file.text();
+        this.recipeStatus.textContent = "Loaded recipe file: " + file.name + ". Review it, then schedule it on the active GLB.";
+      } catch (error) {
+        this.recipeStatus.textContent = "Recipe file could not be read: " + (error instanceof Error ? error.message : String(error));
+      } finally { this.recipeFileInput.value = ""; }
+    });
+    this.executeRecipeButton.addEventListener("click", () => void this.executeGrowthRecipe());
+    get<HTMLButtonElement>("glb-save-recipe").addEventListener("click", () => this.saveGrowthRecipe());
+    this.recipeInput.value = JSON.stringify({
+      schemaVersion: "m1as-growth-recipe/1.0",
+      id: "my-glb-growth-recipe",
+      title: "My GLB Growth Recipe",
+      subject: { assetKind: "glb", assetSource: "currently-mounted-m1as-stream" },
+      execution: { model: "m1as-vfx-queue", mode: "simulation_time_offsets" },
+      commands: [
+        { atSeconds: 0, kind: "discrete", commandId: "growth-001", stimulus: "Consumption", amount: { kind: "relative_change", fraction: 0.1 } },
+        { atSeconds: 2.5, kind: "discrete", commandId: "growth-002", stimulus: "Buff", amount: { kind: "relative_change", fraction: 0.05 } }
+      ]
+    }, null, 2);
+
     this.playButton.addEventListener("click", () => this.play());
     this.pauseButton.addEventListener("click", () => this.pause());
     this.stepButton.addEventListener("click", () => void this.step());
@@ -105,6 +165,55 @@ export class TwoDimensionalSpriteLab {
     this.resize();
     window.addEventListener("resize", this.resize);
     this.render();
+  }
+
+
+  public setActiveStreamedSubject(subject: StreamedGlbGrowthSubject | null): void {
+    this.activeStreamedSubject = subject;
+    const subjectLabel = this.root.querySelector<HTMLElement>('[data-role="glb-subject"]');
+    if (subjectLabel) {
+      subjectLabel.textContent = subject
+        ? "ACTIVE M1AS STREAM · " + subject.displayName + " · asset ID " + subject.assetId + " · " + subject.assetKind.toUpperCase()
+        : "No M1AS GLB mounted. Choose a streamed GLB from the M1AS asset list.";
+    }
+    this.executeRecipeButton.disabled = !subject;
+    if (!subject) this.recipeStatus.textContent = "Mount an M1AS GLB to enable recipe execution.";
+  }
+
+  private async executeGrowthRecipe(): Promise<void> {
+    if (!this.activeStreamedSubject) {
+      this.recipeStatus.textContent = "No active M1AS-streamed GLB subject.";
+      return;
+    }
+    try {
+      const recipe: unknown = JSON.parse(this.recipeInput.value);
+      this.executeRecipeButton.disabled = true;
+      this.recipeStatus.textContent = "Validating recipe and scheduling against the active GLB simulation clock…";
+      const result = await this.options.executeGrowthRecipe(recipe);
+      this.recipeStatus.textContent = result;
+    } catch (error) {
+      this.recipeStatus.textContent = "Recipe rejected: " + (error instanceof Error ? error.message : String(error));
+    } finally {
+      this.executeRecipeButton.disabled = !this.activeStreamedSubject;
+    }
+  }
+
+  private saveGrowthRecipe(): void {
+    try {
+      const parsed: unknown = JSON.parse(this.recipeInput.value);
+      const id = parsed && typeof parsed === "object" && "id" in parsed && typeof (parsed as {id?:unknown}).id === "string"
+        ? (parsed as {id:string}).id : "glb-growth-recipe";
+      const blob = new Blob([JSON.stringify(parsed, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = id + ".json";
+      link.click();
+      URL.revokeObjectURL(url);
+      this.recipeStatus.textContent = "Saved recipe JSON: " + id + ".json";
+    } catch (error) {
+      this.recipeStatus.textContent = "Cannot save invalid JSON: " + (error instanceof Error ? error.message : String(error));
+    }
   }
 
   destroy(): void {
