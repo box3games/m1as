@@ -140,11 +140,17 @@ function validateBounds(bounds: WorldAabbMeters, label: string): void {
 }
 
 function dimensions(bounds: WorldAabbMeters) {
-  return {
+  const result = {
     width: bounds.max.x - bounds.min.x,
     height: bounds.max.y - bounds.min.y,
     depth: bounds.max.z - bounds.min.z,
   };
+  if (!Number.isFinite(result.width) || !Number.isFinite(result.height) ||
+      !Number.isFinite(result.depth) || result.width <= 0 ||
+      result.height <= 0 || result.depth <= 0) {
+    throw new RangeError("AABB dimensions must be finite and positive.");
+  }
+  return result;
 }
 
 function contains(outer: WorldAabbMeters, inner: WorldAabbMeters): boolean {
@@ -232,6 +238,20 @@ export function measureScaleEnvironmentRelationship(
     : "touching";
   const minimumClearanceMeters = Math.hypot(x.gap, y.gap, z.gap);
   const penetrationDepth = { x: x.penetration, y: y.penetration, z: z.penetration };
+  const derivedValues = [
+    subject.width, subject.height, subject.depth,
+    reference.width, reference.height, reference.depth,
+    subject.height / reference.height,
+    subject.width / reference.width,
+    subject.depth / reference.depth,
+    (subject.width * subject.depth) / (reference.width * reference.depth),
+    minimumClearanceMeters,
+    x.gap, y.gap, z.gap,
+    x.penetration, y.penetration, z.penetration,
+  ];
+  if (derivedValues.some(value => !Number.isFinite(value))) {
+    throw new RangeError("Scale/environment measurement exceeds finite numeric range.");
+  }
 
   return {
     schemaVersion: SCALE_ENVIRONMENT_RELATIONSHIP_SCHEMA_VERSION,
