@@ -4,6 +4,7 @@
  * it does not instantiate meshes, choose spatial placements, or mutate worlds.
  */
 import {
+  generateColossusDimensions,
   validateColossusProfile,
   type ColossusDimensions,
   type ColossusProfile,
@@ -85,7 +86,11 @@ export function buildColossusWorldGenerationPlan(
   profile: ColossusProfile,
 ): ColossusWorldGenerationPlan {
   validateColossusProfile(profile);
-  const { reference, dimensions, worldEnvelope, generation } = profile;
+  const { reference, worldEnvelope, generation } = profile;
+  const dimensions = generation.mode === "procedural" ||
+    (generation.mode === "hybrid" && (generation.dimensionRangesMeters !== undefined || generation.heightRangeMeters !== undefined))
+    ? generateColossusDimensions(profile)
+    : { ...profile.dimensions };
   const generationId = `${profile.profileId}:r${profile.revision}:${String(generation.seed)}`;
   const scaleTemplates: WorldScaleTemplate[] = [
     {
