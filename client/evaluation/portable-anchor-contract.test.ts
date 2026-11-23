@@ -45,6 +45,7 @@ function relationship(subjectHeight: number, referenceHeight = 1): ScaleRelation
     relationshipId: "subject-vs-reference",
     baselineSubject: snapshot("growing-subject", 0, 1),
     currentSubject: snapshot("growing-subject", 10, subjectHeight),
+    baselineReference: snapshot("reference-entity", 0, referenceHeight),
     currentReference: snapshot("reference-entity", 10, referenceHeight),
     subjectSpan: {
       ownerId: "growing-subject",
