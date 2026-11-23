@@ -280,3 +280,6 @@ export type {
 
 export { Big3rPoseTransitionAdapter, VfxrPoseTransitionAdapter } from "./evaluation/character-pose-transition-adapters.js";
 export type { PoseTransitionTargetResult, Big3rPoseTransitionTarget, VfxrPoseTransitionTarget, PoseTransitionDispatchResult } from "./evaluation/character-pose-transition-adapters.js";
+
+export { Plane25DPoseTransitionAdapter } from "./evaluation/character-pose-25d-transition-adapter.js";
+export type { Plane25DPoseTarget, Plane25DPoseDispatchResult } from "./evaluation/character-pose-25d-transition-adapter.js";

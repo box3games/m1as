@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "big3r-vfxr-pose-transition-parity/1.0",
+  "id": "big3r-vfxr-standing-to-squat-parity",
+  "title": "Shared Standing-to-Squat Pose — 2D / 2.5D / 3D",
+  "description": "A single timed pose transition is sampled at identical simulation offsets by VFXR 2D, a 2.5D plane/rig target, and BIG3R 3D rig evaluation. This is a parity/evaluation recipe, not a renderer implementation.",
+  "subject": {
+    "subjectId": "hero-parity-test",
+    "referenceDimensionsMeters": {
+      "width": 0.6,
+      "height": 1.8,
+      "depth": 0.35
+    },
+    "growthStateId": "growth-baseline-001"
+  },
+  "transition": {
+    "transitionId": "stand-hunch-compressed-squat-001",
+    "durationSeconds": 4,
+    "configurationVersion": "pose-parity-config-001",
+    "supportedRepresentations": [
+      "2d",
+      "2.5d",
+      "3d"
+    ],
+    "keyframes": [
+      {
+        "timeSeconds": 0,
+        "poseKind": "neutral-standing",
+        "envelope": {
+          "width": 0.6,
+          "height": 1.8,
+          "depth": 0.35
+        },
+        "jointTargets": [
+          {
+            "jointId": "Spine",
+            "channel": "rotation-x",
+            "value": 0,
+            "unit": "radians"
+          },
+          {
+            "jointId": "LeftKnee",
+            "channel": "rotation-x",
+            "value": 0,
+            "unit": "radians"
+          },
+          {
+            "jointId": "RightKnee",
+            "channel": "rotation-x",
+            "value": 0,
+            "unit": "radians"
+          }
+        ],
+        "envelopeInterpolation": "ease-in",
+        "jointInterpolation": "ease-out"
+      },
+      {
+        "timeSeconds": 1.5,
+        "poseKind": "spine-hunch",
+        "envelope": {
+          "width": 0.68,
+          "height": 1.35,
+          "depth": 0.4
+        },
+        "jointTargets": [
+          {
+            "jointId": "Spine",
+            "channel": "rotation-x",
+            "value": 0.35,
+            "unit": "radians"
+          },
+          {
+            "jointId": "LeftKnee",
+            "channel": "rotation-x",
+            "value": 0.3,
+            "unit": "radians"
+          },
+          {
+            "jointId": "RightKnee",
+            "channel": "rotation-x",
+            "value": 0.3,
+            "unit": "radians"
+          }
+        ],
+        "envelopeInterpolation": "smoothstep",
+        "jointInterpolation": "ease-in"
+      },
+      {
+        "timeSeconds": 4,
+        "poseKind": "compressed-squat",
+        "envelope": {
+          "width": 0.9,
+          "height": 0.72,
+          "depth": 0.5
+        },
+        "jointTargets": [
+          {
+            "jointId": "Spine",
+            "channel": "rotation-x",
+            "value": 0.65,
+            "unit": "radians"
+          },
+          {
+            "jointId": "LeftKnee",
+            "channel": "rotation-x",
+            "value": 1.2,
+            "unit": "radians"
+          },
+          {
+            "jointId": "RightKnee",
+            "channel": "rotation-x",
+            "value": 1.2,
+            "unit": "radians"
+          }
+        ],
+        "envelopeInterpolation": "linear",
+        "jointInterpolation": "smoothstep"
+      }
+    ]
+  },
+  "targets": [
+    {
+      "pipeline": "VFXR",
+      "representation": "2d",
+      "targetId": "vfxr.pose.authoring",
+      "assetKind": "sprite-sequence",
+      "expectedOutput": "2D silhouette/character sequence; preserve projected width and height; depth retained as source metadata."
+    },
+    {
+      "pipeline": "BIG3R",
+      "representation": "2.5d",
+      "targetId": "big3r.pose.plane",
+      "expectedOutput": "Plane/rig pose with projected width/height and explicit depth/parallax; no inferred depth."
+    },
+    {
+      "pipeline": "BIG3R",
+      "representation": "3d",
+      "targetId": "big3r.pose.rig",
+      "expectedOutput": "Skeletal pose evaluated against measured 3D bounds."
+    }
+  ],
+  "sampling": {
+    "clock": "caller-supplied-simulation-time",
+    "atSeconds": [
+      0,
+      0.75,
+      1.5,
+      2.5,
+      4
+    ],
+    "requireSameTransitionId": true,
+    "requireSameSubjectId": true,
+    "requireSameGrowthStateId": true
+  },
+  "measurements": [
+    "envelope width/height/depth",
+    "projected silhouette bounds",
+    "skeleton joint angles where supported",
+    "pose transition progress",
+    "subject identity and provenance"
+  ],
+  "acceptanceCriteria": [
+    "All three targets sample identical envelope dimensions at each shared time offset.",
+    "2D output preserves the shared width/height projection and does not invent depth.",
+    "2.5D output preserves explicit depth and reports plane/parallax capability.",
+    "3D output preserves the authored skeleton joint targets where the discovered rig supports them.",
+    "Unsupported joint mappings or representation capabilities are reported; no silent fallback.",
+    "Pose compression does not alter authoritative actual growth scale or growth history."
+  ],
+  "authority": {
+    "actualGrowthScaleModified": false,
+    "physicsExecuted": false,
+    "destructionExecuted": false,
+    "renderingClaimedByRecipe": false
+  }
+}
