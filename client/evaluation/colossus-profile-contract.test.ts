@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   colossusProfileToScaleReferenceNode,
+  generateColossusDimensions,
   resizeColossusProfile,
   validateColossusProfile,
   type ColossusProfile,
@@ -120,4 +121,26 @@ test("world envelope is independent and may differ from the Colossus dimensions"
   assert.doesNotThrow(() => validateColossusProfile(configured));
   assert.equal(configured.dimensions.heightMeters, 1);
   assert.equal(configured.worldEnvelope.heightMeters, 500);
+});
+
+
+test("procedural dimensions are deterministic and can vary all three axes independently", () => {
+  const configured = profile({
+    generation: {
+      ...profile().generation,
+      mode: "procedural",
+      seed: "petri-world-seed",
+      dimensionRangesMeters: {
+        width: { minimum: 0.001, maximum: 2 },
+        height: { minimum: 0.01, maximum: 100 },
+        depth: { minimum: 0.002, maximum: 3 },
+      },
+    },
+  });
+  const first = generateColossusDimensions(configured);
+  const second = generateColossusDimensions(configured);
+  assert.deepEqual(second, first);
+  assert.ok(first.widthMeters >= 0.001 && first.widthMeters <= 2);
+  assert.ok(first.heightMeters >= 0.01 && first.heightMeters <= 100);
+  assert.ok(first.depthMeters >= 0.002 && first.depthMeters <= 3);
 });
