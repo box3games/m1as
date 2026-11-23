@@ -35,7 +35,7 @@ export interface CameraAttachmentTarget {
   /** Stable portable anchor identity; never a transient Object3D reference. */
   anchorId: string;
   ownerId: string;
-  coordinateSpace: "subject-local" | "stage-world";
+  coordinateSpace: "sprite-local" | "plane-local" | "subject-local" | "stage-world" | "camera-relative" | "screen-normalized" | "viewport-normalized";
   source: string;
   sourceVersion: string;
 }
@@ -114,7 +114,7 @@ function validateAttachmentTarget(target: CameraAttachmentTarget, label: string)
   assertNonEmpty(target.ownerId, `${label}.ownerId`);
   assertNonEmpty(target.source, `${label}.source`);
   assertNonEmpty(target.sourceVersion, `${label}.sourceVersion`);
-  if (target.coordinateSpace !== "subject-local" && target.coordinateSpace !== "stage-world") {
+  if (!["sprite-local", "plane-local", "subject-local", "stage-world", "camera-relative", "screen-normalized", "viewport-normalized"].includes(target.coordinateSpace)) {
     throw new TypeError(`${label}.coordinateSpace is unsupported.`);
   }
 }
