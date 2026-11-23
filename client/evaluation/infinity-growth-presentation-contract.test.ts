@@ -52,6 +52,12 @@ test("calibration-preserving mode requires at least one stable reference", () =>
   })), /requires at least one stable calibration anchor/);
 });
 
+test("infinity mode requires contraction below the unchanged environment scale", () => {
+  assert.throws(() => validateInfinityGrowthPresentation(snapshot({
+    environmentPresentationScale: 1,
+  })), /requires an actual apparent-environment contraction/);
+});
+
 test("native and assisted modes cannot silently contract the environment", () => {
   assert.throws(() => validateInfinityGrowthPresentation(snapshot({
     mode: "native",
