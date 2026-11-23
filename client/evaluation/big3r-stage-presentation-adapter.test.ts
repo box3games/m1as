@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Big3rStagePresentationAdapter } from "./big3r-stage-presentation-adapter.js";
+import type { PortableAnchorSnapshot } from "./portable-anchor-contract.js";
 import { PortableEvaluationRouter, type PortableEvaluationCommand, type PortableEvaluationContext } from "./portable-evaluation-router.js";
 
 const context: PortableEvaluationContext = {
@@ -14,6 +15,22 @@ function fixture() {
   let mode: 1 | 2 | 3 | 4 | 5 = 1;
   let doubleSided = false;
   const stage = {
+    getPortableAnchorSnapshot: (subjectId: string, configurationVersion: string): PortableAnchorSnapshot => ({
+      schemaVersion: "big3r-portable-anchors/1.0",
+      capturedAtSimulationTimeSeconds: 3,
+      configurationVersion,
+      anchors: [{
+        anchorId: "subject-origin",
+        ownerId: subjectId,
+        group: "character",
+        semantic: "subject-root-origin",
+        coordinateSpace: "stage-world",
+        position: { x: 0, y: 0, z: 0 },
+        access: "read-only",
+        source: "test-fixture",
+        sourceVersion: "1",
+      }],
+    }),
     getCameraRigMode: () => mode,
     setCameraRigMode: (next: 1 | 2 | 3 | 4 | 5) => { mode = next; },
     getRoomDoubleSided: () => doubleSided,
@@ -66,9 +83,9 @@ test("BIG3R presentation adapter delegates stage double-sided control", async ()
   assert.equal(f.read().doubleSided, true);
 });
 
-test("BIG3R presentation adapter does not advertise anchor or unsupported presentation controls", () => {
+test("BIG3R presentation adapter advertises live read-only anchors but not unsupported presentation controls", () => {
   const adapter = new Big3rStagePresentationAdapter(fixture().stage);
-  assert.equal("anchors" in adapter.descriptor.domains, false);
+  assert.equal(adapter.descriptor.domains.anchors?.operations.includes("get-current"), true);
   assert.equal("stage-scaling" in adapter.descriptor.domains, true);
   assert.equal("shadow" in adapter.descriptor.domains, false);
   assert.equal("horizon" in adapter.descriptor.domains, false);
@@ -100,5 +117,29 @@ test("stage-relative scale snapshot reports native rebase and metric-height stat
     progress01: 0.4,
     rebaseCount: 2,
     effectiveMetricHeight: 2.16,
+  });
+});
+
+test("live anchor snapshot routes through the BIG3R adapter with experiment subject identity", async () => {
+  const f = fixture();
+  const router = new PortableEvaluationRouter();
+  router.register(new Big3rStagePresentationAdapter(f.stage));
+  const result = await router.route(command("anchors", "get-current", null), context);
+  assert.equal(result.status, "executed");
+  assert.deepEqual(result.output, {
+    schemaVersion: "big3r-portable-anchors/1.0",
+    capturedAtSimulationTimeSeconds: 3,
+    configurationVersion: "test-v1",
+    anchors: [{
+      anchorId: "subject-origin",
+      ownerId: "subject-1",
+      group: "character",
+      semantic: "subject-root-origin",
+      coordinateSpace: "stage-world",
+      position: { x: 0, y: 0, z: 0 },
+      access: "read-only",
+      source: "test-fixture",
+      sourceVersion: "1",
+    }],
   });
 });
