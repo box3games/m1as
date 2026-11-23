@@ -74,7 +74,7 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
       anchors: {
         status: "native" as const,
         operations: ["get-current"],
-        limitations: ["Read-only runtime anchors include subject origin and measured geometry bounds, stage origin, camera position and orbit focus. Anatomical anchors and authored environment landmarks are not yet registered."],
+        limitations: ["Read-only runtime anchors include subject origin and measured geometry bounds, every discovered GLB rig bone with its node name/hierarchy, stage origin, camera position/focus, and measured bounds for scene props explicitly registered with role reference. Semantic anatomy mapping and authored environment landmark editing are not yet available."],
       },
       "stage-scaling": {
         status: "native" as const,
