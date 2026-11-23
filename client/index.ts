@@ -144,3 +144,20 @@ export {
   parseBodyArchetypeRegistry,
 } from "./character/body-architecture-contract.js";
 export type * from "./character/body-architecture-contract.js";
+
+export {
+  PortableEvaluationRouter,
+  type PortableEvaluationDomain,
+  type PortableJsonValue,
+  type PortableEvaluationSubject,
+  type PortableEvaluationContext,
+  type PortableEvaluationCommand,
+  type PortableCapabilityStatus,
+  type PortableDomainCapability,
+  type PortableEngineDescriptor,
+  type PortableTranslationResult,
+  type PortableAdapterExecution,
+  type PortableEngineAdapter,
+  type PortableExecutionStatus,
+  type PortableExecutionRecord,
+} from "./evaluation/portable-evaluation-router.js";
