@@ -363,3 +363,12 @@ Joint targets are explicit authored IDs and channels; this contract does not gue
 Envelope compression is not actual growth reversal or a change to authoritative growth scale. The plan is declarative: it does not apply bone transforms, resize sprites, run physics, render animation, or mutate the character. This keeps growth state, pose, volume constraints, and presentation as distinct authorities. Tests cover axis-independent compression, shared 2D/2.5D/3D projections, 2D-only use without a skeleton, microscopic dimensions, identity checks, and invalid/duplicate joint targets.
 
 The renderer capability vocabulary includes `viewport-normalized` coordinates so 2D VFXR layouts can explicitly describe their normalized output space without mislabeling it as a 3D world transform.
+
+
+## 24. Character volume/pose dispatch adapters
+
+`character-volume-pose-adapters.ts` provides two explicit dispatch boundaries over the shared declarative pose plan. `Big3rCharacterPoseAdapter` requires a valid discovered rig topology, exact rig identity, a 3D-capable plan, and explicit target approval for every requested joint/channel before submitting the plan to a BIG3R rig evaluation port. It does not directly mutate bones or claim that discovery alone grants deformation authority.
+
+`VfxrCharacterPoseAdapter` submits the same plan to a registered VFXR authoring target when the plan declares 2D support and the target explicitly supports the requested pose kind. No skeleton is required for the 2D path. The target owns sprite layout, keyframe authoring, compositing, playback and export; this adapter does not claim those operations are implemented by the shared contract.
+
+Both dispatch results preserve request ID, subject ID, target ID and pipeline identity. Unsupported representations, joints, channels, rig identities, or pose kinds are reported explicitly; no fallback mapping is invented. These are target-port interfaces, not automatic runtime connections: actual BIG3R rig and VFXR authoring implementations must be registered by their respective workflows.
