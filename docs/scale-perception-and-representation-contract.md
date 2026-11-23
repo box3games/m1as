@@ -397,3 +397,12 @@ The adapters do not own a timer or animation clock; the caller supplies elapsed 
 The example `examples/experiments/big3r-vfxr-pose-transition-parity.json` defines a shared standing → spine hunch → compressed squat sequence. It provides common sample times for 2D, 2.5D, and 3D consumers, expected measurements, and acceptance criteria. It is an evaluation recipe, not a claim that render targets are already connected. The recipe requires identical envelope samples and provenance at each time offset, while allowing each renderer to produce its native output.
 
 The 2D target retains width/height and treats depth as source metadata; 2.5D retains all three dimensions and must declare plane/parallax support; 3D evaluates authored joint targets against discovered rig capabilities. Actual growth scale, growth history, physics, and destruction remain outside the pose transition.
+
+
+## 28. VFXR pose-sequence authoring target
+
+`client/vfxr/pose-sequence-authoring-target.ts` provides a concrete VFXR-owned authoring target for the shared pose transition samples. It records ordered 2D authoring frames, normalized width/height envelope ratios, source depth metadata, and source joint targets for later sprite-sequence, WEBM, or procedural authoring. It preserves transition, subject, configuration, growth-state and full transition-duration provenance.
+
+The target is independent of BIG3R runtime and does not render or mutate sprites. VFXR owns the sequence document and can export/read a defensive copy or clear it. Duplicate samples at the same simulation time are idempotent; conflicting samples are rejected. Pose-kind capability and stable provenance are validated. The shared sample now carries total transition duration so a first sample at time zero still records the correct complete sequence duration.
+
+This is a real VFXR authoring data target, not yet a canvas renderer, keyframe editor, WEBM encoder, or automatic sprite deformation system. Those remain separate VFXR workflow integrations.
