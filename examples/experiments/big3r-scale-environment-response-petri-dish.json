@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "big3r-scale-environment-response/1.0",
+  "configurationVersion": "petri-room-response-v1",
+  "rules": [
+    {
+      "ruleId": "room-approaching-capacity",
+      "metric": "heightOccupancyRatio",
+      "operator": "greater-than-or-equal",
+      "threshold": 0.8,
+      "releaseThreshold": 0.72,
+      "responseKind": "visual-cue",
+      "responseId": "room-ceiling-stress-glow",
+      "priority": 10
+    },
+    {
+      "ruleId": "room-height-exceeded",
+      "metric": "heightOccupancyRatio",
+      "operator": "greater-than-or-equal",
+      "threshold": 1,
+      "releaseThreshold": 0.95,
+      "responseKind": "interaction-gate",
+      "responseId": "ceiling-contact-check",
+      "priority": 20
+    },
+    {
+      "ruleId": "wall-penetration-candidate",
+      "metric": "penetrationDepthX",
+      "operator": "greater-than-or-equal",
+      "threshold": 0.05,
+      "responseKind": "destruction-candidate",
+      "responseId": "wall-structural-integrity-evaluation",
+      "priority": 30
+    },
+    {
+      "ruleId": "next-scale-transition",
+      "metric": "subjectToReferenceHeightRatio",
+      "operator": "greater-than-or-equal",
+      "threshold": 5,
+      "responseKind": "transition-request",
+      "responseId": "evaluate-next-world-parent",
+      "priority": 50
+    }
+  ],
+  "executionPolicy": {
+    "evaluateOnly": true,
+    "executeResponses": false,
+    "physicsAuthority": "external",
+    "destructionAuthority": "external",
+    "growthAuthority": "m1as-growth-engine",
+    "cameraAndPresentationAuthority": "big3r-presentation-adapters"
+  }
+}
