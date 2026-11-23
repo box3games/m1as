@@ -13,7 +13,7 @@ testCase("VFXR adapter records ordered 2D authoring frames with normalized envel
  const adapter=new VfxrPoseTransitionAdapter(target);
  await adapter.dispatch(transition,2);await adapter.dispatch(transition,0);
  const doc=target.getDocument(transition.transitionId)!;
- assert.equal(doc.frames.length,2);assert.equal(doc.frames[0].elapsedSeconds,0);assert.equal(doc.frames[1].elapsedSeconds,2);
+ assert.equal(doc.durationSeconds,2);assert.equal(doc.frames.length,2);assert.equal(doc.frames[0].elapsedSeconds,0);assert.equal(doc.frames[1].elapsedSeconds,2);
  assert.equal(doc.frames[1].projectedEnvelopeRatio.height,0.4);
  assert.equal(doc.frames[1].depthSourceMetadataMeters,0.5);
  assert.equal(doc.rendering.animationRendered,false);
