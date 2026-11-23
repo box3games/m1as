@@ -37,7 +37,8 @@
       2,
       3,
       5
-    ]
+    ],
+    "algorithm": "mulberry32-v1"
   },
   "progression": {
     "referenceIdentityPersists": true,
