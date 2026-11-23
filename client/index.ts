@@ -214,3 +214,11 @@ export type * from "./evaluation/colossus-profile-contract.js";
 
 export { buildColossusWorldGenerationPlan } from "./evaluation/world-generation-plan-contract.js";
 export type * from "./evaluation/world-generation-plan-contract.js";
+
+
+export {
+  WORLD_SPATIAL_LAYOUT_SCHEMA_VERSION,
+  WORLD_SPATIAL_LAYOUT_ALGORITHM,
+  buildWorldSpatialLayoutPlan,
+} from "./evaluation/world-spatial-layout-contract.js";
+export type * from "./evaluation/world-spatial-layout-contract.js";
