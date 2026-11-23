@@ -195,6 +195,46 @@ export class Big3rStageCoordinator {
                 anchor("stage-origin", stageId, "stage", "scene-world-origin", new THREE.Vector3(0, 0, 0)),
                 anchor("camera-position", cameraId, "camera", "camera-world-position", cameraPosition),
                 anchor("camera-focus", cameraId, "camera", "orbit-controls-world-focus", focus),
+                ...this.engine.getCharacterAnchorNodes().map((node) => ({
+                    anchorId: `rig-bone:${node.boneName}`,
+                    ownerId: subjectId,
+                    group: "character" as const,
+                    semantic: `rig-bone:${node.boneName}`,
+                    coordinateSpace: "stage-world" as const,
+                    position: node.worldPosition,
+                    ...(node.parentBoneName ? { parentAnchorId: `rig-bone:${node.parentBoneName}` } : {}),
+                    access: "read-only" as const,
+                    source: "big3r-glb-skeleton",
+                    sourceVersion: "1.0.0",
+                })),
+                ...this.engine.getReferenceSceneAnchors().flatMap((reference) => {
+                    const ownerId = `scene-reference:${reference.propId}`;
+                    return [
+                        {
+                            anchorId: "bounds-bottom",
+                            ownerId,
+                            group: "environment" as const,
+                            semantic: `reference-prop-bottom:${reference.name}`,
+                            coordinateSpace: "stage-world" as const,
+                            position: reference.bottom,
+                            access: "read-only" as const,
+                            source: "big3r-reference-prop",
+                            sourceVersion: "1.0.0",
+                        },
+                        {
+                            anchorId: "bounds-top",
+                            ownerId,
+                            group: "environment" as const,
+                            semantic: `reference-prop-top:${reference.name}`,
+                            coordinateSpace: "stage-world" as const,
+                            position: reference.top,
+                            parentAnchorId: "bounds-bottom",
+                            access: "read-only" as const,
+                            source: "big3r-reference-prop",
+                            sourceVersion: "1.0.0",
+                        },
+                    ];
+                }),
             ],
         };
     }
