@@ -12,9 +12,9 @@ import type {
  * it does not duplicate camera or stage behavior.
  *
  * This first slice intentionally advertises only the controls that the
- * coordinator currently exposes. Anchors, stage-relative scaling, horizon,
- * shadow, profile and volume controls remain unadvertised until their native
- * owners expose stable APIs.
+ * coordinator currently exposes. Stage-relative scaling is read-only through
+ * the native ScaleRebaseController snapshot. Anchors, horizon, shadow, profile
+ * and volume remain unadvertised until their native owners expose stable APIs.
  */
 export interface Big3rStagePresentationPort {
   getCameraRigMode(): CameraRigMode;
