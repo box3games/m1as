@@ -100,3 +100,30 @@ test("rejects unreferenced effect payloads and supports clearing an event", asyn
   assert.equal(clearedResult.accepted, true);
   assert.deepEqual(cleared, ["obs-1:wall-crack"]);
 });
+
+
+test("suppresses duplicate VFXR event delivery by stable event ID", async () => {
+  const router = new PortableEvaluationRouter();
+  const adapter = new VfxrStructuralResponseAdapter();
+  let applied = 0;
+  adapter.register({
+    targetId: "vfxr.wall.cracks",
+    supportedEffectKinds: ["crack-overlay"],
+    supportedAssetKinds: ["sprite-sequence"],
+    apply() { applied += 1; return { accepted: true }; },
+  });
+  router.register(adapter);
+  const payload = event() as unknown as import("../evaluation/portable-evaluation-router.js").PortableJsonValue;
+  const command = {
+    commandId: "duplicate-dispatch",
+    domain: "structural-response" as const,
+    operation: "apply-structural-response",
+    payload,
+  };
+  const first = await router.route(command, context);
+  const second = await router.route(command, context);
+  assert.equal(first.status, "executed");
+  assert.equal(second.status, "executed");
+  assert.equal(applied, 1);
+  assert.equal((second.telemetry as Record<string, unknown> | undefined)?.duplicateEventSuppressed, true);
+});
