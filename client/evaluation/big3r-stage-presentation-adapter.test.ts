@@ -18,6 +18,19 @@ function fixture() {
     setCameraRigMode: (next: 1 | 2 | 3 | 4 | 5) => { mode = next; },
     getRoomDoubleSided: () => doubleSided,
     setRoomDoubleSided: (next: boolean) => { doubleSided = next; },
+    getActualScaleEvaluationSnapshot: () => ({ growthModel: "m1as-vfx", currentVisualScale: 1.35 }),
+    getStageScaleEvaluationSnapshot: () => ({
+      status: "available" as const,
+      activeTierId: "tier-2",
+      activeTierName: "Lab Sink",
+      metricHeight: 1.6,
+      normalizedPlayerScale: 1.35,
+      activeTierWorldScale: 0.8,
+      prewarmedTierWorldScale: 1.6,
+      progress01: 0.4,
+      rebaseCount: 2,
+      effectiveMetricHeight: 2.16,
+    }),
   };
   return { stage, read: () => ({ mode, doubleSided }) };
 }
@@ -59,4 +72,33 @@ test("BIG3R presentation adapter does not advertise anchor or unsupported presen
   assert.equal("stage-scaling" in adapter.descriptor.domains, false);
   assert.equal("shadow" in adapter.descriptor.domains, false);
   assert.equal("horizon" in adapter.descriptor.domains, false);
+});
+
+test("actual scale snapshot stays owned by the active growth model", async () => {
+  const f = fixture();
+  const router = new PortableEvaluationRouter();
+  router.register(new Big3rStagePresentationAdapter(f.stage));
+  const result = await router.route(command("actual-scaling", "get-current", null), context);
+  assert.equal(result.status, "executed");
+  assert.deepEqual(result.output, { growthModel: "m1as-vfx", currentVisualScale: 1.35 });
+});
+
+test("stage-relative scale snapshot reports native rebase and metric-height state separately", async () => {
+  const f = fixture();
+  const router = new PortableEvaluationRouter();
+  router.register(new Big3rStagePresentationAdapter(f.stage));
+  const result = await router.route(command("stage-scaling", "get-current", null), context);
+  assert.equal(result.status, "executed");
+  assert.deepEqual(result.output, {
+    status: "available",
+    activeTierId: "tier-2",
+    activeTierName: "Lab Sink",
+    metricHeight: 1.6,
+    normalizedPlayerScale: 1.35,
+    activeTierWorldScale: 0.8,
+    prewarmedTierWorldScale: 1.6,
+    progress01: 0.4,
+    rebaseCount: 2,
+    effectiveMetricHeight: 2.16,
+  });
 });
