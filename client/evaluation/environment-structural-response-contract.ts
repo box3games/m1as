@@ -207,9 +207,25 @@ function structuralSignal(
   }
 }
 
+function expectedSignalUnit(metric: StructuralSignalMetric): StructuralSignalValue["unit"] | undefined {
+  if (metric === "stressRatio" || metric === "strainRatio" || metric === "damageRatio") return "ratio";
+  if (metric === "contactDurationSeconds") return "seconds";
+  if (metric === "impactEnergyJoules") return "joules";
+  return undefined;
+}
+
 function validateRule(rule: StructuralResponseRule): void {
   nonEmpty(rule.ruleId, "ruleId");
   nonEmpty(rule.responseId, "responseId");
+  if (![
+    "subjectToReferenceHeightRatio", "widthOccupancyRatio", "heightOccupancyRatio",
+    "depthOccupancyRatio", "horizontalFootprintOccupancyRatio", "minimumClearanceMeters",
+    "penetrationDepthX", "penetrationDepthY", "penetrationDepthZ", "stressRatio",
+    "strainRatio", "damageRatio", "contactDurationSeconds", "impactEnergyJoules",
+  ].includes(rule.metric)) throw new TypeError(`Rule ${rule.ruleId} has an unsupported metric.`);
+  if (!["info", "warning", "critical"].includes(rule.severity)) {
+    throw new TypeError(`Rule ${rule.ruleId} has an unsupported severity.`);
+  }
   if (!Number.isFinite(rule.threshold)) throw new RangeError(`Rule ${rule.ruleId} threshold must be finite.`);
   if (rule.releaseThreshold !== undefined && !Number.isFinite(rule.releaseThreshold)) {
     throw new RangeError(`Rule ${rule.ruleId} releaseThreshold must be finite.`);
@@ -264,6 +280,9 @@ export function evaluateStructuralResponses(
   nonEmpty(observation.observationId, "observationId");
   nonEmpty(observation.provenance?.sourceId, "provenance.sourceId");
   nonEmpty(observation.provenance?.sourceVersion, "provenance.sourceVersion");
+  if (!["physics-solver", "structural-solver", "authored-envelope", "procedural-estimate"].includes(observation.provenance.sourceKind)) {
+    throw new TypeError("provenance.sourceKind is unsupported.");
+  }
   if (!observation.relationship ||
       observation.relationship.schemaVersion !== "big3r-scale-environment-relationship/1.0") {
     throw new TypeError("A supported scale/environment relationship measurement is required.");
@@ -284,15 +303,23 @@ export function evaluateStructuralResponses(
     const prior = previous.has(rule.ruleId);
     const relation = relationshipMetric(observation.relationship, rule.metric);
     const signal = relation ? undefined : structuralSignal(observation.signals ?? {}, rule.metric);
+    const expectedUnit = expectedSignalUnit(rule.metric);
+    const signalValid = signal?.status === "available" &&
+      Number.isFinite(signal.value) && signal.value >= 0 &&
+      signal.unit === expectedUnit &&
+      typeof signal.source === "string" && signal.source.trim().length > 0 &&
+      ["measured", "estimated", "authored"].includes(signal.confidence);
     const resolved = relation
       ? { ...relation, status: "available" as const }
-      : signal?.status === "available"
+      : signalValid
         ? { value: signal.value, confidence: signal.confidence, status: "available" as const }
         : undefined;
     if (!resolved) {
       const reason = signal && signal.status !== "available"
         ? signal.reason
-        : `Metric ${rule.metric} has not been captured by the supplied authority.`;
+        : signal?.status === "available"
+          ? `Metric ${rule.metric} has invalid value, unit, source, or confidence metadata.`
+          : `Metric ${rule.metric} has not been captured by the supplied authority.`;
       return { ruleId: rule.ruleId, state: "unavailable" as const, metric: rule.metric,
         threshold: rule.threshold, reason } satisfies StructuralRuleEvaluation;
     }
