@@ -109,3 +109,11 @@ test("relationship comparison rejects a current capture before baseline", () => 
   input.currentSubject.capturedAtSimulationTimeSeconds = -1;
   assert.throws(() => measureScaleRelationship(input), /invalid capture metadata/);
 });
+
+test("portable anchors validate sprite-local, plane-local, and viewport-normalized spaces", () => {
+  for (const coordinateSpace of ["sprite-local", "plane-local", "viewport-normalized"] as const) {
+    const value = snapshot("2d-subject", 0, 1);
+    value.anchors = value.anchors.map(anchor => ({ ...anchor, coordinateSpace }));
+    assert.doesNotThrow(() => validatePortableAnchorSnapshot(value));
+  }
+});
