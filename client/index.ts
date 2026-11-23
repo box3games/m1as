@@ -263,3 +263,16 @@ export type {
   Big3rRigPoseTarget,
   VfxrPoseAuthoringTarget,
 } from "./evaluation/character-volume-pose-adapters.js";
+
+
+export {
+  CHARACTER_POSE_TRANSITION_SCHEMA_VERSION,
+  validateCharacterPoseTransition,
+  sampleCharacterPoseTransition,
+} from "./evaluation/character-pose-transition-contract.js";
+export type {
+  PoseInterpolation,
+  PoseTransitionKeyframe,
+  CharacterPoseTransition,
+  CharacterPoseTransitionSample,
+} from "./evaluation/character-pose-transition-contract.js";
