@@ -173,3 +173,55 @@ test("promotion requires the current world and a distinct destination world", ()
     configurationVersion: "v1",
   }), /different world/);
 });
+
+test("successive world promotions preserve the full Colossus lineage", () => {
+  const first = promoteScaleParent(hierarchy(), {
+    transitionId: "lab-to-cloud",
+    fromWorldId: "lab-world",
+    toWorldId: "cloud-world",
+    newParent: nextParent(),
+    previousParentDisposition: "child",
+    simulationTimeSeconds: 120,
+    configurationVersion: "world-progression-v1",
+  });
+  const secondParent = {
+    referenceId: "mountain-colossus",
+    entityId: "mountain-colossus-entity",
+    displayName: "Mountain Colossus",
+    kind: "colossus" as const,
+    role: "parent" as const,
+    status: "active" as const,
+    extent: { value: 10000, unit: "m", metric: "height", axis: "height" as const },
+    introducedInWorldId: "mountain-world",
+  };
+  const second = promoteScaleParent(first, {
+    transitionId: "cloud-to-mountain",
+    fromWorldId: "cloud-world",
+    toWorldId: "mountain-world",
+    newParent: secondParent,
+    previousParentDisposition: "child",
+    simulationTimeSeconds: 240,
+    configurationVersion: "world-progression-v2",
+  });
+
+  assert.equal(second.activeParentReferenceId, "mountain-colossus");
+  assert.equal(second.promotions.length, 2);
+  assert.equal(second.references.find(item => item.referenceId === "cloud-colossus")?.parentReferenceId, "mountain-colossus");
+  assert.equal(second.references.find(item => item.referenceId === "colossus-100m")?.parentReferenceId, "cloud-colossus");
+  assert.equal(second.references.find(item => item.referenceId === "colossus-100m")?.status, "historical");
+  assert.doesNotThrow(() => validateScaleReferenceHierarchy(second));
+});
+
+test("promotion records must resolve to retained reference nodes and continuous worlds", () => {
+  const promoted = promoteScaleParent(hierarchy(), {
+    transitionId: "lab-to-cloud-validation",
+    fromWorldId: "lab-world",
+    toWorldId: "cloud-world",
+    newParent: nextParent(),
+    previousParentDisposition: "child",
+    simulationTimeSeconds: 120,
+    configurationVersion: "world-progression-v1",
+  });
+  promoted.promotions[0].promotedParentExtent = 999;
+  assert.throws(() => validateScaleReferenceHierarchy(promoted), /match the retained parent reference/);
+});
