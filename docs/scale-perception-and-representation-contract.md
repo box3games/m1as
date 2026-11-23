@@ -314,3 +314,18 @@ The layout contract does not instantiate geometry, select assets, generate colli
 
 
 The example input is `examples/experiments/big3r-world-spatial-layout-petri-dish.json`. Its `layout` object matches the `WorldSpatialLayoutConfig` passed to the planner; `sourceProfilePath` identifies the profile used to build the upstream world-generation plan.
+
+
+## 21. Scale-aware environment relationships and response cues
+
+The renderer-neutral `scale-environment-relationship-contract.ts` measures a subject against any authored environment or scale reference using world-space axis-aligned bounds in canonical metres. It does not assume the reference is a room or the subject is a humanoid. The same measurement can describe a player inside a room, a hand against a chamber, a character beside an NPC, a Colossus relative to a building, or a building relative to a world landmark.
+
+The measurement records independent subject/reference width, height, and depth ratios; horizontal footprint occupancy; minimum Euclidean AABB clearance; per-axis clearance; per-axis penetration depth; containment; and a spatial state of separated, touching, overlapping, subject-contained, reference-contained, or coincident. The full input bounds are preserved as the source observation and are never clamped to the world envelope. This allows a micro-to-macro subject to exceed a 1 m Petri dish without losing its actual measurements.
+
+`placementToWorldAabbMeters` converts a ground-contact spatial placement from the deterministic layout planner into an axis-aligned world-space box. It uses the placement's X/Z center, ground-contact Y, and explicit width/height/depth dimensions. Renderer adapters with rotated or deforming geometry should provide measured world-space bounds directly instead of relying on this axis-aligned placement helper.
+
+Declarative environment-response rules can observe scale ratios, occupancy, clearance, and penetration metrics. A rule can request a visual cue, audio cue, interaction gate, transition request, destruction candidate, or camera cue. Threshold direction, priority, and optional release threshold are explicit. Hysteresis prevents a threshold response from rapidly toggling when a measured value oscillates near its entry threshold. The caller supplies previously active rule IDs so each evaluation reports entered, maintained, exited, or inactive state.
+
+Response evaluation is intentionally not execution. It produces ordered requests only; a downstream adapter must separately validate capability, ownership, safety policy, and execution permission before applying effects. No physics, movement, destruction, growth, camera change, or presentation effect is performed here. In particular, a `destruction-candidate` is a signal for a later destruction/structural-integrity system, not an instruction to break an object.
+
+All measurements carry sample ID, subject/reference identity, simulation time, configuration version, and growth-state ID. These provenance fields allow the same growth event to be compared across different references and presentation views. The tests include room containment, outgrowing the room, separation/touching/overlap, world-envelope escape, conversion from layout placements, micro-scale values, threshold hysteresis, ordered requests, and validation failures.
