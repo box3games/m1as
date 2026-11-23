@@ -276,3 +276,41 @@ Validation accepts any finite positive representable metre value, including very
 A runnable authored 1 m × 1 m × 1 m starting profile is provided at `examples/experiments/big3r-colossus-profile-petri-dish.json`. It deliberately keeps the Colossus and world envelope separate so the same stable Colossus reference can later be resized to a micro or macro test scale without changing its identity.
 
 A second example, `examples/experiments/big3r-colossus-profile-procedural-petri-dish.json`, demonstrates seeded independent dimension ranges for an approximately 100 m Colossus in a 1 m world envelope, including a 0.01 world-envelope multiplier.
+
+
+## 19. Deterministic Colossus world-generation plan
+
+The renderer-neutral `buildColossusWorldGenerationPlan` function turns a validated Colossus profile into a deterministic world-generation blueprint. The plan records the source profile revision, configuration version, seed, algorithm, world identity, resolved Colossus dimensions, and the independent explicit world-envelope dimensions.
+
+For procedural profiles, the plan resolves Colossus dimensions through the profile's seeded generation algorithm. Hybrid profiles use seeded generated dimensions when ranges are present and otherwise preserve their authored dimensions. Authored profiles always retain their configured dimensions. This makes the blueprint reproducible for a given profile revision and prevents a procedural profile's placeholder dimensions from being mistaken for its generated result.
+
+The blueprint emits scale templates for the configured NPC and boss height ratios, plus ordered world-landmark templates for every configured reference ratio. Ratios above 1 are valid and deliberately create references larger than the current Colossus; they are progression landmarks, not limits. It also emits a larger next-parent candidate linked to the current Colossus reference and a destination-world ID. That candidate is only a proposal: the existing scale-reference hierarchy is not promoted until a separate, explicit world-transition operation is requested.
+
+The plan preserves explicit world-envelope dimensions as authoritative and reports both the actual envelope-height/Colossus-height ratio and the configured world-envelope multiplier. A mismatch is diagnostic metadata, not an automatic resize or rejection. This permits an authored 1 m world envelope around a procedurally generated 100 m Colossus while making the relationship visible and testable.
+
+This plan does not instantiate geometry, place objects, populate NPCs/bosses, load assets, move the camera, apply IGP, modify growth state, or promote the hierarchy. It is a deterministic data blueprint for downstream world-generation and presentation adapters. Its tests cover procedural dimension resolution, stable output, scale templates, beyond-parent landmarks, next-parent proposals, and explicit envelope/multiplier mismatches.
+
+
+## 20. Deterministic world spatial layout
+
+The renderer-neutral `buildWorldSpatialLayoutPlan` function consumes a validated Colossus world-generation blueprint and an independent spatial-layout configuration. It emits stable placement identities, parent-reference relationships, world-space ground anchors, normalized X/Z coordinates, preserved dimensions, source-template provenance, and layout diagnostics.
+
+The initial `radial-rings-mulberry32-v1` algorithm creates:
+- one Colossus parent anchor at the world-envelope center;
+- a configurable count of NPC placements on an inner ring;
+- a configurable count of boss placements on a separate ring;
+- one placement for each authored scale-landmark template on an outer ring;
+- an optional transition-gate anchor connected to the proposed next-parent reference.
+
+The layout seed is combined with the source generation ID and layout ID. Identical source plans and layout configurations therefore produce identical placement coordinates. Changing only the layout seed changes spatial positions without changing generated dimensions or scale ratios. Stable IDs derive from layout ID, Colossus reference identity, placement kind, and index.
+
+Normalized horizontal coordinates use the world-envelope center as (0,0) and the envelope half-extents as 0.5. They are converted into canonical metre coordinates using the actual width and depth independently, so non-cubic envelopes are supported. The vertical anchor is currently ground-contact Y=0; vertical stacking and authored elevation are future layout features.
+
+The planner intentionally preserves object dimensions even when they are much larger than the world envelope. It reports whether each footprint fits and whether any extent exceeds the envelope. Anchors are constrained to the envelope's normalized X/Z range, but object bounds may extend outside it. This is deliberate for Petri-dish micro-to-macro tests: placement must not silently shrink a Colossus, landmark, or transition gate to fit a small room.
+
+A broad-phase X/Z AABB overlap diagnostic reports placement pairs whose horizontal footprints may overlap. It does not perform collision resolution, infer vertical separation, move objects, or decide whether overlap is desirable. For very large entities, overlap is expected and remains visible in the diagnostic output for a downstream scene/level authoring policy to interpret.
+
+The layout contract does not instantiate geometry, select assets, generate collision, populate animation, modify growth state, promote the reference hierarchy, or change camera/IGP presentation. It is a deterministic placement blueprint. The current tests cover stable generation, identity and parent links, configurable population, seed variation, non-cubic envelope mapping, oversized dimensions, overlap diagnostics, and authority boundaries.
+
+
+The example input is `examples/experiments/big3r-world-spatial-layout-petri-dish.json`. Its `layout` object matches the `WorldSpatialLayoutConfig` passed to the planner; `sourceProfilePath` identifies the profile used to build the upstream world-generation plan.

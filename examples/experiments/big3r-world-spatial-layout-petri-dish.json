@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "big3r-world-spatial-layout-config/1.0",
+  "sourceProfilePath": "examples/experiments/big3r-colossus-profile-procedural-petri-dish.json",
+  "layoutAlgorithm": "radial-rings-mulberry32-v1",
+  "layout": {
+    "layoutId": "petri-dish-layout-001",
+    "configurationVersion": "petri-layout-v1",
+    "seed": "petri-layout-seed-13163",
+    "npcCount": 4,
+    "bossCount": 1,
+    "edgePaddingRatio": 0.05,
+    "includeTransitionGate": true
+  }
+}
