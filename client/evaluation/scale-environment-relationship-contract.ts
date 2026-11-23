@@ -273,6 +273,16 @@ function metricValue(
 function validateRule(rule: EnvironmentResponseRule): void {
   nonEmpty(rule.ruleId, "ruleId");
   nonEmpty(rule.responseId, "responseId");
+  if (![
+    "subjectToReferenceHeightRatio", "widthOccupancyRatio", "heightOccupancyRatio",
+    "depthOccupancyRatio", "horizontalFootprintOccupancyRatio", "minimumClearanceMeters",
+    "penetrationDepthX", "penetrationDepthY", "penetrationDepthZ",
+  ].includes(rule.metric)) {
+    throw new TypeError(`Rule ${rule.ruleId} has an unsupported metric.`);
+  }
+  if (rule.operator !== "greater-than-or-equal" && rule.operator !== "less-than-or-equal") {
+    throw new TypeError(`Rule ${rule.ruleId} has an unsupported operator.`);
+  }
   if (!Number.isFinite(rule.threshold)) throw new RangeError(`Rule ${rule.ruleId} threshold must be finite.`);
   if (rule.releaseThreshold !== undefined && !Number.isFinite(rule.releaseThreshold)) {
     throw new RangeError(`Rule ${rule.ruleId} releaseThreshold must be finite.`);
@@ -313,7 +323,7 @@ export function evaluateScaleEnvironmentResponses(
     throw new TypeError("Unsupported scale/environment measurement schema.");
   }
   if (!Array.isArray(rules)) throw new TypeError("rules must be an array.");
-  const previous = new Set(previouslyActiveRuleIds);
+  if (!Array.isArray(previouslyActiveRuleIds) || previouslyActiveRuleIds.some(id => typeof id !== "string" || !id.trim())) {\n    throw new TypeError("previouslyActiveRuleIds must contain non-empty strings.");\n  }\n  const previous = new Set(previouslyActiveRuleIds);
   if (previous.size !== previouslyActiveRuleIds.length) {
     throw new TypeError("previouslyActiveRuleIds must be unique.");
   }
@@ -337,7 +347,7 @@ export function evaluateScaleEnvironmentResponses(
       measuredValue: value,
       threshold: rule.threshold,
     } satisfies EnvironmentResponseEvaluation;
-  }).sort((a, b) => a.priority - b.priority || a.ruleId.localeCompare(b.ruleId));
+  }).sort((a, b) => a.priority - b.priority || a.ruleId.localeCompare(b.ruleId));\n  const unknownPrevious = [...previous].filter(id => !seen.has(id));\n  if (unknownPrevious.length) {\n    throw new TypeError(`Previously active rules are not present in this rule set: ${unknownPrevious.join(", ")}.`);\n  }
   const requestedResponses = evaluations.filter(item => item.state === "entered" || item.state === "maintained");
   return {
     schemaVersion: "big3r-scale-environment-response/1.0",
