@@ -56,6 +56,7 @@ export interface ScaleRelationshipInput {
   relationshipId: string;
   baselineSubject: PortableAnchorSnapshot;
   currentSubject: PortableAnchorSnapshot;
+  baselineReference: PortableAnchorSnapshot;
   currentReference: PortableAnchorSnapshot;
   subjectSpan: AnchorSpanReference;
   referenceSpan: AnchorSpanReference;
@@ -71,6 +72,7 @@ export interface ScaleRelationshipMeasurement {
   currentSimulationTimeSeconds: number;
   baselineSubjectHeight: number;
   currentSubjectHeight: number;
+  baselineReferenceHeight: number;
   currentReferenceHeight: number;
   subjectGrowthFactorFromBaseline: number;
   baselineSubjectToReferenceRatio: number;
@@ -161,6 +163,7 @@ export function measureScaleRelationship(
   if (!input.relationshipId.trim()) throw new TypeError("relationshipId is required.");
   assertSnapshot(input.baselineSubject, "baselineSubject");
   assertSnapshot(input.currentSubject, "currentSubject");
+  assertSnapshot(input.baselineReference, "baselineReference");
   assertSnapshot(input.currentReference, "currentReference");
 
   if (input.currentSubject.capturedAtSimulationTimeSeconds <
@@ -175,6 +178,7 @@ export function measureScaleRelationship(
 
   const baselineSubjectHeight = resolveSpan(input.baselineSubject, input.subjectSpan, "subjectSpan");
   const currentSubjectHeight = resolveSpan(input.currentSubject, input.subjectSpan, "subjectSpan");
+  const baselineReferenceHeight = resolveSpan(input.baselineReference, input.referenceSpan, "referenceSpan");
   const currentReferenceHeight = resolveSpan(input.currentReference, input.referenceSpan, "referenceSpan");
   if (input.subjectSpan.coordinateSpace !== input.referenceSpan.coordinateSpace) {
     throw new RangeError("Subject and reference spans must use the same coordinate space for direct comparison.");
@@ -184,7 +188,7 @@ export function measureScaleRelationship(
     throw new RangeError("equalityTolerance must be finite and in [0, 1).");
   }
 
-  const baselineSubjectToReferenceRatio = baselineSubjectHeight / currentReferenceHeight;
+  const baselineSubjectToReferenceRatio = baselineSubjectHeight / baselineReferenceHeight;
   const currentSubjectToReferenceRatio = currentSubjectHeight / currentReferenceHeight;
   const relationship = currentSubjectToReferenceRatio < 1 - equalityTolerance
     ? "smaller"
@@ -200,6 +204,7 @@ export function measureScaleRelationship(
     currentSimulationTimeSeconds: input.currentSubject.capturedAtSimulationTimeSeconds,
     baselineSubjectHeight,
     currentSubjectHeight,
+    baselineReferenceHeight,
     currentReferenceHeight,
     subjectGrowthFactorFromBaseline: currentSubjectHeight / baselineSubjectHeight,
     baselineSubjectToReferenceRatio,
