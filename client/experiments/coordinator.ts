@@ -2,6 +2,8 @@ import {
   EXPERIMENT_SCHEMA_VERSION,
   type ExperimentManifest,
   type PresentationSampleRecord,
+  type GrowthOutcome,
+  type GrowthRequestRecord,
 } from './contracts.js';
 import { CaptureScheduler } from './capture-scheduler.js';
 import { ExperimentRecorder, type ExperimentStorage } from './recorder.js';
@@ -49,6 +51,7 @@ export class ExperimentCoordinator {
 
   private lastSimulationTime = 0;
   private readonly pendingRelatedEventIds: string[] = [];
+  private readonly pendingRelatedRequestIds: string[] = [];
   public get experimentId(): string { return this.manifest.experimentId; }
   public get isRecording(): boolean { return this.started && !this.stopped && this.recorder.isRecording; }
   public get captureErrors(): ReadonlyArray<{ stream: string; error: unknown }> {
@@ -83,6 +86,43 @@ export class ExperimentCoordinator {
     const configured = this.scheduler.trigger({ type, simulationTimeSeconds });
     if (configured && !this.scheduler.hasSampleAt(simulationTimeSeconds)) {
       this.capture(simulationTimeSeconds, frameNumber);
+    }
+  }
+
+
+  /** Records an explicit recipe/harness request without inventing a manager decision or native event ID. */
+  public recordGrowthRecipeRequest(input: {
+    requestId: string;
+    source: string;
+    outcome: GrowthOutcome;
+    simulationTimeSeconds: number;
+    frameNumber?: number;
+  }): void {
+    if (!this.isRecording) return;
+    if (!Number.isFinite(input.simulationTimeSeconds) || input.simulationTimeSeconds < this.lastSimulationTime) {
+      this.recorder.reportExternalCaptureError(
+        new RangeError('Growth recipe request time must be finite and monotonic.'),
+        'growth-requests',
+      );
+      return;
+    }
+    this.lastSimulationTime = input.simulationTimeSeconds;
+    try {
+      const time = this.timeline.next(input.simulationTimeSeconds, input.frameNumber);
+      const request: GrowthRequestRecord = {
+        recordId: input.requestId,
+        experimentId: this.experimentId,
+        schemaVersion: EXPERIMENT_SCHEMA_VERSION,
+        time,
+        requestId: input.requestId,
+        mode: 'outcome',
+        source: input.source,
+        requestedOutcome: input.outcome,
+      };
+      this.recorder.append('growth-requests', request);
+      this.pendingRelatedRequestIds.push(input.requestId);
+    } catch (error) {
+      this.recorder.reportExternalCaptureError(error, 'growth-requests');
     }
   }
 
@@ -126,11 +166,14 @@ export class ExperimentCoordinator {
       const time = this.timeline.next(simulationTimeSeconds, frameNumber);
       const payload = this.capturePresentation();
       const relatedEventIds = [...new Set([...payload.relatedEventIds, ...this.pendingRelatedEventIds])];
+      const relatedRequestIds = [...new Set([...payload.relatedRequestIds, ...this.pendingRelatedRequestIds])];
       this.pendingRelatedEventIds.length = 0;
+      this.pendingRelatedRequestIds.length = 0;
       const sampleId = `${this.experimentId}:sample:${time.sequenceNumber}`;
       this.scheduler.pushSample({
         ...payload,
         relatedEventIds,
+        relatedRequestIds,
         recordId: sampleId,
         sampleId,
         experimentId: this.experimentId,
