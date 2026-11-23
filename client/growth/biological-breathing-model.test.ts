@@ -59,12 +59,12 @@ const context: GrowthModelContext = {
   configurationVersion: "test",
 };
 
-test("breathing decorator is opt-in and preserves ordinary growth commands", () => {
+test("breathing decorator is opt-in and preserves ordinary growth commands", async () => {
   const inner = new RecordingModel();
   const model = new BiologicalBreathingGrowthModel(inner);
   model.initialize(subject, context);
   const result = model.apply({ kind: "discrete", commandId: "ordinary", stimulus: "Buff", amount: { kind: "relative_change", fraction: 0.2 } }, context);
-  assert.equal(result.accepted, true);
+  assert.equal((await result).accepted, true);
   model.advance(0.1, 0.1);
   assert.equal(inner.applied.length, 0);
   model.startBreathing();
