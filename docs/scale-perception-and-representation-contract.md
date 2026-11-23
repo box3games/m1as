@@ -276,3 +276,16 @@ Validation accepts any finite positive representable metre value, including very
 A runnable authored 1 m × 1 m × 1 m starting profile is provided at `examples/experiments/big3r-colossus-profile-petri-dish.json`. It deliberately keeps the Colossus and world envelope separate so the same stable Colossus reference can later be resized to a micro or macro test scale without changing its identity.
 
 A second example, `examples/experiments/big3r-colossus-profile-procedural-petri-dish.json`, demonstrates seeded independent dimension ranges for an approximately 100 m Colossus in a 1 m world envelope, including a 0.01 world-envelope multiplier.
+
+
+## 19. Deterministic Colossus world-generation plan
+
+The renderer-neutral `buildColossusWorldGenerationPlan` function turns a validated Colossus profile into a deterministic world-generation blueprint. The plan records the source profile revision, configuration version, seed, algorithm, world identity, resolved Colossus dimensions, and the independent explicit world-envelope dimensions.
+
+For procedural profiles, the plan resolves Colossus dimensions through the profile's seeded generation algorithm. Hybrid profiles use seeded generated dimensions when ranges are present and otherwise preserve their authored dimensions. Authored profiles always retain their configured dimensions. This makes the blueprint reproducible for a given profile revision and prevents a procedural profile's placeholder dimensions from being mistaken for its generated result.
+
+The blueprint emits scale templates for the configured NPC and boss height ratios, plus ordered world-landmark templates for every configured reference ratio. Ratios above 1 are valid and deliberately create references larger than the current Colossus; they are progression landmarks, not limits. It also emits a larger next-parent candidate linked to the current Colossus reference and a destination-world ID. That candidate is only a proposal: the existing scale-reference hierarchy is not promoted until a separate, explicit world-transition operation is requested.
+
+The plan preserves explicit world-envelope dimensions as authoritative and reports both the actual envelope-height/Colossus-height ratio and the configured world-envelope multiplier. A mismatch is diagnostic metadata, not an automatic resize or rejection. This permits an authored 1 m world envelope around a procedurally generated 100 m Colossus while making the relationship visible and testable.
+
+This plan does not instantiate geometry, place objects, populate NPCs/bosses, load assets, move the camera, apply IGP, modify growth state, or promote the hierarchy. It is a deterministic data blueprint for downstream world-generation and presentation adapters. Its tests cover procedural dimension resolution, stable output, scale templates, beyond-parent landmarks, next-parent proposals, and explicit envelope/multiplier mismatches.
