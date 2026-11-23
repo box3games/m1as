@@ -118,7 +118,7 @@ export function validateInfinityGrowthPresentation(
     if (calibrationIds.has(id)) throw new TypeError(`Duplicate calibration anchor ID "${id}".`);
     calibrationIds.add(id);
   }
-  if (snapshot.environmentPolicy === "preserve-calibration" && calibrationIds.size === 0) {
+  if (snapshot.mode === "infinity" && snapshot.environmentPolicy === "preserve-calibration" && calibrationIds.size === 0) {
     throw new RangeError("preserve-calibration requires at least one stable calibration anchor.");
   }
   if (snapshot.environmentPolicy === "contract-all" && calibrationIds.size > 0) {
@@ -170,5 +170,41 @@ export function validateFramingIntegrityAssessment(
   }
   if (assessment.trigger === "none" && assessment.depthClipped) {
     throw new RangeError("A depth-clipped subject requires an explicit framing trigger.");
+  }
+}
+
+
+/**
+ * Validate a presentation-mode transition against the exact framing sample
+ * that requested it. Assisted mode is reserved for recoverable native framing;
+ * infinity mode is reserved for cases native framing cannot recover.
+ */
+export function validateGrowthPresentationTransition(
+  snapshot: InfinityGrowthPresentationSnapshot,
+  assessment: FramingIntegrityAssessment,
+): void {
+  validateInfinityGrowthPresentation(snapshot);
+  validateFramingIntegrityAssessment(assessment);
+  if (snapshot.subjectId !== assessment.subjectId ||
+      snapshot.configurationVersion !== assessment.configurationVersion ||
+      snapshot.growthStateId !== assessment.growthStateId ||
+      snapshot.simulationTimeSeconds !== assessment.simulationTimeSeconds) {
+    throw new RangeError("Presentation transition and framing assessment must describe the same subject, configuration, growth state, and simulation time.");
+  }
+  if (snapshot.mode === "native") {
+    if (assessment.trigger !== "none" || snapshot.framingIntegritySampleId !== undefined) {
+      throw new RangeError("Native presentation cannot claim a framing-triggered transition.");
+    }
+    return;
+  }
+  if (assessment.trigger === "none" ||
+      snapshot.framingIntegritySampleId !== assessment.sampleId) {
+    throw new RangeError("Assisted and infinity presentation require the matching non-empty framing trigger.");
+  }
+  if (snapshot.mode === "assisted" && !assessment.nativeRecoveryAvailable) {
+    throw new RangeError("Assisted presentation requires a recoverable native framing path.");
+  }
+  if (snapshot.mode === "infinity" && assessment.nativeRecoveryAvailable) {
+    throw new RangeError("Infinity presentation is reserved for framing that native recovery cannot resolve.");
   }
 }
