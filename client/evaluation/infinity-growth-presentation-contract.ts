@@ -109,6 +109,9 @@ export function validateInfinityGrowthPresentation(
   if (snapshot.mode !== "infinity" && snapshot.environmentPresentationScale !== 1) {
     throw new RangeError("Only infinity mode may contract the apparent environment.");
   }
+  if (snapshot.mode === "infinity" && snapshot.environmentPresentationScale >= 1) {
+    throw new RangeError("Infinity mode requires an actual apparent-environment contraction below 1.");
+  }
   if (!Array.isArray(snapshot.calibrationAnchorIds)) {
     throw new TypeError("calibrationAnchorIds must be an array.");
   }
