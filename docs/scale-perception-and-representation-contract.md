@@ -329,3 +329,24 @@ Declarative environment-response rules can observe scale ratios, occupancy, clea
 Response evaluation is intentionally not execution. It produces ordered requests only; a downstream adapter must separately validate capability, ownership, safety policy, and execution permission before applying effects. No physics, movement, destruction, growth, camera change, or presentation effect is performed here. In particular, a `destruction-candidate` is a signal for a later destruction/structural-integrity system, not an instruction to break an object.
 
 All measurements carry sample ID, subject/reference identity, simulation time, configuration version, and growth-state ID. These provenance fields allow the same growth event to be compared across different references and presentation views. The tests include room containment, outgrowing the room, separation/touching/overlap, world-envelope escape, conversion from layout placements, micro-scale values, threshold hysteresis, ordered requests, and validation failures.
+
+
+## 22. Portable environmental structural responses across BIG3R and VFXR
+
+The renderer-neutral `environment-structural-response-contract.ts` consumes scale/environment relationship measurements plus optional structural signals from an authoritative physics or structural source. It emits portable, provenance-bearing response events. It does not calculate force, stress, strain, fracture, or damage from AABB overlap. Geometry-derived penetration and clearance remain explicitly labeled `relationship-derived`; solver signals retain measured/estimated/authored confidence and source identity. Missing structural data is `unavailable`, never silently interpreted as zero.
+
+Structural signal metrics include stress ratio, strain ratio, damage ratio, contact duration, and impact energy. Each metric has an expected unit and validates source/confidence metadata. Declarative rules support thresholds, hysteresis, severity, priority, response channel, effect kind, optional target ID, and authored asset reference. Events preserve subject/reference IDs, growth-state ID, configuration version, simulation time, observation ID, and deterministic event ID.
+
+The shared event model deliberately separates response intent from execution. Channels distinguish visual effects, audio effects, physics, structural-integrity evaluation, and world-transition evaluation. Effect kinds include contact/impact flashes, stress glow, crack overlays, fracture previews, dust/debris overlays, sprite sequences, WEBM overlays, procedural overlays, particle layers, audio cues, displacement requests, damage/failure evaluations, and transition candidates. These are extensible vocabulary values; declaring one does not claim that a renderer or physics engine implements it.
+
+### BIG3R and VFXR interoperability
+
+BIG3R is the live scene/evaluation consumer: it supplies geometry relationships and can attach authoritative solver signals when available. A BIG3R physics or structural adapter may consume `physics` and `structural-integrity` events without transferring that authority to the shared contract.
+
+VFXR consumes the exact same structural response event through `VfxrStructuralResponseAdapter`, registered with the existing `PortableEvaluationRouter` under the `structural-response` domain. VFXR targets explicitly declare supported effect kinds and asset kinds, then receive the complete event. Targets can render 2D sprite sequences, WEBM overlays, effect presets, or procedural layers. VFXR does not need a 3D collider, mesh, or physics body to render a crack, dust burst, impact flash, or debris sequence. It also cannot claim physics, structural-integrity, or world-transition ownership.
+
+The VFXR adapter requires a registered target ID and an authored asset reference. Missing target, unsupported effect kind, unsupported asset kind, and unsupported response channel are reported as unsupported; there is no silent fallback. Execution telemetry identifies the VFXR target, event, effect kind, asset, and pipeline. The adapter can clear a specific event by target and event ID. Actual sprite/WEBM decoding, animation timing, compositing, and export remain in the registered VFXR effect target and existing VFXR authoring/recording pipeline.
+
+This shared boundary is the synergy point: one BIG3R observation/rule evaluation can fan out the same event identity to a BIG3R scene adapter, a VFXR 2D effect target, audio, or another capable consumer. Each consumer advertises and enforces its own capabilities; no consumer is assumed to exist merely because the event vocabulary supports it.
+
+The tests cover structural-signal unit/provenance validation, unavailable solver inputs, geometry-only contact cues, hysteresis, stable event IDs, sprite/WEBM/procedural asset references, VFXR portable routing, missing capabilities, and authority boundaries.
