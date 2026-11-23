@@ -105,14 +105,16 @@ test("rejects invalid ratios, dimensions, and non-increasing landmarks", () => {
   assert.throws(() => validateColossusProfile(profile({
     generation: { ...profile().generation, referenceLandmarkRatios: [0.5, 0.25] },
   })), /strictly increasing/);
-  assert.throws(() => validateColossusProfile(profile({
+  const invalidProgression = {
+    ...profile(),
     progression: {
       referenceIdentityPersists: false,
       allowRuntimeResizing: true,
       allowSmallerThanCharacter: true,
       allowParentPromotion: true,
     },
-  })), /invariants must remain enabled/);
+  } as unknown as ColossusProfile;
+  assert.throws(() => validateColossusProfile(invalidProgression), /invariants must remain enabled/);
 });
 
 test("world envelope is independent and may differ from the Colossus dimensions", () => {

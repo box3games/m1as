@@ -128,12 +128,17 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
       this.appliedEvents.delete(eventId);
       return { accepted: true, output: { targetId, eventId, cleared: true } };
     }
-    if (!isStructuralEvent(command.payload) || !command.payload.targetId ||
-        !command.payload.asset || !command.payload.asset.assetId?.trim()) {
-      return { accepted: false, reason: "A valid targeted structural response event is required." };
+    if (!isStructuralEvent(command.payload)) {
+      return { accepted: false, reason: "A valid structural response event is required." };
     }
     const event = command.payload;
-    const target = this.targets.get(event.targetId);
+    const targetId = event.targetId;
+    const asset = event.asset;
+    if (typeof targetId !== "string" || !targetId.trim() ||
+        !asset || typeof asset.assetId !== "string" || !asset.assetId.trim()) {
+      return { accepted: false, reason: "A valid targetId and authored asset reference are required." };
+    }
+    const target = this.targets.get(targetId);
     if (!target) return { accepted: false, reason: `VFXR target "${event.targetId}" is not registered.` };
     const previouslyAppliedTarget = this.appliedEvents.get(event.eventId);
     if (previouslyAppliedTarget) {
@@ -157,7 +162,7 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
           targetId: target.targetId,
           eventId: event.eventId,
           effectKind: event.effectKind,
-          assetId: event.asset.assetId,
+          assetId: asset.assetId,
           pipeline: "VFXR",
         },
       } : { reason: result.reason }),
