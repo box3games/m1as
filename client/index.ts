@@ -162,3 +162,4 @@ export {
   type PortableExecutionRecord,
 } from "./evaluation/portable-evaluation-router.js";
 export { GrowthModelPortableAdapter } from "./evaluation/growth-model-portable-adapter.js";
+export { Big3rStagePresentationAdapter, type Big3rStagePresentationPort } from "./evaluation/big3r-stage-presentation-adapter.js";
