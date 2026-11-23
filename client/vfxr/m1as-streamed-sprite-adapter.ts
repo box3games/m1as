@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { M1asAsset } from "../viewer/types.js";
 import { resolveM1ASTexture, type ManagedTextureHandle } from "../textures/ResolveM1ASTexture.js";
+import { M1ASFaceSurfaceResolver } from "../M1ASFaceSurfaceResolver.js";
 import { TwoDimensionalSpriteGrowthModel } from "../growth/two-dimensional-sprite-growth-model.js";
 import type { GrowthModelSubject } from "../growth/model-contract.js";
 
@@ -14,7 +15,7 @@ export interface VfxrM1asStreamedAssetInput {
   /** GLB is represented by the existing M1AS static GLB-snapshot surface, not a live animated render. */
   glbProjection?: "snapshot";
 }
-export type VfxrTextureResolver = (url: string, mimeType: string, options: { userId: string; label: string; flipY: boolean }) => Promise<ManagedTextureHandle>;
+export type VfxrTextureResolver = (url: string, mimeType: string, options: { userId: string; label: string; flipY: boolean; resolver: M1ASFaceSurfaceResolver }) => Promise<ManagedTextureHandle>;
 export interface VfxrM1asStreamedSpriteSubject {
   source: { assetId: string; displayName: string; mimeType: string; sourceKind: VfxrM1asSpriteSourceKind; streamCapability: "declared" | "unspecified" };
   subject: GrowthModelSubject;
@@ -53,7 +54,15 @@ export async function loadVfxrM1asStreamedSprite(
   const targetHeight = input.targetHeightMeters ?? 1;
   if (!Number.isFinite(targetHeight) || targetHeight <= 0) throw new RangeError("Target sprite height must be finite positive metres.");
   const sourceKind = classify(asset, input.glbProjection);
-  const handle = await resolver(input.signedUrl, asset.mimeType, { userId: input.userId, label: asset.displayName, flipY: false });
+  const surfaceResolver = new M1ASFaceSurfaceResolver(input.userId);
+  const resolverMime = sourceKind === "m1as-glb-snapshot" ? "model/gltf-binary" : asset.mimeType;
+  let handle: ManagedTextureHandle;
+  try {
+    handle = await resolver(input.signedUrl, resolverMime, { userId: input.userId, label: asset.displayName, flipY: false, resolver: surfaceResolver });
+  } catch (error) {
+    surfaceResolver.destroy();
+    throw error;
+  }
   try {
     const size = dimensions(handle.texture);
     const widthMeters = targetHeight * size.width / size.height;
@@ -79,10 +88,12 @@ export async function loadVfxrM1asStreamedSprite(
         growthModel.dispose();
         material.dispose();
         handle.dispose();
+        surfaceResolver.destroy();
       },
     };
   } catch (error) {
     handle.dispose();
+    surfaceResolver.destroy();
     throw error;
   }
 }
