@@ -145,3 +145,13 @@ test("procedural dimensions are deterministic and can vary all three axes indepe
   assert.ok(first.heightMeters >= 0.01 && first.heightMeters <= 100);
   assert.ok(first.depthMeters >= 0.002 && first.depthMeters <= 3);
 });
+
+
+test("world-envelope generation ratio may be below one for Petri-dish scale inversion", () => {
+  const configured = profile({
+    generation: { ...profile().generation, worldEnvelopeMultiplier: 0.01 },
+    worldEnvelope: { widthMeters: 1, heightMeters: 1, depthMeters: 1 },
+    dimensions: { widthMeters: 20, heightMeters: 100, depthMeters: 20 },
+  });
+  assert.doesNotThrow(() => validateColossusProfile(configured));
+});
