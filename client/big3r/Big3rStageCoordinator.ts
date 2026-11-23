@@ -4,7 +4,7 @@ import { M1ASFaceSurfaceResolver, type FaceAssetType } from '../M1ASFaceSurfaceR
 import type { ManagedTextureHandle } from '../textures/ResolveM1ASTexture.js';
 import { LevelOrchestrator } from '../big3r/LevelOrchestrator.js';
 import type { JSONLevelManifest } from './streaming/manifest-types.js';
-import { ScaleRebaseController } from './scale/ScaleRebaseController.js';
+import { ScaleRebaseController, type RebaseStateSnapshot } from './scale/ScaleRebaseController.js';
 import {
     GrowthCurveStateMachine,
     type Big3rGrowthCurveConfig,
@@ -32,6 +32,7 @@ export class Big3rStageCoordinator {
 
     private readonly levelOrchestrator: LevelOrchestrator;
     private readonly scaleRebase: ScaleRebaseController;
+    private lastRebaseSnapshot: RebaseStateSnapshot | null = null;
     private readonly growthCurve = new GrowthCurveStateMachine();
     private readonly cameraRig: CameraRig5Mode;
 
@@ -151,9 +152,61 @@ export class Big3rStageCoordinator {
         this.growthCurve.loadConfig(config);
     }
 
+    /** Read-only physical growth value from the active growth model. */
+    public getActualScaleEvaluationSnapshot(): {
+        growthModel: string;
+        currentVisualScale: number;
+    } {
+        return {
+            growthModel: this.engine.getGrowthModel(),
+            currentVisualScale: this.engine.getCurrentVisualScale(),
+        };
+    }
+
+    /**
+     * Read-only stage-relative state from the active manifest and native
+     * ScaleRebaseController. No presentation scale is inferred from camera data.
+     */
+    public getStageScaleEvaluationSnapshot():
+        | {
+            status: "available";
+            activeTierId: string;
+            activeTierName: string;
+            metricHeight: number;
+            normalizedPlayerScale: number;
+            activeTierWorldScale: number;
+            prewarmedTierWorldScale: number;
+            progress01: number;
+            rebaseCount: number;
+            effectiveMetricHeight: number;
+          }
+        | { status: "not_captured"; reason: string } {
+        const manifest = this.levelOrchestrator.getActiveManifest();
+        const snapshot = this.lastRebaseSnapshot;
+        if (!this.streamingManifestActive || !manifest || !snapshot) {
+            return {
+                status: "not_captured",
+                reason: "A streaming stage manifest and its first ScaleRebaseController frame are required.",
+            };
+        }
+        return {
+            status: "available",
+            activeTierId: manifest.tierId,
+            activeTierName: manifest.displayName,
+            metricHeight: manifest.metricHeight,
+            normalizedPlayerScale: snapshot.normalizedPlayerScale,
+            activeTierWorldScale: snapshot.activeTierWorldScale,
+            prewarmedTierWorldScale: snapshot.prewarmedTierWorldScale,
+            progress01: snapshot.progress01,
+            rebaseCount: snapshot.rebaseCount,
+            effectiveMetricHeight: snapshot.effectiveMetricHeight,
+        };
+    }
+
     public async loadLevelManifest(manifest: JSONLevelManifest): Promise<void> {
         await this.levelOrchestrator.loadManifest(manifest);
         this.scaleRebase.reset();
+        this.lastRebaseSnapshot = null;
         this.streamingManifestActive = true;
         this.roomBoxMesh.visible = false;
     }
@@ -231,6 +284,7 @@ export class Big3rStageCoordinator {
                 void this.scaleRebase
                     .update(visualScale, this.engine.getSubjectRoot())
                     .then((rebaseSnap) => {
+                        this.lastRebaseSnapshot = rebaseSnap;
                         this.levelOrchestrator.updateFrame(this.engine.getCamera(), rebaseSnap.progress01);
                         this.cameraRig.update(
                             dt,
