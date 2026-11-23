@@ -90,7 +90,7 @@ export class VfxrPoseSequenceAuthoringTarget implements VfxrPoseTransitionTarget
       targetId: this.targetId,
       transitionId: sample.transitionId,
       subjectId: sample.subjectId,
-      durationSeconds: existing?.durationSeconds ?? sample.elapsedSeconds,
+      durationSeconds: sample.durationSeconds,
       configurationVersion: sample.configurationVersion,
       growthStateId: sample.growthStateId,
       referenceEnvelopeMeters: reference,
