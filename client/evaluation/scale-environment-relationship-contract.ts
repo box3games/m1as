@@ -343,7 +343,10 @@ export function evaluateScaleEnvironmentResponses(
     throw new TypeError("Unsupported scale/environment measurement schema.");
   }
   if (!Array.isArray(rules)) throw new TypeError("rules must be an array.");
-  if (!Array.isArray(previouslyActiveRuleIds) || previouslyActiveRuleIds.some(id => typeof id !== "string" || !id.trim())) {\n    throw new TypeError("previouslyActiveRuleIds must contain non-empty strings.");\n  }\n  const previous = new Set(previouslyActiveRuleIds);
+  if (!Array.isArray(previouslyActiveRuleIds) || previouslyActiveRuleIds.some(id => typeof id !== "string" || !id.trim())) {
+    throw new TypeError("previouslyActiveRuleIds must contain non-empty strings.");
+  }
+  const previous = new Set(previouslyActiveRuleIds);
   if (previous.size !== previouslyActiveRuleIds.length) {
     throw new TypeError("previouslyActiveRuleIds must be unique.");
   }
@@ -367,7 +370,11 @@ export function evaluateScaleEnvironmentResponses(
       measuredValue: value,
       threshold: rule.threshold,
     } satisfies EnvironmentResponseEvaluation;
-  }).sort((a, b) => a.priority - b.priority || a.ruleId.localeCompare(b.ruleId));\n  const unknownPrevious = [...previous].filter(id => !seen.has(id));\n  if (unknownPrevious.length) {\n    throw new TypeError(`Previously active rules are not present in this rule set: ${unknownPrevious.join(", ")}.`);\n  }
+  }).sort((a, b) => a.priority - b.priority || a.ruleId.localeCompare(b.ruleId));
+  const unknownPrevious = [...previous].filter(id => !seen.has(id));
+  if (unknownPrevious.length) {
+    throw new TypeError(`Previously active rules are not present in this rule set: ${unknownPrevious.join(", ")}.`);
+  }
   const requestedResponses = evaluations.filter(item => item.state === "entered" || item.state === "maintained");
   return {
     schemaVersion: "big3r-scale-environment-response/1.0",
