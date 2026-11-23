@@ -258,3 +258,21 @@ The renderer-neutral `assessFramingIntegrity` function converts a measured proje
 - The resulting assessment retains subject, growth-state, configuration, and simulation-time identity so IGP transitions can validate against the exact diagnostic sample.
 
 This is a deterministic assessment layer, not a live camera controller. It does not change CameraRig5Mode, move a camera, modify near/far planes, contract the environment, or alter authoritative growth and stage scale. Renderer adapters remain responsible for producing trustworthy projection bounds, depth range, and recovery-capability evidence.
+
+
+## 18. Configurable Colossus profile and world envelope
+
+The renderer-independent `colossus-profile-contract.ts` defines a versioned JSON profile for a Colossus scale reference. Colossus identity is the stable reference ID and authored `kind: "colossus"` / `role: "parent"`; it is never inferred from a dimension threshold. A Colossus can therefore be configured at microscopic, character-sized, 1 m, 20 m, 100 m, or much larger dimensions without losing its identity.
+
+The profile stores three independent dimension axes in canonical metres for both the Colossus and the world envelope. The envelope is intentionally not required to contain the Colossus: a 1 m Petri-dish test world can present a 20 m or 100 m Colossus through later presentation/world-generation systems. The authored world-envelope multiplier may also be below 1, so procedural world generation can preserve this inverse relationship. This contract records those dimensions; it does not itself shrink the world, generate geometry, or create an infinite space.
+
+Runtime resizing is a pure profile operation controlled by an explicit flag. It changes configured dimensions and configuration version while preserving reference identity and world-envelope dimensions. A separate adapter maps the configured comparison axis into the existing persistent scale-reference hierarchy node, so the hierarchy is extended rather than duplicated.
+
+Generation metadata records authored, procedural, or hybrid mode, a stable string or numeric seed, and the explicit `mulberry32-v1` algorithm version. Procedural mode can sample independent width/height/depth ranges reproducibly; a height-only range preserves the authored width-to-height and depth-to-height proportions. Authored NPC/boss ratios, next-parent scale factor, world-envelope generation multiplier, and ordered reference-landmark ratios provide deterministic inputs for future world-map generation. The `generateColossusDimensions` function generates dimensions only; world-map topology, assets, placement, NPC/boss instantiation, and Colossus mesh generation remain downstream systems.
+
+Validation accepts any finite positive representable metre value, including very small scientific-notation values, and imposes no minimum/maximum gameplay size. Zero, negative, non-finite, or underflowed-to-zero values are rejected. Physical growth, stage-relative scale, camera framing, and IGP presentation remain separate authorities.
+
+
+A runnable authored 1 m × 1 m × 1 m starting profile is provided at `examples/experiments/big3r-colossus-profile-petri-dish.json`. It deliberately keeps the Colossus and world envelope separate so the same stable Colossus reference can later be resized to a micro or macro test scale without changing its identity.
+
+A second example, `examples/experiments/big3r-colossus-profile-procedural-petri-dish.json`, demonstrates seeded independent dimension ranges for an approximately 100 m Colossus in a 1 m world envelope, including a 0.01 world-envelope multiplier.

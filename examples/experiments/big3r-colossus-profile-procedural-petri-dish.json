@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "big3r-colossus-profile/1.0",
+  "profileId": "petri-dish-procedural-colossus-100m",
+  "configurationVersion": "petri-procedural-v1",
+  "revision": 1,
+  "reference": {
+    "referenceId": "petri-procedural-colossus",
+    "entityId": "petri-procedural-colossus-entity",
+    "displayName": "Procedural 100m Petri Dish Colossus",
+    "kind": "colossus",
+    "role": "parent",
+    "introducedInWorldId": "petri-dish-procedural-world"
+  },
+  "dimensions": {
+    "widthMeters": 20,
+    "heightMeters": 100,
+    "depthMeters": 20
+  },
+  "worldEnvelope": {
+    "widthMeters": 1,
+    "heightMeters": 1,
+    "depthMeters": 1
+  },
+  "generation": {
+    "mode": "procedural",
+    "seed": 13163,
+    "algorithm": "mulberry32-v1",
+    "dimensionRangesMeters": {
+      "width": {
+        "minimum": 10,
+        "maximum": 30
+      },
+      "height": {
+        "minimum": 80,
+        "maximum": 120
+      },
+      "depth": {
+        "minimum": 10,
+        "maximum": 30
+      }
+    },
+    "npcHeightRatio": 0.2,
+    "bossHeightRatio": 0.75,
+    "nextParentScaleFactor": 10,
+    "worldEnvelopeMultiplier": 0.01,
+    "referenceLandmarkRatios": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1,
+      2,
+      3,
+      5
+    ]
+  },
+  "progression": {
+    "referenceIdentityPersists": true,
+    "allowRuntimeResizing": true,
+    "allowSmallerThanCharacter": true,
+    "allowParentPromotion": true
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "big3r-colossus-profile/1.0",
+  "profileId": "petri-dish-colossus-001",
+  "configurationVersion": "petri-dish-v1",
+  "revision": 1,
+  "reference": {
+    "referenceId": "colossus-petri-001",
+    "entityId": "colossus-petri-entity-001",
+    "displayName": "Petri Dish Colossus",
+    "kind": "colossus",
+    "role": "parent",
+    "introducedInWorldId": "petri-dish-world"
+  },
+  "dimensions": {
+    "widthMeters": 1,
+    "heightMeters": 1,
+    "depthMeters": 1
+  },
+  "worldEnvelope": {
+    "widthMeters": 1,
+    "heightMeters": 1,
+    "depthMeters": 1
+  },
+  "generation": {
+    "mode": "authored",
+    "seed": "petri-dish-seed-13163",
+    "npcHeightRatio": 0.2,
+    "bossHeightRatio": 0.75,
+    "nextParentScaleFactor": 10,
+    "worldEnvelopeMultiplier": 1,
+    "referenceLandmarkRatios": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1,
+      2,
+      3,
+      5
+    ],
+    "algorithm": "mulberry32-v1"
+  },
+  "progression": {
+    "referenceIdentityPersists": true,
+    "allowRuntimeResizing": true,
+    "allowSmallerThanCharacter": true,
+    "allowParentPromotion": true
+  }
+}
