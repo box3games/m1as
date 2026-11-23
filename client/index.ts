@@ -222,3 +222,12 @@ export {
   buildWorldSpatialLayoutPlan,
 } from "./evaluation/world-spatial-layout-contract.js";
 export type * from "./evaluation/world-spatial-layout-contract.js";
+
+
+export {
+  SCALE_ENVIRONMENT_RELATIONSHIP_SCHEMA_VERSION,
+  placementToWorldAabbMeters,
+  measureScaleEnvironmentRelationship,
+  evaluateScaleEnvironmentResponses,
+} from "./evaluation/scale-environment-relationship-contract.js";
+export type * from "./evaluation/scale-environment-relationship-contract.js";
