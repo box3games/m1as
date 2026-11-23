@@ -6,6 +6,9 @@
  */
 import type { ScaleReferenceNode } from "./scale-reference-hierarchy-contract.js";
 
+export const COLOSSUS_PROFILE_SCHEMA_VERSION = "big3r-colossus-profile/1.0" as const;
+export const COLOSSUS_GENERATION_ALGORITHM = "mulberry32-v1" as const;
+
 export interface ColossusDimensions {
   widthMeters: number;
   heightMeters: number;
@@ -16,6 +19,12 @@ export interface ColossusGenerationRules {
   mode: "authored" | "procedural" | "hybrid";
   /** Stable seed makes generation inputs reproducible. */
   seed: string | number;
+  /** Optional independent generated ranges for all three axes, in canonical meters. */
+  dimensionRangesMeters?: {
+    width: { minimum: number; maximum: number };
+    height: { minimum: number; maximum: number };
+    depth: { minimum: number; maximum: number };
+  };
   /** Optional generated height range in canonical meters. */
   heightRangeMeters?: {
     minimum: number;
@@ -116,6 +125,15 @@ export function validateColossusProfile(profile: ColossusProfile): void {
     throw new TypeError("generation.seed must be a string or safe integer.");
   }
   if (typeof rules.seed === "string") nonEmpty(rules.seed, "generation.seed");
+  if (rules.dimensionRangesMeters !== undefined) {
+    for (const axis of ["width", "height", "depth"] as const) {
+      const range = rules.dimensionRangesMeters[axis];
+      if (!range) throw new TypeError(`generation.dimensionRangesMeters.${axis} is required.`);
+      positiveFinite(range.minimum, `generation.dimensionRangesMeters.${axis}.minimum`);
+      positiveFinite(range.maximum, `generation.dimensionRangesMeters.${axis}.maximum`);
+      if (range.maximum < range.minimum) throw new RangeError(`generation.dimensionRangesMeters.${axis}.maximum must be >= minimum.`);
+    }
+  }
   if (rules.heightRangeMeters !== undefined) {
     positiveFinite(rules.heightRangeMeters.minimum, "generation.heightRangeMeters.minimum");
     positiveFinite(rules.heightRangeMeters.maximum, "generation.heightRangeMeters.maximum");
@@ -123,8 +141,8 @@ export function validateColossusProfile(profile: ColossusProfile): void {
       throw new RangeError("Generated height maximum must be at least the minimum.");
     }
   }
-  if (rules.mode === "procedural" && !rules.heightRangeMeters) {
-    throw new TypeError("Procedural Colossus generation requires heightRangeMeters.");
+  if (rules.mode === "procedural" && !rules.heightRangeMeters && !rules.dimensionRangesMeters) {
+    throw new TypeError("Procedural Colossus generation requires heightRangeMeters or dimensionRangesMeters.");
   }
   if (!Number.isFinite(rules.npcHeightRatio) || rules.npcHeightRatio <= 0 || rules.npcHeightRatio > 1) {
     throw new RangeError("npcHeightRatio must be greater than zero and at most one.");
@@ -211,4 +229,58 @@ export function resizeColossusProfile(
   };
   validateColossusProfile(resized);
   return resized;
+}
+
+
+function seedToUint32(seed: string | number): number {
+  if (typeof seed === "number") return seed >>> 0;
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Produces deterministic dimensions from the profile's procedural ranges.
+ * When only a height range is authored, existing width/height and depth/height
+ * proportions are preserved. This generates dimensions only, not world assets.
+ */
+export function generateColossusDimensions(profile: ColossusProfile): ColossusDimensions {
+  validateColossusProfile(profile);
+  const rules = profile.generation;
+  if (rules.mode === "authored") {
+    throw new TypeError("Authored profiles do not request procedural dimension generation.");
+  }
+  if (!rules.dimensionRangesMeters && !rules.heightRangeMeters) {
+    throw new TypeError("Procedural dimension generation requires configured ranges.");
+  }
+  const random = seededRandom(seedToUint32(rules.seed));
+  const sample = (range: { minimum: number; maximum: number }) =>
+    range.minimum + random() * (range.maximum - range.minimum);
+  if (rules.dimensionRangesMeters) {
+    return {
+      widthMeters: sample(rules.dimensionRangesMeters.width),
+      heightMeters: sample(rules.dimensionRangesMeters.height),
+      depthMeters: sample(rules.dimensionRangesMeters.depth),
+    };
+  }
+  const height = sample(rules.heightRangeMeters!);
+  return {
+    widthMeters: height * (profile.dimensions.widthMeters / profile.dimensions.heightMeters),
+    heightMeters: height,
+    depthMeters: height * (profile.dimensions.depthMeters / profile.dimensions.heightMeters),
+  };
 }
