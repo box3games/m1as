@@ -289,3 +289,25 @@ The blueprint emits scale templates for the configured NPC and boss height ratio
 The plan preserves explicit world-envelope dimensions as authoritative and reports both the actual envelope-height/Colossus-height ratio and the configured world-envelope multiplier. A mismatch is diagnostic metadata, not an automatic resize or rejection. This permits an authored 1 m world envelope around a procedurally generated 100 m Colossus while making the relationship visible and testable.
 
 This plan does not instantiate geometry, place objects, populate NPCs/bosses, load assets, move the camera, apply IGP, modify growth state, or promote the hierarchy. It is a deterministic data blueprint for downstream world-generation and presentation adapters. Its tests cover procedural dimension resolution, stable output, scale templates, beyond-parent landmarks, next-parent proposals, and explicit envelope/multiplier mismatches.
+
+
+## 20. Deterministic world spatial layout
+
+The renderer-neutral `buildWorldSpatialLayoutPlan` function consumes a validated Colossus world-generation blueprint and an independent spatial-layout configuration. It emits stable placement identities, parent-reference relationships, world-space ground anchors, normalized X/Z coordinates, preserved dimensions, source-template provenance, and layout diagnostics.
+
+The initial `radial-rings-mulberry32-v1` algorithm creates:
+- one Colossus parent anchor at the world-envelope center;
+- a configurable count of NPC placements on an inner ring;
+- a configurable count of boss placements on a separate ring;
+- one placement for each authored scale-landmark template on an outer ring;
+- an optional transition-gate anchor connected to the proposed next-parent reference.
+
+The layout seed is combined with the source generation ID and layout ID. Identical source plans and layout configurations therefore produce identical placement coordinates. Changing only the layout seed changes spatial positions without changing generated dimensions or scale ratios. Stable IDs derive from layout ID, Colossus reference identity, placement kind, and index.
+
+Normalized horizontal coordinates use the world-envelope center as (0,0) and the envelope half-extents as 0.5. They are converted into canonical metre coordinates using the actual width and depth independently, so non-cubic envelopes are supported. The vertical anchor is currently ground-contact Y=0; vertical stacking and authored elevation are future layout features.
+
+The planner intentionally preserves object dimensions even when they are much larger than the world envelope. It reports whether each footprint fits and whether any extent exceeds the envelope. Anchors are constrained to the envelope's normalized X/Z range, but object bounds may extend outside it. This is deliberate for Petri-dish micro-to-macro tests: placement must not silently shrink a Colossus, landmark, or transition gate to fit a small room.
+
+A broad-phase X/Z AABB overlap diagnostic reports placement pairs whose horizontal footprints may overlap. It does not perform collision resolution, infer vertical separation, move objects, or decide whether overlap is desirable. For very large entities, overlap is expected and remains visible in the diagnostic output for a downstream scene/level authoring policy to interpret.
+
+The layout contract does not instantiate geometry, select assets, generate collision, populate animation, modify growth state, promote the reference hierarchy, or change camera/IGP presentation. It is a deterministic placement blueprint. The current tests cover stable generation, identity and parent links, configurable population, seed variation, non-cubic envelope mapping, oversized dimensions, overlap diagnostics, and authority boundaries.
