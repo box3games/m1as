@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assessFramingIntegrity } from "./framing-integrity-monitor.js";
+import { assessFramingIntegrity, type FramingIntegrityObservation } from "./framing-integrity-monitor.js";
 
-function observation(overrides: Record<string, unknown> = {}) {
+function observation(overrides: Partial<FramingIntegrityObservation> = {}): FramingIntegrityObservation {
   return {
     sampleId: "frame-001",
     subjectId: "subject-1",
