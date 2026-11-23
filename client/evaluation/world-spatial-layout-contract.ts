@@ -153,7 +153,6 @@ function overlapsOnAxis(a: number, aSize: number, b: number, bSize: number): boo
 
 function makePlacement(args: {
   plan: ColossusWorldGenerationPlan;
-  config: WorldSpatialLayoutConfig;
   placementId: string;
   entityId: string;
   referenceId: string;
@@ -233,7 +232,7 @@ export function buildWorldSpatialLayoutPlan(
   const placements: WorldSpatialPlacement[] = [];
 
   placements.push(makePlacement({
-    plan, config,
+    plan,
     placementId: `${config.layoutId}:colossus`,
     entityId: plan.colossus.entityId,
     referenceId: plan.colossus.referenceId,
@@ -251,7 +250,7 @@ export function buildWorldSpatialLayoutPlan(
     const point = placeOnRing(random, 0.08, 0.23, edgeLimit);
     const suffix = String(index + 1).padStart(3, "0");
     placements.push(makePlacement({
-      plan, config,
+      plan,
       placementId: `${config.layoutId}:npc:${suffix}`,
       entityId: `${plan.colossus.referenceId}:npc:${suffix}`,
       referenceId: `${plan.colossus.referenceId}:npc-ref:${suffix}`,
