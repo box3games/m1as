@@ -5,6 +5,7 @@ import { M1asApiClient } from "../viewer/m1as-api.js";
 import { Big3rSandboxController } from "../viewer/big3r-sandbox.js";
 import { CcsaStageController } from "../viewer/ccsa-stage.js";
 import { VfxRecorderController } from "../viewer/vfx-recorder.js";
+import { VfxrWorkflowController } from "../vfxr/vfxr-workflow-controller.js";
 import { FaceSlotKey, M1asAsset } from "../viewer/types.js";
 
 const assetListEl = document.getElementById("assetList") as HTMLElement;
@@ -31,13 +32,20 @@ const big3rSandbox = new Big3rSandboxController({
     engineFactory: (canvas, glbBlobUrl, options) => new M1ASVFXEngine(canvas, glbBlobUrl, options) as any
 });
 
-// 2. Isolated CCSA 3D Stage & Face Layer Inspector (injects M1ASFaceLayerEngine via factory)
+// 2. Dedicated VFXR 2D streamed-asset growth and pose-authoring workflow.
+const vfxrWorkflow = new VfxrWorkflowController({
+    host: assetListEl,
+    userId: api.getUserId(),
+    getSignedAssetUrl: (assetId) => api.getSignedAssetUrl(assetId)
+});
+
+// 3. Isolated CCSA 3D Stage & Face Layer Inspector (injects M1ASFaceLayerEngine via factory)
 const ccsaStage = new CcsaStageController({
     userId: api.getUserId(),
     engineFactory: (canvas, glbBlobUrl) => new M1ASFaceLayerEngine(canvas, glbBlobUrl)
 });
 
-// 3. Isolated .webm Composition Recorder
+// 4. Isolated .webm Composition Recorder
 new VfxRecorderController({
     getBig3rCanvas: () => big3rSandbox.getCanvas(),
     setBig3rTransparentBg: (enabled) => big3rSandbox.setTransparentBackground(enabled),
@@ -85,6 +93,7 @@ async function handleStreamAsset(asset: M1asAsset): Promise<void> {
 async function loadPublicAssets(): Promise<void> {
     assetListEl.innerHTML = "Loading...";
     const assets = await api.fetchPublicAssets();
+    vfxrWorkflow.setAssets(assets);
     assetListEl.innerHTML = "";
 
     void api.autoHydrateRuntimeEngine(assets);
