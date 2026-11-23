@@ -311,3 +311,6 @@ The planner intentionally preserves object dimensions even when they are much la
 A broad-phase X/Z AABB overlap diagnostic reports placement pairs whose horizontal footprints may overlap. It does not perform collision resolution, infer vertical separation, move objects, or decide whether overlap is desirable. For very large entities, overlap is expected and remains visible in the diagnostic output for a downstream scene/level authoring policy to interpret.
 
 The layout contract does not instantiate geometry, select assets, generate collision, populate animation, modify growth state, promote the reference hierarchy, or change camera/IGP presentation. It is a deterministic placement blueprint. The current tests cover stable generation, identity and parent links, configurable population, seed variation, non-cubic envelope mapping, oversized dimensions, overlap diagnostics, and authority boundaries.
+
+
+The example input is `examples/experiments/big3r-world-spatial-layout-petri-dish.json`. Its `layout` object matches the `WorldSpatialLayoutConfig` passed to the planner; `sourceProfilePath` identifies the profile used to build the upstream world-generation plan.
