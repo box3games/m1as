@@ -346,4 +346,46 @@ FLAGS: [CHECK] Audit $T implementation/interfaces/assets/gaps; $ASCII doesn't pr
                /              / /         \                \
               /              / /           \                \
              /               |/             |                \
-            |               |/     
+            |               |/                                
+
+[1. NEUTRAL STANDING]       [2. TOP PLANE DROPS]        [3. COMPRESSED SQUAT]
+   +-------------+             
+
+   |      O      |             +-------------+
+   |     /|\     |             |     _.-O    |             
+   |    / | \    |             |   .'  /|\   |             +-------------+
+   |      |      |             |  |   / | \  |             |    _.-O     |
+   |     / \     |             |   \   / \   |             |  .'  / \    |
+   |    /   \    |             |    | |   |  |             |  |  /___\   |
+   +-------------+             +-------------+             +-------------+
+   Full Height (100%)          Spine Hunch (70%)           Baby Squat (40%)
+
+[1. NEUTRAL STANDING]       [2. TOP PLANE DROPS]        [3. COMPRESSED SQUAT]
+   +-------------+             
+
+   |      O      |             +-------------+
+   |    / | \    |             |     _O_     |             
+   |   /  |  \   |             |   /  |  \   |             +-------------+
+   |      |      |             |  |  / \  |  |             |     _O_     |
+   |     / \     |             |    /   \    |             |   / / \ \   |
+   |    |   |    |             |   |     |   |             |  |_|___|_|  |
+   +-------------+             +-------------+             +-------------+
+   T-/A-Pose Base              Shoulders Rounded           Knees Out / Heels Down
+[1. LEGS EXTENDED]          [2. WALLS PUSH IN]          [3. TUCKED SQUAT]
++---------------------+        +---------------+           +-----------+
+
+|   O                 |        |   O           |           |    _.-O   |
+|   |\                |        |   |\    /\    |           |  .'  / \  |
+|   | \               |        |   | \  /  \   |           |  |  /___\ |
+|   |________o        |        |   |___/    o  |           |  |__|___| |
++---------------------+        +---------------+           +-----------+
+Full Box Width (100%)          Knees Buckle Up (70%)       Heels Under Pelvis (50%)
+[1. DEEP SLAV SQUAT]        [2. PELVIS PIVOTS BACK]     [3. SEATED "V" POSE]
+   +---------------+           +---------------+           +---------------+
+
+   |      _O_      |           |      _O_      |           |      _O_      |
+   |    / / \ \    |           |    /  |  \    |           |    /  |  \    |
+   |   |  | |  |   |           |   /  / \  \   |           |   /  / \  \   |
+   |   |__|_|__|   |           |  o--'   '--o  |           |  o--'   '--o  |
+   +---------------+           +---------------+           +---------------+
+   Weight on Feet              Hips Drop / Knees Splay     Glutes Grounded / Wide V
