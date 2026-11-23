@@ -34,6 +34,13 @@ import { validateExperientialScaleProfileSet, type ExperientialScaleProfileSet }
 import { TwoDimensionalSpriteLab, type StreamedGlbGrowthSubject } from "./two-dimensional-sprite-lab.js";
 import { M1ASVFXGrowthModel } from "../growth/model-adapters.js";
 import type { GrowthModelCommand } from "../growth/model-contract.js";
+import {
+    PortableEvaluationRouter,
+    type PortableEvaluationCommand,
+    type PortableEvaluationContext,
+    type PortableExecutionRecord,
+} from "../evaluation/portable-evaluation-router.js";
+import { Big3rStagePresentationAdapter } from "../evaluation/big3r-stage-presentation-adapter.js";
 
 
 const BOX_TIER_NAMES = [
@@ -66,6 +73,8 @@ export class Big3rSandboxController {
     private activeEngine: IVfxEngine | null = null;
 
     private coordinator: Big3rStageCoordinator | null = null;
+    private portableEvaluationRouter: PortableEvaluationRouter | null = null;
+    private unregisterStagePresentationAdapter: (() => void) | null = null;
     private experimentCoordinator: ExperimentCoordinator | null = null;
     private experimentStorage: IndexedDbExperimentStorage | null = null;
     private experimentControls: HTMLElement | null = null;
@@ -200,6 +209,10 @@ export class Big3rSandboxController {
             this.experimentCoordinator = null;
         }
 
+        this.unregisterStagePresentationAdapter?.();
+        this.unregisterStagePresentationAdapter = null;
+        this.portableEvaluationRouter = null;
+
         if (this.coordinator) {
             this.coordinator.destroy();
             this.coordinator = null;
@@ -310,6 +323,11 @@ export class Big3rSandboxController {
             if (this.streamingHud) this.coordinator.attachTelemetryHud(this.streamingHud);
             if (this.heightReticle) this.coordinator.attachHeightReticle(this.heightReticle);
 
+            this.portableEvaluationRouter = new PortableEvaluationRouter();
+            this.unregisterStagePresentationAdapter = this.portableEvaluationRouter.register(
+                new Big3rStagePresentationAdapter(this.coordinator),
+            );
+
 
             this.activeEngine.setMode(this.growthModeSelect.value as GrowthMode);
 
@@ -321,6 +339,25 @@ export class Big3rSandboxController {
             const message = err instanceof Error ? err.message : String(err);
             this.stageContainer.innerHTML = `<div class="vfx-error-box">⚠️ M1ASVFXEngine Error: ${message}</div>`;
         }
+    }
+
+    public async routePortableEvaluationCommand(
+        command: PortableEvaluationCommand,
+        context: PortableEvaluationContext,
+    ): Promise<PortableExecutionRecord> {
+        if (!this.portableEvaluationRouter) {
+            return {
+                commandId: command.commandId,
+                domain: command.domain,
+                sourceCommand: command,
+                status: "unsupported",
+                translationNotes: [],
+                simulationTimeSeconds: context.simulationTimeSeconds,
+                configurationVersion: context.configurationVersion,
+                reason: "BIG3R has no active mounted stage presentation adapter.",
+            };
+        }
+        return this.portableEvaluationRouter.route(command, context);
     }
 
     private installExperimentControls(engine: M1ASVFXEngine): void {
