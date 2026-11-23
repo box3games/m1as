@@ -23,7 +23,7 @@ function event(): StructuralResponseEvent {
     observationId: "obs-1", relationship, signals: {},
     provenance: { sourceId: "bounds", sourceVersion: "1", sourceKind: "authored-envelope" },
   }, [{
-    ruleId: "wall-crack", metric: "penetrationDepthX", operator: "greater-than-or-equal", threshold: 0.5,
+    ruleId: "wall-crack", metric: "penetrationDepthX", operator: "greater-than-or-equal", threshold: 0.05,
     channel: "visual-effect", effectKind: "crack-overlay", responseId: "crack-wall",
     severity: "warning", priority: 1, targetId: "vfxr.wall.cracks",
     asset: { kind: "sprite-sequence", assetId: "wall-crack-growth" },
@@ -49,8 +49,8 @@ test("routes shared structural events to an explicitly registered VFXR sprite ta
   }, context);
   assert.equal(result.status, "executed");
   assert.equal(calls.length, 1);
-  assert.equal(result.telemetry?.pipeline, "VFXR");
-  assert.equal(result.telemetry?.assetId, "wall-crack-growth");
+  assert.equal((result.telemetry as Record<string, unknown> | undefined)?.pipeline, "VFXR");
+  assert.equal((result.telemetry as Record<string, unknown> | undefined)?.assetId, "wall-crack-growth");
 });
 
 test("does not fall back when a VFXR target or asset capability is missing", async () => {
