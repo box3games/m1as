@@ -19,6 +19,8 @@ export interface ColossusGenerationRules {
   mode: "authored" | "procedural" | "hybrid";
   /** Stable seed makes generation inputs reproducible. */
   seed: string | number;
+  /** Explicit algorithm version for reproducible procedural output. */
+  algorithm: typeof COLOSSUS_GENERATION_ALGORITHM;
   /** Optional independent generated ranges for all three axes, in canonical meters. */
   dimensionRangesMeters?: {
     width: { minimum: number; maximum: number };
@@ -125,6 +127,9 @@ export function validateColossusProfile(profile: ColossusProfile): void {
     throw new TypeError("generation.seed must be a string or safe integer.");
   }
   if (typeof rules.seed === "string") nonEmpty(rules.seed, "generation.seed");
+  if (rules.algorithm !== COLOSSUS_GENERATION_ALGORITHM) {
+    throw new TypeError("generation.algorithm is unsupported.");
+  }
   if (rules.dimensionRangesMeters !== undefined) {
     for (const axis of ["width", "height", "depth"] as const) {
       const range = rules.dimensionRangesMeters[axis];
