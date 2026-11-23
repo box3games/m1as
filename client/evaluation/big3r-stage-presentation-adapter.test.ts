@@ -55,8 +55,8 @@ test("BIG3R presentation adapter delegates stage double-sided control", async ()
 
 test("BIG3R presentation adapter does not advertise anchor or unsupported presentation controls", () => {
   const adapter = new Big3rStagePresentationAdapter(fixture().stage);
-  assert.equal(adapter.descriptor.domains.anchors, undefined);
-  assert.equal(adapter.descriptor.domains["stage-scaling"], undefined);
-  assert.equal(adapter.descriptor.domains.shadow, undefined);
-  assert.equal(adapter.descriptor.domains.horizon, undefined);
+  assert.equal("anchors" in adapter.descriptor.domains, false);
+  assert.equal("stage-scaling" in adapter.descriptor.domains, false);
+  assert.equal("shadow" in adapter.descriptor.domains, false);
+  assert.equal("horizon" in adapter.descriptor.domains, false);
 });
