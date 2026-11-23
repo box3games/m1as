@@ -187,5 +187,6 @@ export type * from "./evaluation/renderer-capability-contract.js";
 export {
   validateInfinityGrowthPresentation,
   validateFramingIntegrityAssessment,
+  validateGrowthPresentationTransition,
 } from "./evaluation/infinity-growth-presentation-contract.js";
 export type * from "./evaluation/infinity-growth-presentation-contract.js";
