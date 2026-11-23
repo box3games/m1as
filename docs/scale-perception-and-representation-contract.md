@@ -151,3 +151,19 @@ The next integration slice now connects the breathing controller to the existing
 The wrapper and engine use the same biological controller implementation. The wrapper is the interchangeable-model composition seam; the engine-owned instance is the live sandbox path, which follows the engine's existing simulation clock. Recorder capture remains observational and does not advance or mutate the profile.
 
 **Not yet integrated:** automatic stage-reference selection, camera-relative 2D normalization from live projected bounds, authored perceived-mass profiles, representation-tier prediction/remodeling, and VFXR/hologram registration. Those remain the next scale/perception and extensibility tasks.
+
+
+## Portable anchors and scale relationships
+
+BIG3R exposes a read-only portable anchor snapshot through the stage presentation adapter. The current runtime sources are deliberately distinct:
+
+- Character root origin and measured geometry bounds are geometric observations, not anatomical claims.
+- GLB skeleton nodes are exposed as rig-bone anchors with their original node names and parent-bone relationships.
+- Stage origin and camera position/focus are world-space observation references.
+- Scene props explicitly registered with role `reference` expose measured bottom/top bounds as environment anchors.
+
+These sources are not interchangeable. A measured mesh bound is not a head/foot landmark, a rig bone is not automatically a semantic anatomical label, and an arbitrary scene prop is not an environment reference unless it is explicitly registered as one.
+
+Reference relationship measurements preserve both baseline and current subject/reference snapshots. This supports character-to-character, creature-to-building and building-to-environment comparisons without assuming a human reference. Camera-relative projected size remains a separate presentation observation; it must not be used as a substitute for world-space growth.
+
+The current live capture is read-only. Authored semantic anchor metadata, writable anchor editing, additional environment landmark types, and paired first-person/observer capture remain subsequent integration work.
