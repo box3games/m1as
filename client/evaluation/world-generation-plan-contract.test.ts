@@ -67,7 +67,7 @@ test("landmark ratios can continue beyond the Colossus without becoming caps", (
   const plan = buildColossusWorldGenerationPlan(profile());
   const landmarks = plan.scaleTemplates.filter(item => item.kind === "world-landmark");
   assert.deepEqual(landmarks.map(item => item.relativeHeightRatio), [0.1, 0.5, 1, 2, 5]);
-  assert.equal(landmarks.at(-1)!.dimensions.heightMeters, 500);
+  assert.equal(landmarks[landmarks.length - 1]!.dimensions.heightMeters, 500);
 });
 
 test("produces a larger next-parent candidate without promoting hierarchy", () => {
