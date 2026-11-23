@@ -1,4 +1,5 @@
-import type { CharacterPoseTransition, CharacterPoseTransitionSample, PoseTransitionTargetResult, VfxrPoseTransitionTarget } from "../evaluation/character-pose-transition-adapters.js";
+import type { PoseTransitionTargetResult, VfxrPoseTransitionTarget } from "../evaluation/character-pose-transition-adapters.js";
+import type { CharacterPoseTransition, CharacterPoseTransitionSample } from "../evaluation/character-pose-transition-contract.js";
 import type { CharacterPoseKind } from "../evaluation/character-volume-pose-bridge-contract.js";
 
 export interface VfxrPoseSequenceFrame {
