@@ -268,6 +268,9 @@ The profile stores three independent dimension axes in canonical metres for both
 
 Runtime resizing is a pure profile operation controlled by an explicit flag. It changes configured dimensions and configuration version while preserving reference identity and world-envelope dimensions. A separate adapter maps the configured comparison axis into the existing persistent scale-reference hierarchy node, so the hierarchy is extended rather than duplicated.
 
-Generation metadata records an authored or deterministic mode, an unsigned 32-bit seed, and the versioned `mulberry32-v1` algorithm. Deterministic mode samples independent width/height/depth ranges reproducibly. It generates dimensions only; world-map topology, assets, placement, and Colossus mesh generation remain downstream systems.
+Generation metadata records authored, procedural, or hybrid mode, a stable string or numeric seed, and the explicit `mulberry32-v1` algorithm version. Procedural mode can sample independent width/height/depth ranges reproducibly; a height-only range preserves the authored width-to-height and depth-to-height proportions. Authored NPC/boss ratios, next-parent scale factor, world-envelope generation multiplier, and ordered reference-landmark ratios provide deterministic inputs for future world-map generation. The `generateColossusDimensions` function generates dimensions only; world-map topology, assets, placement, NPC/boss instantiation, and Colossus mesh generation remain downstream systems.
 
 Validation accepts any finite positive representable metre value, including very small scientific-notation values, and imposes no minimum/maximum gameplay size. Zero, negative, non-finite, or underflowed-to-zero values are rejected. Physical growth, stage-relative scale, camera framing, and IGP presentation remain separate authorities.
+
+
+A runnable authored 1 m × 1 m × 1 m starting profile is provided at `examples/experiments/big3r-colossus-profile-petri-dish.json`. It deliberately keeps the Colossus and world envelope separate so the same stable Colossus reference can later be resized to a micro or macro test scale without changing its identity.
