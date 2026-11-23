@@ -286,3 +286,6 @@ export type { Plane25DPoseTarget, Plane25DPoseDispatchResult } from "./evaluatio
 
 export { VfxrPoseSequenceAuthoringTarget } from "./vfxr/pose-sequence-authoring-target.js";
 export type { VfxrPoseSequenceFrame, VfxrPoseSequenceDocument, VfxrPoseSequenceTargetOptions } from "./vfxr/pose-sequence-authoring-target.js";
+
+export { loadVfxrM1asStreamedSprite } from "./vfxr/m1as-streamed-sprite-adapter.js";
+export type { VfxrM1asSpriteSourceKind, VfxrM1asStreamedAssetInput, VfxrTextureResolver, VfxrM1asStreamedSpriteSubject } from "./vfxr/m1as-streamed-sprite-adapter.js";
