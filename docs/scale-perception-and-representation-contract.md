@@ -406,3 +406,14 @@ The 2D target retains width/height and treats depth as source metadata; 2.5D ret
 The target is independent of BIG3R runtime and does not render or mutate sprites. VFXR owns the sequence document and can export/read a defensive copy or clear it. Duplicate samples at the same simulation time are idempotent; conflicting samples are rejected. Pose-kind capability and stable provenance are validated. The shared sample now carries total transition duration so a first sample at time zero still records the correct complete sequence duration.
 
 This is a real VFXR authoring data target, not yet a canvas renderer, keyframe editor, WEBM encoder, or automatic sprite deformation system. Those remain separate VFXR workflow integrations.
+
+
+## 29. VFXR authenticated M1AS streamed sprite input
+
+`client/vfxr/m1as-streamed-sprite-adapter.ts` accepts an M1AS asset metadata record, its signed stream URL, and the authenticated user ID. It uses the existing M1AS multi-MIME surface resolver and creates a VFXR-owned Three.js Sprite plus a `TwoDimensionalSpriteGrowthModel`. The stable M1AS asset ID is retained as the growth subject's asset identity; the expiring signed URL is transport only. Initial sprite dimensions are derived from resolved image/video dimensions and a configurable target height in metres.
+
+Supported inputs are M1AS image streams, video streams (including WEBM), and GLB only when the caller explicitly requests the existing static GLB snapshot projection. A GLB snapshot is not a live animated GLB-to-sprite renderer. Unsupported media such as audio are rejected rather than silently converted. Assets explicitly marked `canStream: false` are rejected. If stream capability metadata is absent, the source is accepted but marked as capability-unspecified.
+
+Each streamed subject gets its own authenticated `M1ASFaceSurfaceResolver`, preventing the global shared texture resolver from accidentally retaining a different user's authentication context. The resolver and managed texture are disposed with the VFXR subject. The 2D growth model now advertises the three M1AS asset kinds, so the existing deterministic sprite experiment runner accepts these streamed subjects without changing its scheduling or growth semantics.
+
+This adapter is a concrete VFXR input path and growth-model subject factory. It does not yet add an asset-picker UI or live skeletal GLB projection. It reuses the M1AS signed-stream and texture infrastructure rather than creating a parallel asset transport.
