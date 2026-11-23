@@ -417,3 +417,12 @@ Supported inputs are M1AS image streams, video streams (including WEBM), and GLB
 Each streamed subject gets its own authenticated `M1ASFaceSurfaceResolver`, preventing the global shared texture resolver from accidentally retaining a different user's authentication context. The resolver and managed texture are disposed with the VFXR subject. The 2D growth model now advertises the three M1AS asset kinds, so the existing deterministic sprite experiment runner accepts these streamed subjects without changing its scheduling or growth semantics.
 
 This adapter is a concrete VFXR input path and growth-model subject factory. It does not yet add an asset-picker UI or live skeletal GLB projection. It reuses the M1AS signed-stream and texture infrastructure rather than creating a parallel asset transport.
+
+
+## 30. Dedicated VFXR streamed-character workflow
+
+`client/vfxr/vfxr-workflow-controller.ts` adds an independent VFXR panel to the M1AS content viewer. After public assets are loaded, it lists stream-eligible image, video, and GLB assets. Selecting one obtains a fresh authenticated signed URL from the existing M1AS API client, then uses the VFXR streamed-sprite adapter to resolve the asset into a VFXR-owned 2D subject. It retains the stable M1AS asset ID and authenticated resolver lifecycle. The preview runs independently of BIG3R's sandbox and does not mount or mutate its GLB.
+
+The panel exposes direct 2D growth controls, scale/time telemetry, editable shared pose-transition JSON, VFXR pose-sequence authoring, and JSON export. Authoring binds the transition to the loaded M1AS subject ID and validates the shared transition contract before dispatching its keyframes to the VFXR authoring target. The shared transition can declare 2D, 2.5D and 3D representations, retaining the same envelope and joint-target semantics for later paired pipeline consumers.
+
+The workflow's video preview uses a continuous renderer loop so streamed WEBM/video textures continue updating. It does not yet implement skeletal-to-sprite deformation, a timeline editor, automatic pose extraction from GLB animation clips, or WEBM export. GLB remains an explicit static snapshot source in this 2D workflow; the live skeletal bridge is a separate subsequent milestone. The existing BIG3R workspace and M1AS streamed GLB growth-recipe path remain separate and unchanged.
