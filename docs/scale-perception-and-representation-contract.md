@@ -207,7 +207,7 @@ Two environment policies are explicit:
 
 Calibration anchors retain their authoritative identity, source, and measurements. Their presentation exemption is recorded separately; it must not overwrite their world-space dimensions. The selected policy is part of the presentation configuration and experiment capture.
 
-IGP defines three presentation modes: native, assisted, and infinity. Native uses the renderer's ordinary presentation. Assisted applies supported framing recovery without world contraction. Infinity enables explicit environment contraction. A transition must be tied to a framing-integrity assessment and the same subject, configuration, growth-state identity, and simulation timestamp. Arbitrary size thresholds alone are not sufficient evidence for a transition.
+IGP defines three presentation modes: native, assisted, and infinity. Native uses the renderer's ordinary presentation. Assisted applies supported framing recovery without world contraction. Infinity enables explicit environment contraction. A transition must be tied to the exact framing-integrity assessment and the same subject, configuration, growth-state identity, and simulation timestamp. Assisted mode is reserved for a framing problem that native camera recovery can still resolve; infinity mode is reserved for a problem native recovery cannot resolve. The assessment sample ID must match the presentation snapshot. Arbitrary size thresholds alone are not sufficient evidence for a transition.
 
 The initial IGP snapshot records:
 - presentation mode and environment policy;
