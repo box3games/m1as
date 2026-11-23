@@ -159,9 +159,6 @@ export function validateColossusProfile(profile: ColossusProfile): void {
     throw new RangeError("nextParentScaleFactor must be greater than one.");
   }
   positiveFinite(rules.worldEnvelopeMultiplier, "generation.worldEnvelopeMultiplier");
-  if (rules.worldEnvelopeMultiplier < 1) {
-    throw new RangeError("worldEnvelopeMultiplier must be at least one.");
-  }
   if (!Array.isArray(rules.referenceLandmarkRatios) || rules.referenceLandmarkRatios.length === 0) {
     throw new TypeError("referenceLandmarkRatios must be a non-empty array.");
   }
