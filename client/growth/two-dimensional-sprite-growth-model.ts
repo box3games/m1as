@@ -25,7 +25,7 @@ export class TwoDimensionalSpriteGrowthModel implements GrowthModel {
       proceduralVfx: false,
       sustainedFlow: true,
       deterministicReplay: "deterministic",
-      supportedAssetKinds: ["png", "webp", "jpeg", "sprite", "2d-image"],
+      supportedAssetKinds: ["png", "webp", "jpeg", "sprite", "2d-image", "m1as-image", "m1as-video", "m1as-glb-snapshot"],
     },
   };
 
