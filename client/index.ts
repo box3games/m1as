@@ -283,3 +283,6 @@ export type { PoseTransitionTargetResult, Big3rPoseTransitionTarget, VfxrPoseTra
 
 export { Plane25DPoseTransitionAdapter } from "./evaluation/character-pose-25d-transition-adapter.js";
 export type { Plane25DPoseTarget, Plane25DPoseDispatchResult } from "./evaluation/character-pose-25d-transition-adapter.js";
+
+export { VfxrPoseSequenceAuthoringTarget } from "./vfxr/pose-sequence-authoring-target.js";
+export type { VfxrPoseSequenceFrame, VfxrPoseSequenceDocument, VfxrPoseSequenceTargetOptions } from "./vfxr/pose-sequence-authoring-target.js";
