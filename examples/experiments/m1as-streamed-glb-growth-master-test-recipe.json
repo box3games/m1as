@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "m1as-growth-recipe/1.0",
+  "id": "m1as-streamed-glb-growth-master-test",
+  "title": "M1AS Streamed GLB — Master Growth Controls & Extremes",
+  "description": "Staged positive-growth coverage for the active M1AS-streamed GLB. Covers absolute and relative discrete growth, all six supported stimulus mappings, three sustained-flow rates, hold/release, and progressively larger growth increments. Run on a freshly mounted GLB with M1AS VFX Growth selected. atSeconds are offsets on the engine simulation clock, not wall-clock seconds.",
+  "subject": {
+    "assetKind": "glb",
+    "assetSource": "currently-mounted-m1as-stream"
+  },
+  "execution": {
+    "model": "m1as-vfx-queue",
+    "mode": "simulation_time_offsets"
+  },
+  "testCoverage": [
+    "Discrete amount: absolute_target and relative_change",
+    "Stimuli: Consumption, Buff, Exercise, Environmental, NPCInfluence, ToolActivation",
+    "Sustained flow: slow, nominal, and fast supply rates",
+    "Hold growth: activate, sustain for approximately one simulation second, release",
+    "Growth intensity: small increments through a final +100% relative-change stress step",
+    "Capture: growth recipe requests and existing engine/queue observations"
+  ],
+  "runNotes": [
+    "Use a freshly mounted GLB so the initial absolute target of 1.05 is above the initial projected scale of 1.00.",
+    "Keep the Growth Model selector on M1AS VFX Growth for this recipe. Baseline GLB Scaling is a separate manual control test.",
+    "Let the recipe finish before switching models or starting biological breathing.",
+    "The final +100% command is intentionally the strongest step. Watch framing, deformation, queue stability, and telemetry.",
+    "This recipe does not reset the character, switch models, or invoke the separate biological-breathing UI buttons."
+  ],
+  "commands": [
+    {
+      "atSeconds": 0,
+      "kind": "discrete",
+      "commandId": "master-absolute-target",
+      "stimulus": "Consumption",
+      "amount": {
+        "kind": "absolute_target",
+        "scale": 1.05
+      }
+    },
+    {
+      "atSeconds": 3,
+      "kind": "discrete",
+      "commandId": "master-relative-buff-small",
+      "stimulus": "Buff",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.05
+      }
+    },
+    {
+      "atSeconds": 6,
+      "kind": "discrete",
+      "commandId": "master-relative-exercise",
+      "stimulus": "Exercise",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.1
+      }
+    },
+    {
+      "atSeconds": 9,
+      "kind": "discrete",
+      "commandId": "master-relative-environmental",
+      "stimulus": "Environmental",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.15
+      }
+    },
+    {
+      "atSeconds": 12,
+      "kind": "discrete",
+      "commandId": "master-relative-npc",
+      "stimulus": "NPCInfluence",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.2
+      }
+    },
+    {
+      "atSeconds": 15,
+      "kind": "discrete",
+      "commandId": "master-relative-tool",
+      "stimulus": "ToolActivation",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.25
+      }
+    },
+    {
+      "atSeconds": 20,
+      "kind": "flow",
+      "commandId": "master-flow-slow",
+      "stimulus": "Buff",
+      "supplySeconds": 2,
+      "flowMultiplier": 0.5,
+      "parameters": {
+        "growthPerSupplySecond": 0.1
+      }
+    },
+    {
+      "atSeconds": 25,
+      "kind": "flow",
+      "commandId": "master-flow-nominal",
+      "stimulus": "Exercise",
+      "supplySeconds": 2,
+      "flowMultiplier": 1,
+      "parameters": {
+        "growthPerSupplySecond": 0.1
+      }
+    },
+    {
+      "atSeconds": 29,
+      "kind": "flow",
+      "commandId": "master-flow-fast",
+      "stimulus": "Environmental",
+      "supplySeconds": 2,
+      "flowMultiplier": 2,
+      "parameters": {
+        "growthPerSupplySecond": 0.1
+      }
+    },
+    {
+      "atSeconds": 34,
+      "kind": "hold",
+      "commandId": "master-hold-start",
+      "stimulus": "Buff",
+      "active": true
+    },
+    {
+      "atSeconds": 35,
+      "kind": "hold",
+      "commandId": "master-hold-release",
+      "stimulus": "Buff",
+      "active": false
+    },
+    {
+      "atSeconds": 40,
+      "kind": "discrete",
+      "commandId": "master-stress-plus-25-percent",
+      "stimulus": "Buff",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.25
+      }
+    },
+    {
+      "atSeconds": 44,
+      "kind": "discrete",
+      "commandId": "master-stress-plus-50-percent",
+      "stimulus": "Exercise",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 0.5
+      }
+    },
+    {
+      "atSeconds": 49,
+      "kind": "discrete",
+      "commandId": "master-extreme-plus-100-percent",
+      "stimulus": "Environmental",
+      "amount": {
+        "kind": "relative_change",
+        "fraction": 1
+      }
+    }
+  ]
+}
