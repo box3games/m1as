@@ -289,3 +289,6 @@ export type { VfxrPoseSequenceFrame, VfxrPoseSequenceDocument, VfxrPoseSequenceT
 
 export { loadVfxrM1asStreamedSprite } from "./vfxr/m1as-streamed-sprite-adapter.js";
 export type { VfxrM1asSpriteSourceKind, VfxrM1asStreamedAssetInput, VfxrTextureResolver, VfxrM1asStreamedSpriteSubject } from "./vfxr/m1as-streamed-sprite-adapter.js";
+
+export { VfxrWorkflowController } from "./vfxr/vfxr-workflow-controller.js";
+export type { VfxrWorkflowOptions } from "./vfxr/vfxr-workflow-controller.js";
