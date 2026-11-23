@@ -6,6 +6,7 @@ import type {
   PortableEvaluationCommand,
   PortableEvaluationContext,
   PortableTranslationResult,
+  PortableJsonValue,
 } from "./portable-evaluation-router.js";
 
 /**
@@ -14,8 +15,8 @@ import type {
  *
  * This first slice intentionally advertises only the controls that the
  * coordinator currently exposes. Stage-relative scaling is read-only through
- * the native ScaleRebaseController snapshot. Anchors, horizon, shadow, profile
- * and volume remain unadvertised until their native owners expose stable APIs.
+ * the native ScaleRebaseController snapshot. Runtime anchors are read-only and
+ * explicitly distinguish measured bounds from authored anatomical landmarks.
  */
 export interface Big3rStagePresentationPort {
   getPortableAnchorSnapshot(subjectId: string, configurationVersion: string): PortableAnchorSnapshot | { status: "not_captured"; reason: string };
@@ -122,7 +123,8 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
   ): PortableAdapterExecution {
     if (command.domain === "anchors" && command.operation === "get-current") {
       const snapshot = this.stage.getPortableAnchorSnapshot(_context.subject.subjectId, _context.configurationVersion);
-      return { accepted: true, output: snapshot };
+      const output = JSON.parse(JSON.stringify(snapshot)) as PortableJsonValue;
+      return { accepted: true, output };
     }
     if (command.domain === "camera" && command.operation === "get-mode") {
       return { accepted: true, output: { mode: this.stage.getCameraRigMode() } };
