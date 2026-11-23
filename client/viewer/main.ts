@@ -120,7 +120,7 @@ async function loadPublicAssets(): Promise<void> {
         const streamButton = asset.capabilities?.canStream ? `<button class="stream-btn">Stream</button>` : "";
         const signCopyButton = asset.capabilities?.canStream ? `<button class="sign-btn">Sign URL</button>` : "";
         const vfxGlbBtn = isGlb
-            ? `<button class="vfx-glb-btn">🍄 VFX Stage</button>
+            ? `<button class="vfx-glb-btn">🍄 Load GLB · Growth Lab / VFX Stage</button>
                <button class="vfx-prop-btn">+ Prop</button>`
             : "";
         const vfxWebmBtn =
