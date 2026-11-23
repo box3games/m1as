@@ -271,7 +271,7 @@ export function buildWorldSpatialLayoutPlan(
     const point = placeOnRing(random, 0.27, 0.36, edgeLimit);
     const suffix = String(index + 1).padStart(3, "0");
     placements.push(makePlacement({
-      plan, config,
+      plan,
       placementId: `${config.layoutId}:boss:${suffix}`,
       entityId: `${plan.colossus.referenceId}:boss:${suffix}`,
       referenceId: `${plan.colossus.referenceId}:boss-ref:${suffix}`,
@@ -293,7 +293,7 @@ export function buildWorldSpatialLayoutPlan(
     const point = placeOnRing(random, 0.37, 0.45, edgeLimit);
     const suffix = String(index + 1).padStart(3, "0");
     placements.push(makePlacement({
-      plan, config,
+      plan,
       placementId: `${config.layoutId}:landmark:${suffix}`,
       entityId: `${plan.colossus.referenceId}:landmark:${suffix}`,
       referenceId: `${plan.colossus.referenceId}:landmark-ref:${suffix}`,
@@ -312,7 +312,7 @@ export function buildWorldSpatialLayoutPlan(
   if (config.includeTransitionGate) {
     const point = { x: 0, z: edgeLimit };
     placements.push(makePlacement({
-      plan, config,
+      plan,
       placementId: `${config.layoutId}:transition-gate`,
       entityId: `${plan.colossus.referenceId}:transition-gate`,
       referenceId: `${plan.colossus.referenceId}:transition-gate-ref`,
