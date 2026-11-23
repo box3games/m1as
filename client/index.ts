@@ -244,3 +244,11 @@ export type {
   VfxrStructuralApplyResult,
   VfxrStructuralEffectTarget,
 } from "./vfxr/structural-response-adapter.js";
+
+
+export {
+  CHARACTER_VOLUME_POSE_SCHEMA_VERSION,
+  validateCharacterVolumeEnvelope,
+  buildCharacterVolumePosePlan,
+} from "./evaluation/character-volume-pose-bridge-contract.js";
+export type * from "./evaluation/character-volume-pose-bridge-contract.js";
