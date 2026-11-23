@@ -16,7 +16,7 @@ import type { JSONLevelManifest } from "../big3r/streaming/manifest-types.js";
 import type { CameraRigMode } from "../big3r/camera/CameraRig5Mode.js";
 import type { Big3rStagePreset, FaceSlotKey } from "./types.js";
 import { EXPERIMENT_SCHEMA_VERSION } from "../experiments/contracts.js";
-import type { ExperimentManifest } from "../experiments/contracts.js";
+import type { ExperimentManifest, GrowthOutcome } from "../experiments/contracts.js";
 import { DEFAULT_CAPTURE_PROFILES } from "../experiments/capture-profiles.js";
 import { ExperimentCoordinator, type PresentationSamplePayload } from "../experiments/coordinator.js";
 import { IndexedDbExperimentStorage } from "../experiments/indexeddb-storage.js";
@@ -704,18 +704,47 @@ export class Big3rSandboxController {
         while (pending.nextIndex < pending.commands.length) {
             const scheduled = pending.commands[pending.nextIndex];
             if (simulationTimeSeconds - pending.startedAt < scheduled.atSeconds) break;
+            let requestedOutcome: GrowthOutcome;
             if (scheduled.command.kind === "discrete") {
                 const amount = scheduled.command.amount.kind === "relative_change"
                     ? { kind: "relative_change" as const, changeFraction: scheduled.command.amount.fraction }
                     : { kind: "absolute_target" as const, targetScale: scheduled.command.amount.scale };
-                this.experimentCoordinator?.recordGrowthRecipeRequest({
-                    requestId: pending.context.experimentId + ":" + scheduled.command.commandId,
-                    source: "glb-growth-recipe",
-                    outcome: { components: [amount], compositionPolicy: "additive" },
-                    simulationTimeSeconds,
-                    frameNumber,
-                });
+                requestedOutcome = { components: [amount], compositionPolicy: "additive" };
+            } else if (scheduled.command.kind === "flow") {
+                requestedOutcome = {
+                    components: [{
+                        kind: "authored_profile",
+                        profileId: "m1as-sustained-flow",
+                        profileVersion: "m1as-vfx-queue-v1",
+                        parameters: {
+                            supplySeconds: scheduled.command.supplySeconds,
+                            flowMultiplier: scheduled.command.flowMultiplier,
+                            ...(scheduled.command.parameters ?? {}),
+                        },
+                    }],
+                    compositionPolicy: "authored",
+                };
+            } else {
+                requestedOutcome = {
+                    components: [{
+                        kind: "authored_profile",
+                        profileId: "m1as-hold-growth",
+                        profileVersion: "m1as-vfx-queue-v1",
+                        parameters: {
+                            active: scheduled.command.active,
+                            ...(scheduled.command.parameters ?? {}),
+                        },
+                    }],
+                    compositionPolicy: "authored",
+                };
             }
+            this.experimentCoordinator?.recordGrowthRecipeRequest({
+                requestId: pending.context.experimentId + ":" + scheduled.command.commandId,
+                source: "glb-growth-recipe:" + pending.recipeId,
+                outcome: requestedOutcome,
+                simulationTimeSeconds,
+                frameNumber,
+            });
             const result = pending.adapter.apply(scheduled.command, {
                 ...pending.context,
                 simulationTimeSeconds,
