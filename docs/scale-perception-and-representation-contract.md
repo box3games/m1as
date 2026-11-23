@@ -372,3 +372,12 @@ The renderer capability vocabulary includes `viewport-normalized` coordinates so
 `VfxrCharacterPoseAdapter` submits the same plan to a registered VFXR authoring target when the plan declares 2D support and the target explicitly supports the requested pose kind. No skeleton is required for the 2D path. The target owns sprite layout, keyframe authoring, compositing, playback and export; this adapter does not claim those operations are implemented by the shared contract.
 
 Both dispatch results preserve request ID, subject ID, target ID and pipeline identity. Unsupported representations, joints, channels, rig identities, or pose kinds are reported explicitly; no fallback mapping is invented. These are target-port interfaces, not automatic runtime connections: actual BIG3R rig and VFXR authoring implementations must be registered by their respective workflows.
+
+
+## 25. Synchronized character pose transitions
+
+`character-pose-transition-contract.ts` defines a renderer-neutral timed sequence of pose keyframes. Each keyframe contains an independently authored width/height/depth envelope, a pose kind, and explicit joint targets. Envelope interpolation and joint interpolation have separate easing modes (linear, smoothstep, ease-in, ease-out), allowing the invisible box to begin collapsing before skeletal joints settle, or the spine to hunch before the knees bend.
+
+A transition preserves subject identity, transition ID, supported representations, configuration version, and growth-state ID. Sampling is deterministic for a given transition and elapsed simulation time. The sampler clamps at the transition duration and emits both envelope dimensions and interpolated joint channels for BIG3R, 2.5D, and VFXR consumers. All keyframes must preserve the same joint/channel set so the transition never invents a missing joint target or silently drops one halfway through.
+
+The contract is declarative and does not execute animation, apply bone transforms, resize sprites, run physics, or modify actual growth scale. BIG3R rig and VFXR authoring adapters can consume samples through their existing target interfaces. A 2D-only sequence may carry no joint targets and still use the same timed envelope and pose-kind progression. Tests cover independent envelope/joint easing, completed sampling, provenance/authority preservation, and invalid keyframes.
