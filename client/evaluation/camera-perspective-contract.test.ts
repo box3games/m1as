@@ -105,3 +105,12 @@ test("paired perspective capture requires unique perspective IDs", () => {
     perspectives: [base, { ...base, cameraId: "camera-2" }],
   }), /Duplicate perspectiveId/);
 });
+
+test("camera attachments accept sprite, plane, and viewport coordinate spaces", () => {
+  for (const coordinateSpace of ["sprite-local", "plane-local", "viewport-normalized"] as const) {
+    assert.doesNotThrow(() => validateCameraAttachmentConfiguration({
+      ...attachment,
+      target: { ...attachment.target, coordinateSpace },
+    }));
+  }
+});
