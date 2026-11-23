@@ -679,6 +679,18 @@ export class Big3rSandboxController {
         while (pending.nextIndex < pending.commands.length) {
             const scheduled = pending.commands[pending.nextIndex];
             if (simulationTimeSeconds - pending.startedAt < scheduled.atSeconds) break;
+            if (scheduled.command.kind === "discrete") {
+                const amount = scheduled.command.amount.kind === "relative_change"
+                    ? { kind: "relative_change" as const, changeFraction: scheduled.command.amount.fraction }
+                    : { kind: "absolute_target" as const, targetScale: scheduled.command.amount.scale };
+                this.experimentCoordinator?.recordGrowthRecipeRequest({
+                    requestId: pending.context.experimentId + ":" + scheduled.command.commandId,
+                    source: "glb-growth-recipe",
+                    outcome: { components: [amount], compositionPolicy: "additive" },
+                    simulationTimeSeconds,
+                    frameNumber,
+                });
+            }
             const result = pending.adapter.apply(scheduled.command, {
                 ...pending.context,
                 simulationTimeSeconds,
