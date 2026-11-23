@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { M1asAsset } from "../viewer/types.js";
-import { loadVfxrM1asStreamedSprite, type VfxrM1asStreamedSpriteSubject } from "./m1as-streamed-sprite-adapter.js";
+import { loadVfxrM1asStreamedSprite } from "./m1as-streamed-sprite-adapter.js";
 import { VfxrPoseSequenceAuthoringTarget } from "./pose-sequence-authoring-target.js";
 import { VfxrPoseTransitionAdapter } from "../evaluation/character-pose-transition-adapters.js";
 import { validateCharacterPoseTransition, type CharacterPoseTransition } from "../evaluation/character-pose-transition-contract.js";
