@@ -371,7 +371,7 @@ export function evaluateStructuralResponses(
   if (unknownPrevious.length) {
     throw new TypeError(`Previously active structural rules are absent: ${unknownPrevious.join(", ")}.`);
   }
-  const events = evaluations.flatMap(item => item.event ? [item.event] : []);
+  const events = evaluations.flatMap(item => ("event" in item && item.event) ? [item.event] : []);
   const relationship = observation.relationship;
   return {
     schemaVersion: ENVIRONMENT_STRUCTURAL_RESPONSE_SCHEMA_VERSION,
