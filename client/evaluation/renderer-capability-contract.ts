@@ -67,7 +67,7 @@ const VALID_REPRESENTATIONS: readonly SubjectRepresentationKind[] = [
 
 const VALID_SPACES: readonly RendererCoordinateSpace[] = [
   "sprite-local", "plane-local", "subject-local", "stage-world",
-  "camera-relative", "screen-normalized",
+  "camera-relative", "screen-normalized", "viewport-normalized",
 ];
 
 const VALID_STATUSES: readonly RendererCapabilityStatus[] = [
