@@ -19,7 +19,8 @@ export type PortableEvaluationDomain =
   | "horizon"
   | "profile"
   | "volume"
-  | "stage";
+  | "stage"
+  | "structural-response";
 
 export type PortableJsonValue =
   | string
