@@ -60,12 +60,12 @@ export class TwoDimensionalSpriteLab {
       <div class="big3r-2d-sprite-lab__header">
         <div>
           <h3>Character Growth Lab</h3>
-          <p>Primary workspace: the authenticated M1AS-streamed GLB already mounted in the BIG3R stage. No second model load.</p>
+          <p>Primary workspace: click “Load GLB · Growth Lab / VFX Stage” on an M1AS asset card. The Lab controls that same authenticated GLB; it does not fetch or render a duplicate.</p>
         </div>
         <span class="big3r-2d-sprite-lab__tag">M1AS GLB GROWTH</span>
       </div>
       <section class="big3r-glb-growth-workspace">
-        <div class="big3r-glb-growth-workspace__subject" data-role="glb-subject">No M1AS GLB mounted. Choose a streamed GLB from the M1AS asset list.</div>
+        <div class="big3r-glb-growth-workspace__subject" data-role="glb-subject">No M1AS GLB mounted. Choose “Load GLB · Growth Lab / VFX Stage” on a GLB asset card.</div>
         <label class="big3r-glb-growth-workspace__label">Master growth recipe JSON
           <textarea data-role="glb-recipe" rows="12" spellcheck="false"></textarea>
         </label>
