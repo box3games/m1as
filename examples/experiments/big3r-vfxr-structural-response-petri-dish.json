@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "big3r-environment-structural-response/1.0",
+  "configurationVersion": "big3r-vfxr-structural-effects-v1",
+  "provenance": {
+    "sourceId": "big3r-room-relationship-evaluator",
+    "sourceVersion": "1.0",
+    "sourceKind": "authored-envelope"
+  },
+  "rules": [
+    {
+      "ruleId": "room-approach-glow",
+      "metric": "heightOccupancyRatio",
+      "operator": "greater-than-or-equal",
+      "threshold": 0.8,
+      "releaseThreshold": 0.72,
+      "channel": "visual-effect",
+      "effectKind": "stress-glow",
+      "responseId": "room-ceiling-approach",
+      "severity": "warning",
+      "priority": 10,
+      "targetId": "vfxr.room.stress-glow",
+      "asset": {
+        "kind": "effect-preset",
+        "assetId": "vfxr-room-stress-glow"
+      }
+    },
+    {
+      "ruleId": "glass-contact-crack",
+      "metric": "penetrationDepthX",
+      "operator": "greater-than-or-equal",
+      "threshold": 0.02,
+      "channel": "visual-effect",
+      "effectKind": "crack-overlay",
+      "responseId": "glass-crack-sequence",
+      "severity": "warning",
+      "priority": 20,
+      "targetId": "vfxr.glass.cracks",
+      "asset": {
+        "kind": "sprite-sequence",
+        "assetId": "glass-crack-growth-01"
+      }
+    },
+    {
+      "ruleId": "impact-debris-webm",
+      "metric": "impactEnergyJoules",
+      "operator": "greater-than-or-equal",
+      "threshold": 120,
+      "channel": "visual-effect",
+      "effectKind": "webm-overlay",
+      "responseId": "impact-debris-overlay",
+      "severity": "critical",
+      "priority": 30,
+      "targetId": "vfxr.impact.debris",
+      "asset": {
+        "kind": "webm",
+        "assetId": "impact-debris-alpha-01"
+      }
+    },
+    {
+      "ruleId": "structural-failure-evaluation",
+      "metric": "stressRatio",
+      "operator": "greater-than-or-equal",
+      "threshold": 1,
+      "channel": "structural-integrity",
+      "effectKind": "failure-evaluation",
+      "responseId": "evaluate-wall-failure",
+      "severity": "critical",
+      "priority": 40
+    }
+  ],
+  "integration": {
+    "evaluator": "evaluateStructuralResponses",
+    "sharedRouterDomain": "structural-response",
+    "vfxrAdapter": "VfxrStructuralResponseAdapter",
+    "executePhysics": false,
+    "executeDestruction": false,
+    "executeGrowth": false,
+    "vfxrOwnsStructuralAuthority": false
+  }
+}

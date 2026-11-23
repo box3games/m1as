@@ -231,3 +231,16 @@ export {
   evaluateScaleEnvironmentResponses,
 } from "./evaluation/scale-environment-relationship-contract.js";
 export type * from "./evaluation/scale-environment-relationship-contract.js";
+
+
+export {
+  ENVIRONMENT_STRUCTURAL_RESPONSE_SCHEMA_VERSION,
+  evaluateStructuralResponses,
+} from "./evaluation/environment-structural-response-contract.js";
+export type * from "./evaluation/environment-structural-response-contract.js";
+
+export { VfxrStructuralResponseAdapter } from "./vfxr/structural-response-adapter.js";
+export type {
+  VfxrStructuralApplyResult,
+  VfxrStructuralEffectTarget,
+} from "./vfxr/structural-response-adapter.js";
