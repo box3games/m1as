@@ -8,10 +8,13 @@
 
 export type AnchorGroup = "character" | "stage" | "camera" | "environment";
 export type AnchorCoordinateSpace =
+  | "sprite-local"
+  | "plane-local"
   | "subject-local"
   | "stage-world"
   | "camera-relative"
-  | "screen-normalized";
+  | "screen-normalized"
+  | "viewport-normalized";
 export type AnchorAccess = "read-only" | "read-write";
 
 export interface AnchorVector3 {
