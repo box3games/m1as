@@ -243,3 +243,18 @@ The renderer-independent contract is `client/evaluation/scale-reference-hierarch
 The contract rejects duplicate identities, missing parent/source references, hierarchy cycles, invalid extents, mismatched comparison units, non-advancing world transitions, and promotions that do not increase the selected reference extent. It permits the previous parent to remain historically accessible even when it is no longer nested under the active parent.
 
 This is a data and progression contract only. It does not yet instantiate Colossus geometry, generate nested world envelopes, select cameras, or trigger level transitions. Those remain downstream integrations that must consume the hierarchy without changing its authority.
+
+
+## 17. Framing Integrity Monitor
+
+The renderer-neutral `assessFramingIntegrity` function converts a measured projection observation into the existing IGP framing-assessment contract. It preserves full, unclamped normalized screen bounds as input and computes visible viewport occupancy from their intersection with the viewport.
+
+- Full-body and environment-context framing treat offscreen subject bounds as a framing issue.
+- Dramatic-crop and free framing do not treat screen-edge cropping alone as a failure.
+- Near/far depth clipping takes precedence over screen framing.
+- Missing projected bounds or missing depth evidence remains an explicit unavailable-projection trigger; it is never represented as zero size.
+- Recoverable screen clipping is classified as `subject-clipped`; screen clipping that the camera adapter declares unrecoverable is `framing-unrecoverable`.
+- Native recovery availability must be supplied explicitly by the camera/presentation adapter. The monitor does not guess that a camera can recover.
+- The resulting assessment retains subject, growth-state, configuration, and simulation-time identity so IGP transitions can validate against the exact diagnostic sample.
+
+This is a deterministic assessment layer, not a live camera controller. It does not change CameraRig5Mode, move a camera, modify near/far planes, contract the environment, or alter authoritative growth and stage scale. Renderer adapters remain responsible for producing trustworthy projection bounds, depth range, and recovery-capability evidence.
