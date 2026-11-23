@@ -225,3 +225,36 @@ Background effects are independent controls. Blur is background-only in this con
 A framing-integrity assessment identifies clipping, exhausted depth range, unrecoverable framing, or unavailable projected bounds, along with visible viewport occupancy, depth-clipping state, and whether native recovery is available. It is a diagnostic input, not a growth command.
 
 This implementation slice establishes validated data contracts and tests only. It does not yet transform live scene environments, pin calibration props, alter the live camera, apply blur/shake, or automatically switch presentation modes. Those require renderer-specific adapters that advertise and execute only supported capabilities. Existing CameraRig5Mode behavior, tube-ceiling-growth behavior, growth engines, stage-relative scale, and M1AS stream/GLB authority remain unchanged.
+
+
+## 16. Persistent parent/child scale-reference hierarchy
+
+The Colossus progression decision is a persistent scale-history rule:
+
+- The active world has an explicit parent scale reference (for example, a 100 m Colossus).
+- NPCs, bosses, environmental landmarks, and local interaction references may be nested beneath that parent.
+- When the player advances to a larger world, the destination world promotes a new, larger parent reference.
+- The previous parent is never deleted. It is retained either as a child beneath the newly promoted parent or as a historical reference, according to the authored transition.
+- Promotion records preserve the source/destination world IDs, old/new parent identities, comparison metric and extents, simulation time, and configuration version.
+- Reference identity and authoritative extents remain separate from presentation transforms, IGP contraction, camera framing, and stage-relative normalization.
+
+The renderer-independent contract is `client/evaluation/scale-reference-hierarchy-contract.ts`. Its pure `promoteScaleParent` operation validates a larger destination parent with matching comparison units/metric/axis, preserves the previous parent, advances the world and hierarchy revision, and records the promotion. It does not move or resize any runtime entity and does not alter growth state.
+
+The contract rejects duplicate identities, missing parent/source references, hierarchy cycles, invalid extents, mismatched comparison units, non-advancing world transitions, and promotions that do not increase the selected reference extent. It permits the previous parent to remain historically accessible even when it is no longer nested under the active parent.
+
+This is a data and progression contract only. It does not yet instantiate Colossus geometry, generate nested world envelopes, select cameras, or trigger level transitions. Those remain downstream integrations that must consume the hierarchy without changing its authority.
+
+
+## 17. Framing Integrity Monitor
+
+The renderer-neutral `assessFramingIntegrity` function converts a measured projection observation into the existing IGP framing-assessment contract. It preserves full, unclamped normalized screen bounds as input and computes visible viewport occupancy from their intersection with the viewport.
+
+- Full-body and environment-context framing treat offscreen subject bounds as a framing issue.
+- Dramatic-crop and free framing do not treat screen-edge cropping alone as a failure.
+- Near/far depth clipping takes precedence over screen framing.
+- Missing projected bounds or missing depth evidence remains an explicit unavailable-projection trigger; it is never represented as zero size.
+- Recoverable screen clipping is classified as `subject-clipped`; screen clipping that the camera adapter declares unrecoverable is `framing-unrecoverable`.
+- Native recovery availability must be supplied explicitly by the camera/presentation adapter. The monitor does not guess that a camera can recover.
+- The resulting assessment retains subject, growth-state, configuration, and simulation-time identity so IGP transitions can validate against the exact diagnostic sample.
+
+This is a deterministic assessment layer, not a live camera controller. It does not change CameraRig5Mode, move a camera, modify near/far planes, contract the environment, or alter authoritative growth and stage scale. Renderer adapters remain responsible for producing trustworthy projection bounds, depth range, and recovery-capability evidence.
