@@ -128,7 +128,8 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
       this.appliedEvents.delete(eventId);
       return { accepted: true, output: { targetId, eventId, cleared: true } };
     }
-    if (!isStructuralEvent(command.payload) || !command.payload.targetId ||\n        !command.payload.asset || !command.payload.asset.assetId?.trim()) {
+    if (!isStructuralEvent(command.payload) || !command.payload.targetId ||
+        !command.payload.asset || !command.payload.asset.assetId?.trim()) {
       return { accepted: false, reason: "A valid targeted structural response event is required." };
     }
     const event = command.payload;
