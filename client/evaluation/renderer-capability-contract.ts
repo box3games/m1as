@@ -20,7 +20,8 @@ export type RendererCoordinateSpace =
   | "subject-local"
   | "stage-world"
   | "camera-relative"
-  | "screen-normalized";
+  | "screen-normalized"
+  | "viewport-normalized";
 
 export type RendererCapabilityStatus =
   | "native"
