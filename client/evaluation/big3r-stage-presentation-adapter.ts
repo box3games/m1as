@@ -21,6 +21,24 @@ export interface Big3rStagePresentationPort {
   setCameraRigMode(mode: CameraRigMode): void;
   getRoomDoubleSided(): boolean;
   setRoomDoubleSided(enabled: boolean): void;
+  getActualScaleEvaluationSnapshot(): {
+    growthModel: string;
+    currentVisualScale: number;
+  };
+  getStageScaleEvaluationSnapshot():
+    | {
+        status: "available";
+        activeTierId: string;
+        activeTierName: string;
+        metricHeight: number;
+        normalizedPlayerScale: number;
+        activeTierWorldScale: number;
+        prewarmedTierWorldScale: number;
+        progress01: number;
+        rebaseCount: number;
+        effectiveMetricHeight: number;
+      }
+    | { status: "not_captured"; reason: string };
 }
 
 function isCameraRigMode(value: unknown): value is CameraRigMode {
@@ -44,6 +62,16 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
       stage: {
         status: "native" as const,
         operations: ["get-room-double-sided", "set-room-double-sided"],
+      },
+      "actual-scaling": {
+        status: "native" as const,
+        operations: ["get-current"],
+        limitations: ["Read-only snapshot of the active growth model's current visual scale; changes remain owned by that growth model."],
+      },
+      "stage-scaling": {
+        status: "native" as const,
+        operations: ["get-current"],
+        limitations: ["Read-only snapshot of ScaleRebaseController and active stage manifest; unavailable until a streaming manifest has produced its first frame."],
       },
     },
   };
@@ -73,7 +101,8 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
 
     if (
       (command.domain === "camera" && ["get-mode", "set-mode"].includes(command.operation)) ||
-      (command.domain === "stage" && ["get-room-double-sided", "set-room-double-sided"].includes(command.operation))
+      (command.domain === "stage" && ["get-room-double-sided", "set-room-double-sided"].includes(command.operation)) ||
+      ((command.domain === "actual-scaling" || command.domain === "stage-scaling") && command.operation === "get-current" && command.payload === null)
     ) {
       return { status: "native", notes: [], translatedCommand: command };
     }
@@ -94,6 +123,12 @@ export class Big3rStagePresentationAdapter implements PortableEngineAdapter {
     }
     if (command.domain === "stage" && command.operation === "get-room-double-sided") {
       return { accepted: true, output: { enabled: this.stage.getRoomDoubleSided() } };
+    }
+    if (command.domain === "actual-scaling" && command.operation === "get-current") {
+      return { accepted: true, output: this.stage.getActualScaleEvaluationSnapshot() };
+    }
+    if (command.domain === "stage-scaling" && command.operation === "get-current") {
+      return { accepted: true, output: this.stage.getStageScaleEvaluationSnapshot() };
     }
     if (command.domain === "stage" && command.operation === "set-room-double-sided") {
       const enabled = (command.payload as { enabled: boolean }).enabled;
