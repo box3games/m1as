@@ -2,17 +2,18 @@
   "schemaVersion": "m1as-growth-recipe/1.0",
   "id": "streamed-glb-growth-smoke-test",
   "title": "Streamed GLB Growth Smoke Test",
-  "description": "Applies two explicit growth commands to the currently mounted GLB using the existing M1AS VFX growth queue. Commands are submitted in listed order.",
+  "description": "Schedules explicit discrete growth and sustained supply commands against the currently mounted M1AS GLB. atSeconds offsets use the active M1AS engine simulation clock; the existing M1AS VFX queue remains the execution authority.",
   "subject": {
     "assetKind": "glb",
     "assetSource": "currently-mounted-m1as-stream"
   },
   "execution": {
     "model": "m1as-vfx-queue",
-    "mode": "submit_in_order"
+    "mode": "simulation_time_offsets"
   },
   "commands": [
     {
+      "atSeconds": 0,
       "kind": "discrete",
       "commandId": "recipe-growth-001",
       "stimulus": "Consumption",
@@ -22,12 +23,24 @@
       }
     },
     {
+      "atSeconds": 2.5,
       "kind": "discrete",
       "commandId": "recipe-growth-002",
       "stimulus": "Buff",
       "amount": {
         "kind": "relative_change",
         "fraction": 0.05
+      }
+    },
+    {
+      "atSeconds": 5,
+      "kind": "flow",
+      "commandId": "recipe-flow-001",
+      "stimulus": "Buff",
+      "supplySeconds": 3,
+      "flowMultiplier": 1,
+      "parameters": {
+        "growthPerSupplySecond": 0.1
       }
     }
   ]
