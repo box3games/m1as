@@ -170,7 +170,7 @@ async function loadPublicAssets(): Promise<void> {
 
         card.querySelector(".vfx-glb-btn")?.addEventListener("click", async () => {
             const signedUrl = await signAndDisplayUrl(asset);
-            await big3rSandbox.mount(signedUrl);
+            await big3rSandbox.mount(signedUrl, "", { assetId: asset.id, displayName: asset.displayName, assetKind: "glb" });
         });
 
         card.querySelector(".vfx-prop-btn")?.addEventListener("click", async () => {
