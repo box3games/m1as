@@ -1,39 +1,14 @@
 {
-  "schemaVersion": "big3r-world-spatial-layout/1.0",
-  "layoutId": "petri-dish-layout-001",
-  "configurationVersion": "petri-layout-v1",
-  "sourceProfile": "examples/experiments/big3r-colossus-profile-procedural-petri-dish.json",
+  "schemaVersion": "big3r-world-spatial-layout-config/1.0",
+  "sourceProfilePath": "examples/experiments/big3r-colossus-profile-procedural-petri-dish.json",
   "layoutAlgorithm": "radial-rings-mulberry32-v1",
-  "seed": "petri-layout-seed-13163",
-  "population": {
+  "layout": {
+    "layoutId": "petri-dish-layout-001",
+    "configurationVersion": "petri-layout-v1",
+    "seed": "petri-layout-seed-13163",
     "npcCount": 4,
-    "bossCount": 1
-  },
-  "placement": {
+    "bossCount": 1,
     "edgePaddingRatio": 0.05,
-    "includeTransitionGate": true,
-    "verticalAnchor": "ground-contact-y-zero",
-    "npcRing": [
-      0.08,
-      0.23
-    ],
-    "bossRing": [
-      0.27,
-      0.36
-    ],
-    "landmarkRing": [
-      0.37,
-      0.45
-    ]
-  },
-  "policies": {
-    "preserveAuthoredDimensions": true,
-    "allowAnchorsInsideEnvelopeOnly": true,
-    "allowObjectBoundsOutsideEnvelope": true,
-    "reportOverlapCandidates": true,
-    "resolveCollisions": false,
-    "mutateGrowthState": false,
-    "promoteHierarchy": false,
-    "alterCameraOrPresentation": false
+    "includeTransitionGate": true
   }
 }
