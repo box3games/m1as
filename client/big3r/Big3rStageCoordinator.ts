@@ -91,6 +91,10 @@ export class Big3rStageCoordinator {
         this.engine.getScene().add(this.roomBoxMesh);
     }
 
+    public getRoomDoubleSided(): boolean {
+        return this.doubleSidedRoom;
+    }
+
     public setRoomDoubleSided(enabled: boolean): void {
         this.doubleSidedRoom = enabled;
         const side = enabled ? THREE.DoubleSide : THREE.BackSide;
@@ -133,6 +137,10 @@ export class Big3rStageCoordinator {
 
     public attachHeightReticle(el: HTMLElement): void {
         this.cameraRig.attachHeightReticle(el);
+    }
+
+    public getCameraRigMode(): CameraRigMode {
+        return this.cameraRig.getMode();
     }
 
     public setCameraRigMode(mode: CameraRigMode): void {
