@@ -169,3 +169,10 @@ export {
   measureScaleRelationship,
 } from "./evaluation/portable-anchor-contract.js";
 export type * from "./evaluation/portable-anchor-contract.js";
+
+export {
+  validateCameraAttachmentConfiguration,
+  validateCameraPerspectiveSnapshot,
+  validateSynchronizedPerspectiveCapture,
+} from "./evaluation/camera-perspective-contract.js";
+export type * from "./evaluation/camera-perspective-contract.js";
