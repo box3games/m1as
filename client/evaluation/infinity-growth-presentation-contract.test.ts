@@ -131,7 +131,7 @@ test("assisted and infinity transitions require matching framing evidence", () =
     assessment,
   ), /matching non-empty framing trigger/);
   assert.throws(() => validateGrowthPresentationTransition(
-    snapshot({ mode: "assisted", framingIntegritySampleId: "frame-clip-1" }),
+    snapshot({ mode: "assisted", environmentPresentationScale: 1, framingIntegritySampleId: "frame-clip-1" }),
     assessment,
   ), /requires a recoverable native framing path/);
   assert.throws(() => validateGrowthPresentationTransition(
