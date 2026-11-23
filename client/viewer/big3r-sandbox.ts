@@ -662,12 +662,15 @@ export class Big3rSandboxController {
                     throw new Error("Expected schemaVersion m1as-growth-recipe/1.0, an id, and a non-empty commands array.");
                 }
                 const commands = recipe.commands as GrowthModelCommand[];
+                const commandIds = new Set<string>();
                 for (const [index, command] of commands.entries()) {
                     if (!command || typeof command !== "object" ||
-                        !["discrete", "flow", "hold"].includes(command.kind) ||
+                        !["discrete", "flow"].includes(command.kind) ||
                         typeof command.commandId !== "string" || !command.commandId.trim()) {
-                        throw new Error(`Command ${index + 1} is missing a valid kind or commandId.`);
+                        throw new Error(`Command ${index + 1} must be a discrete or flow command with a valid commandId. Hold commands are not supported by this immediate-submit recipe version.`);
                     }
+                    if (commandIds.has(command.commandId)) throw new Error(`Duplicate commandId: ${command.commandId}`);
+                    commandIds.add(command.commandId);
                     if (command.kind === "discrete" &&
                         (!command.amount || (command.amount.kind === "relative_change"
                             ? !Number.isFinite(command.amount.fraction) || command.amount.fraction < 0
@@ -687,7 +690,7 @@ export class Big3rSandboxController {
                 };
                 recipeAdapter.initialize({
                     subjectId: "active-streamed-glb",
-                    assetId: this.glbUrlInput.value.trim() || "active-streamed-glb",
+                    assetId: "active-streamed-glb",
                     assetKind: "glb",
                     initialDimensions: { x: 1, y: 1, z: 1 },
                     worldUnit: "meters",
