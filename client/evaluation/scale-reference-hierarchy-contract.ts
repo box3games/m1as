@@ -201,6 +201,26 @@ export function validateScaleReferenceHierarchy(
         promotion.promotedParentExtent <= promotion.previousParentExtent) {
       throw new RangeError("A promoted parent must have a larger positive comparison extent.");
     }
+    const previous = byId.get(promotion.previousParentReferenceId);
+    const promoted = byId.get(promotion.promotedParentReferenceId);
+    if (!previous || !promoted) {
+      throw new RangeError("Promotion records must reference retained hierarchy nodes.");
+    }
+    if (promoted.introducedInWorldId !== promotion.toWorldId ||
+        previous.extent.value !== promotion.previousParentExtent ||
+        promoted.extent.value !== promotion.promotedParentExtent ||
+        previous.extent.unit !== promotion.unit ||
+        promoted.extent.unit !== promotion.unit ||
+        previous.extent.metric !== promotion.comparisonMetric ||
+        promoted.extent.metric !== promotion.comparisonMetric ||
+        previous.extent.axis !== promoted.extent.axis) {
+      throw new RangeError("Promotion record must match the retained parent reference identities and extents.");
+    }
+  }
+  for (let index = 1; index < snapshot.promotions.length; index += 1) {
+    if (snapshot.promotions[index].fromWorldId !== snapshot.promotions[index - 1].toWorldId) {
+      throw new RangeError("Promotion history must form a continuous world-transition chain.");
+    }
   }
 }
 
