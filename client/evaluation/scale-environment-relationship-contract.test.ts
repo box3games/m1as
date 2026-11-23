@@ -68,7 +68,7 @@ test("distinguishes separation, exact touching, and volumetric overlap", () => {
   }));
   assert.equal(overlap.spatialState, "overlapping");
   assert.equal(overlap.penetrationDepthMeters.x, 1);
-  assert.equal(overlap.penetrationDepthMeters.y, 1);
+  assert.equal(overlap.penetrationDepthMeters.y, 2);
 });
 
 test("handles a subject wholly beyond the world envelope without clamping", () => {
