@@ -24,6 +24,7 @@ export interface CharacterPoseTransitionSample {
   transitionId: string;
   subjectId: string;
   elapsedSeconds: number;
+  durationSeconds: number;
   normalizedProgress: number;
   poseKind: CharacterPoseKind;
   envelope: CharacterDimensionsMeters;
@@ -67,9 +68,17 @@ export function validateCharacterPoseTransition(t:CharacterPoseTransition):void 
     if(!poses.includes(frame.poseKind)||!modes.includes(frame.envelopeInterpolation)||!modes.includes(frame.jointInterpolation)) throw new TypeError("Transition pose or interpolation mode is unsupported.");
     validateEnvelope(frame.envelope); validateJointTargets(frame.jointTargets); previous=frame.timeSeconds;
   }
-  const keys=t.keyframes.map(f=>f.jointTargets.map(j=>j.jointId+":"+j.channel));
-  const first=new Set(keys[0]);
-  for(const set of keys.slice(1)) for(const key of set) if(!first.has(key)) throw new TypeError("Every keyframe must use the same joint target channels.");
+  const first=t.keyframes[0].jointTargets;
+  const firstKeys=first.map(j=>j.jointId+":"+j.channel);
+  for(const frame of t.keyframes.slice(1)){
+    if(frame.jointTargets.length!==first.length) throw new TypeError("Every keyframe must use the same joint target channels.");
+    for(let i=0;i<first.length;i++){
+      const target=frame.jointTargets[i];
+      if(target.jointId+":"+target.channel!==firstKeys[i]||target.unit!==first[i].unit) {
+        throw new TypeError("Every keyframe must preserve the same ordered joint target channels and units.");
+      }
+    }
+  }
 }
 export function sampleCharacterPoseTransition(t:CharacterPoseTransition, elapsedSeconds:number):CharacterPoseTransitionSample {
   validateCharacterPoseTransition(t);
@@ -82,5 +91,5 @@ export function sampleCharacterPoseTransition(t:CharacterPoseTransition, elapsed
   const et=easing(local,a.envelopeInterpolation), jt=easing(local,a.jointInterpolation);
   const envelope={width:interpolate(a.envelope.width,b.envelope.width,et),height:interpolate(a.envelope.height,b.envelope.height,et),depth:interpolate(a.envelope.depth,b.envelope.depth,et)};
   const jointTargets=a.jointTargets.map((target,i)=>({...target,value:interpolate(target.value,b.jointTargets[i].value,jt)}));
-  return {schemaVersion:CHARACTER_POSE_TRANSITION_SCHEMA_VERSION,transitionId:t.transitionId,subjectId:t.subjectId,elapsedSeconds:elapsed,normalizedProgress:elapsed/t.durationSeconds,poseKind:local<1?a.poseKind:b.poseKind,envelope,jointTargets,supportedRepresentations:[...t.supportedRepresentations],configurationVersion:t.configurationVersion,growthStateId:t.growthStateId,authority:{actualGrowthScaleModified:false,skeletonTransformsApplied:false,spriteTransformsApplied:false,animationRendered:false}};
+  return {schemaVersion:CHARACTER_POSE_TRANSITION_SCHEMA_VERSION,transitionId:t.transitionId,subjectId:t.subjectId,elapsedSeconds:elapsed,durationSeconds:t.durationSeconds,normalizedProgress:elapsed/t.durationSeconds,poseKind:local<1?a.poseKind:b.poseKind,envelope,jointTargets,supportedRepresentations:[...t.supportedRepresentations],configurationVersion:t.configurationVersion,growthStateId:t.growthStateId,authority:{actualGrowthScaleModified:false,skeletonTransformsApplied:false,spriteTransformsApplied:false,animationRendered:false}};
 }
