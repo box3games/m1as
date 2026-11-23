@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   validateFramingIntegrityAssessment,
+  validateGrowthPresentationTransition,
   validateInfinityGrowthPresentation,
   type InfinityGrowthPresentationSnapshot,
 } from "./infinity-growth-presentation-contract.js";
@@ -100,4 +101,35 @@ test("framing integrity assessment captures a recoverable clipping trigger", () 
     depthClipped: true,
     nativeRecoveryAvailable: true,
   }), /requires an explicit framing trigger/);
+});
+
+test("assisted and infinity transitions require matching framing evidence", () => {
+  const assessment = {
+    schemaVersion: "big3r-framing-integrity/1.0" as const,
+    sampleId: "frame-clip-1",
+    subjectId: "godzilla-subject",
+    simulationTimeSeconds: 42,
+    configurationVersion: "growth-recipe-v1",
+    growthStateId: "growth-state-42",
+    trigger: "subject-clipped" as const,
+    visibleOccupancy: 0.82,
+    depthClipped: true,
+    nativeRecoveryAvailable: false,
+  };
+  assert.doesNotThrow(() => validateGrowthPresentationTransition(
+    snapshot({ mode: "infinity", framingIntegritySampleId: "frame-clip-1" }),
+    assessment,
+  ));
+  assert.throws(() => validateGrowthPresentationTransition(
+    snapshot({ mode: "infinity", framingIntegritySampleId: "wrong-sample" }),
+    assessment,
+  ), /matching non-empty framing trigger/);
+  assert.throws(() => validateGrowthPresentationTransition(
+    snapshot({ mode: "assisted", framingIntegritySampleId: "frame-clip-1" }),
+    assessment,
+  ), /requires a recoverable native framing path/);
+  assert.throws(() => validateGrowthPresentationTransition(
+    snapshot({ mode: "infinity", framingIntegritySampleId: "frame-clip-1" }),
+    { ...assessment, growthStateId: "different-growth-event" },
+  ), /same subject, configuration, growth state, and simulation time/);
 });
