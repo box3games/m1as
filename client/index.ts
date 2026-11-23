@@ -176,3 +176,16 @@ export {
   validateSynchronizedPerspectiveCapture,
 } from "./evaluation/camera-perspective-contract.js";
 export type * from "./evaluation/camera-perspective-contract.js";
+
+
+export {
+  validateRendererCapabilityDescriptor,
+  getRendererCapabilityStatus,
+} from "./evaluation/renderer-capability-contract.js";
+export type * from "./evaluation/renderer-capability-contract.js";
+
+export {
+  validateInfinityGrowthPresentation,
+  validateFramingIntegrityAssessment,
+} from "./evaluation/infinity-growth-presentation-contract.js";
+export type * from "./evaluation/infinity-growth-presentation-contract.js";
