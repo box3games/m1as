@@ -12,6 +12,7 @@ import {
 import { CameraRig5Mode, type CameraRigMode } from './camera/CameraRig5Mode.js';
 import { EmissiveFourFaceTvProp } from './visuals/Big3rVisualEffects.js';
 import { TelemetryHud } from '../big3r/hud/TelemetryHUD.js';
+import type { PortableAnchorSnapshot } from '../evaluation/portable-anchor-contract.js';
 import type {
     Big3rRoomSlotPreset,
     Big3rStagePreset,
@@ -138,6 +139,64 @@ export class Big3rStageCoordinator {
 
     public attachHeightReticle(el: HTMLElement): void {
         this.cameraRig.attachHeightReticle(el);
+    }
+
+
+    /**
+     * Read-only live anchor capture. Character top/bottom are measured geometry
+     * bounds, not inferred anatomical landmarks. Camera and stage references
+     * remain in stage-world coordinates for reproducible comparison.
+     */
+    public getPortableAnchorSnapshot(
+        subjectId: string,
+        configurationVersion: string,
+    ): PortableAnchorSnapshot | { status: "not_captured"; reason: string } {
+        if (!subjectId.trim() || !configurationVersion.trim()) {
+            return { status: "not_captured", reason: "Subject identity and configuration version are required." };
+        }
+        const subject = this.engine.getSubjectRoot();
+        subject.updateWorldMatrix(true, true);
+        const bounds = new THREE.Box3().setFromObject(subject);
+        if (bounds.isEmpty()) {
+            return { status: "not_captured", reason: "The active character has no measurable geometry bounds yet." };
+        }
+        const origin = subject.getWorldPosition(new THREE.Vector3());
+        const camera = this.engine.getCamera();
+        camera.updateWorldMatrix(true, false);
+        const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
+        const focus = this.engine.getControls().target;
+        const stageId = `big3r-stage:${this.engine.getScene().uuid}`;
+        const cameraId = `big3r-camera:${camera.uuid}`;
+        const source = "big3r-three-runtime";
+        const sourceVersion = "1.0.0";
+        const vector = (value: THREE.Vector3) => ({ x: value.x, y: value.y, z: value.z });
+        const anchor = (
+            anchorId: string,
+            ownerId: string,
+            group: "character" | "stage" | "camera",
+            semantic: string,
+            position: THREE.Vector3,
+        ) => ({
+            anchorId, ownerId, group, semantic, coordinateSpace: "stage-world" as const,
+            position: vector(position), access: "read-only" as const, source, sourceVersion,
+        });
+        return {
+            schemaVersion: "big3r-portable-anchors/1.0",
+            capturedAtSimulationTimeSeconds: this.engine.getSimulationTimeSeconds(),
+            configurationVersion,
+            anchors: [
+                anchor("subject-origin", subjectId, "character", "subject-root-origin", origin),
+                anchor("subject-bounds-bottom", subjectId, "character", "measured-world-bounds-bottom", new THREE.Vector3(
+                    (bounds.min.x + bounds.max.x) * 0.5, bounds.min.y, (bounds.min.z + bounds.max.z) * 0.5,
+                )),
+                anchor("subject-bounds-top", subjectId, "character", "measured-world-bounds-top", new THREE.Vector3(
+                    (bounds.min.x + bounds.max.x) * 0.5, bounds.max.y, (bounds.min.z + bounds.max.z) * 0.5,
+                )),
+                anchor("stage-origin", stageId, "stage", "scene-world-origin", new THREE.Vector3(0, 0, 0)),
+                anchor("camera-position", cameraId, "camera", "camera-world-position", cameraPosition),
+                anchor("camera-focus", cameraId, "camera", "orbit-controls-world-focus", focus),
+            ],
+        };
     }
 
     public getCameraRigMode(): CameraRigMode {
