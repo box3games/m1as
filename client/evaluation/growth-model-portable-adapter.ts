@@ -92,8 +92,14 @@ export class GrowthModelPortableAdapter implements PortableEngineAdapter {
 
   translate(
     command: PortableEvaluationCommand,
-    _context: PortableEvaluationContext,
+    context: PortableEvaluationContext,
   ): PortableTranslationResult {
+    if (!this.model.descriptor.capabilities.supportedAssetKinds.includes(context.subject.assetKind)) {
+      return {
+        status: "unsupported",
+        notes: [`Growth model "${this.model.descriptor.id}" does not support asset kind "${context.subject.assetKind}".`],
+      };
+    }
     if (command.domain !== "growth" || !["discrete", "flow", "hold"].includes(command.operation)) {
       return { status: "unsupported", notes: ["GrowthModel adapters accept discrete and flow commands only when advertised."] };
     }
