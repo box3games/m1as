@@ -350,3 +350,16 @@ The VFXR adapter requires a registered target ID and an authored asset reference
 This shared boundary is the synergy point: one BIG3R observation/rule evaluation can fan out the same event identity to a BIG3R scene adapter, a VFXR 2D effect target, audio, or another capable consumer. Each consumer advertises and enforces its own capabilities; no consumer is assumed to exist merely because the event vocabulary supports it.
 
 The tests cover structural-signal unit/provenance validation, unavailable solver inputs, geometry-only contact cues, hysteresis, stable event IDs, sprite/WEBM/procedural asset references, VFXR portable routing, missing capabilities, and authority boundaries.
+
+
+## 23. Shared character volume and skeletal-pose bridge
+
+The renderer-neutral `character-volume-pose-bridge-contract.ts` defines one subject-local or stage-world volume envelope with independent width, height, and depth in canonical metres. A pose request specifies an authored pose kind (standing, hunch, compressed/tucked/deep squat, seated V, crawl, or custom), per-axis envelope scale, optional exact joint targets, supported representations, and simulation/configuration/growth provenance.
+
+The resulting plan preserves both the uncompressed reference envelope and the current source envelope. It calculates target dimensions and ratios against the reference envelope, then exposes consistent projection data for 2D, 2.5D, and 3D consumers. The 2D projection uses width and height while retaining depth in the shared source plan; 2.5D and 3D retain all three axes. This allows VFXR to author a 2D square/rectangle or sprite silhouette from the same envelope that BIG3R uses to evaluate a volumetric subject.
+
+Joint targets are explicit authored IDs and channels; this contract does not guess bone names from a sprite or infer that every discovered bone is safe to deform. A 3D skeletal adapter may translate supported targets to a rig, a 2.5D adapter may map them to its plane/rig representation, and a VFXR adapter may consume the envelope and pose kind to author or render a 2D sequence. Each adapter must advertise its actual capabilities and report unsupported mappings rather than inventing depth or skeletal behavior.
+
+Envelope compression is not actual growth reversal or a change to authoritative growth scale. The plan is declarative: it does not apply bone transforms, resize sprites, run physics, render animation, or mutate the character. This keeps growth state, pose, volume constraints, and presentation as distinct authorities. Tests cover axis-independent compression, shared 2D/2.5D/3D projections, 2D-only use without a skeleton, microscopic dimensions, identity checks, and invalid/duplicate joint targets.
+
+The renderer capability vocabulary includes `viewport-normalized` coordinates so 2D VFXR layouts can explicitly describe their normalized output space without mislabeling it as a 3D world transform.
