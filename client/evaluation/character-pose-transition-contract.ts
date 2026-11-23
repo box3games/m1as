@@ -24,6 +24,7 @@ export interface CharacterPoseTransitionSample {
   transitionId: string;
   subjectId: string;
   elapsedSeconds: number;
+  durationSeconds: number;
   normalizedProgress: number;
   poseKind: CharacterPoseKind;
   envelope: CharacterDimensionsMeters;
@@ -82,5 +83,5 @@ export function sampleCharacterPoseTransition(t:CharacterPoseTransition, elapsed
   const et=easing(local,a.envelopeInterpolation), jt=easing(local,a.jointInterpolation);
   const envelope={width:interpolate(a.envelope.width,b.envelope.width,et),height:interpolate(a.envelope.height,b.envelope.height,et),depth:interpolate(a.envelope.depth,b.envelope.depth,et)};
   const jointTargets=a.jointTargets.map((target,i)=>({...target,value:interpolate(target.value,b.jointTargets[i].value,jt)}));
-  return {schemaVersion:CHARACTER_POSE_TRANSITION_SCHEMA_VERSION,transitionId:t.transitionId,subjectId:t.subjectId,elapsedSeconds:elapsed,normalizedProgress:elapsed/t.durationSeconds,poseKind:local<1?a.poseKind:b.poseKind,envelope,jointTargets,supportedRepresentations:[...t.supportedRepresentations],configurationVersion:t.configurationVersion,growthStateId:t.growthStateId,authority:{actualGrowthScaleModified:false,skeletonTransformsApplied:false,spriteTransformsApplied:false,animationRendered:false}};
+  return {schemaVersion:CHARACTER_POSE_TRANSITION_SCHEMA_VERSION,transitionId:t.transitionId,subjectId:t.subjectId,elapsedSeconds:elapsed,durationSeconds:t.durationSeconds,normalizedProgress:elapsed/t.durationSeconds,poseKind:local<1?a.poseKind:b.poseKind,envelope,jointTargets,supportedRepresentations:[...t.supportedRepresentations],configurationVersion:t.configurationVersion,growthStateId:t.growthStateId,authority:{actualGrowthScaleModified:false,skeletonTransformsApplied:false,spriteTransformsApplied:false,animationRendered:false}};
 }
