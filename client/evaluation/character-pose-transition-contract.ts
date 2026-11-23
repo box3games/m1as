@@ -68,9 +68,17 @@ export function validateCharacterPoseTransition(t:CharacterPoseTransition):void 
     if(!poses.includes(frame.poseKind)||!modes.includes(frame.envelopeInterpolation)||!modes.includes(frame.jointInterpolation)) throw new TypeError("Transition pose or interpolation mode is unsupported.");
     validateEnvelope(frame.envelope); validateJointTargets(frame.jointTargets); previous=frame.timeSeconds;
   }
-  const keys=t.keyframes.map(f=>f.jointTargets.map(j=>j.jointId+":"+j.channel));
-  const first=new Set(keys[0]);
-  for(const set of keys.slice(1)) for(const key of set) if(!first.has(key)) throw new TypeError("Every keyframe must use the same joint target channels.");
+  const first=t.keyframes[0].jointTargets;
+  const firstKeys=first.map(j=>j.jointId+":"+j.channel);
+  for(const frame of t.keyframes.slice(1)){
+    if(frame.jointTargets.length!==first.length) throw new TypeError("Every keyframe must use the same joint target channels.");
+    for(let i=0;i<first.length;i++){
+      const target=frame.jointTargets[i];
+      if(target.jointId+":"+target.channel!==firstKeys[i]||target.unit!==first[i].unit) {
+        throw new TypeError("Every keyframe must preserve the same ordered joint target channels and units.");
+      }
+    }
+  }
 }
 export function sampleCharacterPoseTransition(t:CharacterPoseTransition, elapsedSeconds:number):CharacterPoseTransitionSample {
   validateCharacterPoseTransition(t);
