@@ -96,8 +96,8 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
     if (event.channel !== "visual-effect" && event.channel !== "audio-effect") {
       return { status: "unsupported", notes: [`VFXR cannot own the ${event.channel} response channel.`] };
     }
-    if (!event.asset) {
-      return { status: "unsupported", notes: ["VFXR response requires an authored sprite, WEBM, effect-preset, or procedural asset reference."] };
+    if (!event.asset || typeof event.asset.assetId !== "string" || !event.asset.assetId.trim()) {
+      return { status: "unsupported", notes: ["VFXR response requires a valid authored asset reference."] };
     }
     const target = this.targets.get(event.targetId!);
     if (!target) {
@@ -138,12 +138,12 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
       ...(result.accepted ? {
         output: result.output,
         telemetry: {
+          ...(result.telemetry ?? {}),
           targetId: target.targetId,
           eventId: event.eventId,
           effectKind: event.effectKind,
           assetId: event.asset.assetId,
           pipeline: "VFXR",
-          ...(result.telemetry ?? {}),
         },
       } : { reason: result.reason }),
     };
