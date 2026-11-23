@@ -188,3 +188,40 @@ Synchronized perspective capture requires every view to identify the same observ
 Each perspective also records camera pose, projection, viewport, and framing intent. Full-body framing and intentional dramatic cropping are distinct declared intents. Off-screen projection and clipping diagnostics remain separate from physical dimensions and should be added by the framing-integrity implementation.
 
 This contract establishes the data boundary only. It does not yet add player-facing sticky-camera controls or change the existing five CameraRig5Mode behaviors.
+
+
+## 15. Renderer-neutral capability and Infinity Growth Presentation
+
+The renderer capability contract declares representation kind, coordinate spaces, and explicit support for anchors, bounds, transforms, depth, parallax, projection, occlusion, and camera attachment behaviors. Supported representation kinds include 2D sprites, 2D vectors, 2.5D planes, 3D scenes, holograms, and composites. Missing capabilities are unsupported; they are never inferred. Translated or approximated capabilities must state how the mapping works.
+
+Portable anchors and camera attachments accept sprite-local, plane-local, subject-local, stage-world, camera-relative, screen-normalized, and viewport-normalized spaces. These coordinate spaces preserve renderer semantics; they do not imply that a 2D sprite has world depth, a skeleton, or a 3D transform. The renderer descriptor remains the authority for which spaces and operations are actually available.
+
+### Infinity Growth Presentation (IGP)
+
+IGP is a reversible presentation strategy for cases where native camera presentation cannot reliably communicate continued growth. It contracts the *apparent rendered environment* around the subject so the character can remain compositionally legible without requiring unbounded camera distance, world-coordinate expansion, or far-plane growth. IGP does not shrink authoritative world objects, alter collision, or rewrite subject/world dimensions.
+
+Two environment policies are explicit:
+
+- **contract-all:** all environment references contract together. This emphasizes continuous reverse-world growth and does not preserve fixed visual calibration objects.
+- **preserve-calibration:** selected, stable reference anchors remain visually calibrated while the rest of the apparent environment contracts. This keeps a known comparison point available while the wider world changes.
+
+Calibration anchors retain their authoritative identity, source, and measurements. Their presentation exemption is recorded separately; it must not overwrite their world-space dimensions. The selected policy is part of the presentation configuration and experiment capture.
+
+IGP defines three presentation modes: native, assisted, and infinity. Native uses the renderer's ordinary presentation. Assisted applies supported framing recovery without world contraction. Infinity enables explicit environment contraction. A transition must be tied to a framing-integrity assessment and the same subject, configuration, growth-state identity, and simulation timestamp. Arbitrary size thresholds alone are not sufficient evidence for a transition.
+
+The initial IGP snapshot records:
+- presentation mode and environment policy;
+- apparent environment scale multiplier;
+- stable calibration anchor IDs;
+- optional normalized subject viewport anchor;
+- background-only blur, camera shake, parallax accent, and horizon shift;
+- framing-integrity sample identity;
+- an explicit presentation-only authority boundary.
+
+Background effects are independent controls. Blur is background-only in this contract; the subject's silhouette, body proportions, growth landmarks, and inspection detail must remain available by default. Camera shake and blur are optional surge accents, not required consequences of growth. Effect intensity is recorded so the same growth event can be compared with effects enabled or disabled.
+
+### Framing-integrity boundary and implementation status
+
+A framing-integrity assessment identifies clipping, exhausted depth range, unrecoverable framing, or unavailable projected bounds, along with visible viewport occupancy, depth-clipping state, and whether native recovery is available. It is a diagnostic input, not a growth command.
+
+This implementation slice establishes validated data contracts and tests only. It does not yet transform live scene environments, pin calibration props, alter the live camera, apply blur/shake, or automatically switch presentation modes. Those require renderer-specific adapters that advertise and execute only supported capabilities. Existing CameraRig5Mode behavior, tube-ceiling-growth behavior, growth engines, stage-relative scale, and M1AS stream/GLB authority remain unchanged.
