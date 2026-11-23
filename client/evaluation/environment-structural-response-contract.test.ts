@@ -135,3 +135,33 @@ test("rejects malformed rules and stale active state", () => {
   assert.throws(() => evaluateStructuralResponses(observation(), [valid], ["removed"]), /absent/);
   assert.throws(() => evaluateStructuralResponses(observation(), [valid, valid]), /Duplicate/);
 });
+
+
+test("rejects structural signals with incompatible units or invalid provenance", () => {
+  const input = observation();
+  input.signals.stressRatio = {
+    status: "available", value: 0.9, unit: "meters", source: "solver-a", confidence: "measured",
+  };
+  const rule: StructuralResponseRule = {
+    ruleId: "stress", metric: "stressRatio", operator: "greater-than-or-equal", threshold: 0.8,
+    channel: "structural-integrity", effectKind: "failure-evaluation",
+    responseId: "failure", severity: "critical", priority: 0,
+  };
+  const result = evaluateStructuralResponses(input, [rule]);
+  assert.equal(result.evaluations[0].state, "unavailable");
+  assert.match(result.evaluations[0].reason ?? "", /invalid value, unit, source, or confidence/);
+  input.provenance.sourceKind = "unknown" as StructuralResponseObservation["provenance"]["sourceKind"];
+  assert.throws(() => evaluateStructuralResponses(input, [rule]), /sourceKind/);
+});
+
+test("rejects unsupported metric and severity values", () => {
+  const rule = {
+    ruleId: "bad", metric: "cameraFov", operator: "greater-than-or-equal", threshold: 1,
+    channel: "visual-effect", effectKind: "stress-glow", responseId: "bad",
+    severity: "catastrophic", priority: 0,
+  } as unknown as StructuralResponseRule;
+  assert.throws(() => evaluateStructuralResponses(observation(), [rule]), /unsupported metric/);
+  assert.throws(() => evaluateStructuralResponses(observation(), [{
+    ...rule, metric: "stressRatio", severity: "catastrophic",
+  } as unknown as StructuralResponseRule]), /unsupported severity/);
+});
