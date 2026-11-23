@@ -167,3 +167,24 @@ These sources are not interchangeable. A measured mesh bound is not a head/foot 
 Reference relationship measurements preserve both baseline and current subject/reference snapshots. This supports character-to-character, creature-to-building and building-to-environment comparisons without assuming a human reference. Camera-relative projected size remains a separate presentation observation; it must not be used as a substitute for world-space growth.
 
 The current live capture is read-only. Authored semantic anchor metadata, writable anchor editing, additional environment landmark types, and paired first-person/observer capture remain subsequent integration work.
+
+
+## 14. Camera perspectives, sticky attachments, and paired observation
+
+Camera presentation is an observation system, not a growth authority. Camera movement, attachment, framing, projection changes, and perspective switching must never modify actual scale, growth history, or stage-relative scale.
+
+The portable camera contract defines explicit perspective identities for first-person, observer, over-the-shoulder, growing-toward-viewer, outstretched-hand, looking-down, elevated, low-angle, front, back, side-profile, top-down, free-form, and sticky views. These labels identify evaluation intent; they do not imply that every runtime camera mode is already implemented.
+
+Sticky-camera attachment uses stable portable anchor identity, owner identity, coordinate space, source provenance, and a local position/orientation offset. Three attachment behaviors are distinguished:
+
+- **Hard stick:** follows the anchor transform directly.
+- **Soft stick:** follows with a configurable damping response.
+- **Look-at stick:** follows an attachment while independently tracking a second anchor.
+
+A missing or replaced attachment target must be reported as unavailable; it must not silently retarget to another anchor. A camera attachment is not an authored anatomical anchor and must not promote an arbitrary bone into a semantic body landmark.
+
+Synchronized perspective capture requires every view to identify the same observed subject, configuration version, growth-state identity, and simulation timestamp. This permits child-view, adult-view, over-shoulder, outstretched-hand, and observer views to compare the same growth event rather than different moments.
+
+Each perspective also records camera pose, projection, viewport, and framing intent. Full-body framing and intentional dramatic cropping are distinct declared intents. Off-screen projection and clipping diagnostics remain separate from physical dimensions and should be added by the framing-integrity implementation.
+
+This contract establishes the data boundary only. It does not yet add player-facing sticky-camera controls or change the existing five CameraRig5Mode behaviors.
