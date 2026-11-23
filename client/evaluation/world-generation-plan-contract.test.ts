@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildColossusWorldGenerationPlan } from "./world-generation-plan-contract.js";
+import { generateColossusDimensions } from "./colossus-profile-contract.js";
 import type { ColossusProfile } from "./colossus-profile-contract.js";
 
 function profile(overrides: Partial<ColossusProfile> = {}): ColossusProfile {
@@ -100,4 +101,30 @@ test("generation plan is stable for the same profile revision and does not claim
   assert.equal(plan.authority.spatialPlacementGenerated, false);
   assert.equal(plan.authority.growthStateModified, false);
   assert.equal(plan.authority.cameraOrPresentationModified, false);
+});
+
+
+test("procedural world plan uses seeded generated dimensions rather than the authored placeholder", () => {
+  const configured = profile();
+  const plan = buildColossusWorldGenerationPlan(configured);
+  const generated = generateColossusDimensions(configured);
+  assert.deepEqual(plan.colossus.dimensions, generated);
+  assert.notDeepEqual(plan.colossus.dimensions, configured.dimensions);
+  assert.deepEqual(plan.nextParentCandidate.dimensions, {
+    widthMeters: generated.widthMeters * configured.generation.nextParentScaleFactor,
+    heightMeters: generated.heightMeters * configured.generation.nextParentScaleFactor,
+    depthMeters: generated.depthMeters * configured.generation.nextParentScaleFactor,
+  });
+});
+
+test("hybrid mode without procedural ranges preserves authored dimensions", () => {
+  const configured = profile({
+    generation: {
+      ...profile().generation,
+      mode: "hybrid",
+      dimensionRangesMeters: undefined,
+    },
+  });
+  const plan = buildColossusWorldGenerationPlan(configured);
+  assert.deepEqual(plan.colossus.dimensions, configured.dimensions);
 });
