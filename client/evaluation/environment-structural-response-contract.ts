@@ -214,6 +214,17 @@ function expectedSignalUnit(metric: StructuralSignalMetric): StructuralSignalVal
   return undefined;
 }
 
+function resolveStructuralSignal(
+  signal: StructuralSignal | undefined,
+  expectedUnit: StructuralSignalValue["unit"] | undefined,
+): { value: number; confidence: StructuralSignalValue["confidence"] } | undefined {
+  if (!signal || signal.status !== "available" || !expectedUnit) return undefined;
+  if (!Number.isFinite(signal.value) || signal.value < 0 || signal.unit !== expectedUnit ||
+      typeof signal.source !== "string" || !signal.source.trim() ||
+      !["measured", "estimated", "authored"].includes(signal.confidence)) return undefined;
+  return { value: signal.value, confidence: signal.confidence };
+}
+
 function validateRule(rule: StructuralResponseRule): void {
   nonEmpty(rule.ruleId, "ruleId");
   nonEmpty(rule.responseId, "responseId");
@@ -303,16 +314,11 @@ export function evaluateStructuralResponses(
     const prior = previous.has(rule.ruleId);
     const relation = relationshipMetric(observation.relationship, rule.metric);
     const signal = relation ? undefined : structuralSignal(observation.signals ?? {}, rule.metric);
-    const expectedUnit = expectedSignalUnit(rule.metric);
-    const signalValid = signal?.status === "available" &&
-      Number.isFinite(signal.value) && signal.value >= 0 &&
-      signal.unit === expectedUnit &&
-      typeof signal.source === "string" && signal.source.trim().length > 0 &&
-      ["measured", "estimated", "authored"].includes(signal.confidence);
+    const resolvedSignal = resolveStructuralSignal(signal, expectedSignalUnit(rule.metric));
     const resolved = relation
       ? { ...relation, status: "available" as const }
-      : signalValid
-        ? { value: signal.value, confidence: signal.confidence, status: "available" as const }
+      : resolvedSignal
+        ? { ...resolvedSignal, status: "available" as const }
         : undefined;
     if (!resolved) {
       const reason = signal && signal.status !== "available"
