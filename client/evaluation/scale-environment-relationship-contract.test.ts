@@ -155,3 +155,58 @@ test("rejects malformed bounds, metadata, duplicate rules, and invalid threshold
     { ...invalidRule, releaseThreshold: 0.7 },
   ]), /Duplicate/);
 });
+
+
+test("identifies coincident bounds and supports microscopic metre measurements", () => {
+  const coincident = measureScaleEnvironmentRelationship(observation({
+    referenceBounds: observation().subjectBounds,
+  }));
+  assert.equal(coincident.spatialState, "coincident");
+  const micro = measureScaleEnvironmentRelationship(observation({
+    subjectBounds: {
+      min: { x: 0, y: 0, z: 0 },
+      max: { x: 1e-9, y: 2e-9, z: 1e-9 },
+    },
+    referenceBounds: {
+      min: { x: -5e-9, y: -5e-9, z: -5e-9 },
+      max: { x: 5e-9, y: 5e-9, z: 5e-9 },
+    },
+  }), 0);
+  assert.equal(micro.spatialState, "subject-contained");
+  assert.equal(micro.subjectToReferenceHeightRatio, 0.2);
+});
+
+test("supports less-than thresholds for approaching clearance and rejects stale active rules", () => {
+  const measurement = measureScaleEnvironmentRelationship(observation());
+  const rule: EnvironmentResponseRule = {
+    ruleId: "near-wall",
+    metric: "minimumClearanceMeters",
+    operator: "less-than-or-equal",
+    threshold: 0.1,
+    responseKind: "visual-cue",
+    responseId: "wall-proximity",
+    priority: 1,
+  };
+  const result = evaluateScaleEnvironmentResponses(measurement, [rule]);
+  assert.equal(result.evaluations[0].state, "entered");
+  assert.throws(() => evaluateScaleEnvironmentResponses(measurement, [rule], ["removed-rule"]), /not present/);
+});
+
+test("rejects unsupported runtime metric and operator values", () => {
+  const measurement = measureScaleEnvironmentRelationship(observation());
+  const rule = {
+    ruleId: "invalid-metric",
+    metric: "cameraDistance",
+    operator: "greater-than-or-equal",
+    threshold: 1,
+    responseKind: "camera-cue",
+    responseId: "camera",
+    priority: 0,
+  } as unknown as EnvironmentResponseRule;
+  assert.throws(() => evaluateScaleEnvironmentResponses(measurement, [rule]), /unsupported metric/);
+  assert.throws(() => evaluateScaleEnvironmentResponses(measurement, [{
+    ...rule,
+    metric: "heightOccupancyRatio",
+    operator: "approx",
+  } as unknown as EnvironmentResponseRule]), /unsupported operator/);
+});
