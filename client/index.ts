@@ -252,3 +252,14 @@ export {
   buildCharacterVolumePosePlan,
 } from "./evaluation/character-volume-pose-bridge-contract.js";
 export type * from "./evaluation/character-volume-pose-bridge-contract.js";
+
+
+export {
+  Big3rCharacterPoseAdapter,
+  VfxrCharacterPoseAdapter,
+} from "./evaluation/character-volume-pose-adapters.js";
+export type {
+  CharacterPoseDispatchResult,
+  Big3rRigPoseTarget,
+  VfxrPoseAuthoringTarget,
+} from "./evaluation/character-volume-pose-adapters.js";
