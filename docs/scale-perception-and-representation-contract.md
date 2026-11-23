@@ -264,7 +264,7 @@ This is a deterministic assessment layer, not a live camera controller. It does 
 
 The renderer-independent `colossus-profile-contract.ts` defines a versioned JSON profile for a Colossus scale reference. Colossus identity is the stable reference ID and authored `kind: "colossus"` / `role: "parent"`; it is never inferred from a dimension threshold. A Colossus can therefore be configured at microscopic, character-sized, 1 m, 20 m, 100 m, or much larger dimensions without losing its identity.
 
-The profile stores three independent dimension axes in canonical metres for both the Colossus and the world envelope. The envelope is intentionally not required to contain the Colossus: a 1 m Petri-dish test world can present a 20 m or 100 m Colossus through later presentation/world-generation systems. This contract records those dimensions; it does not itself shrink the world, generate geometry, or create an infinite space.
+The profile stores three independent dimension axes in canonical metres for both the Colossus and the world envelope. The envelope is intentionally not required to contain the Colossus: a 1 m Petri-dish test world can present a 20 m or 100 m Colossus through later presentation/world-generation systems. The authored world-envelope multiplier may also be below 1, so procedural world generation can preserve this inverse relationship. This contract records those dimensions; it does not itself shrink the world, generate geometry, or create an infinite space.
 
 Runtime resizing is a pure profile operation controlled by an explicit flag. It changes configured dimensions and configuration version while preserving reference identity and world-envelope dimensions. A separate adapter maps the configured comparison axis into the existing persistent scale-reference hierarchy node, so the hierarchy is extended rather than duplicated.
 
@@ -274,3 +274,5 @@ Validation accepts any finite positive representable metre value, including very
 
 
 A runnable authored 1 m × 1 m × 1 m starting profile is provided at `examples/experiments/big3r-colossus-profile-petri-dish.json`. It deliberately keeps the Colossus and world envelope separate so the same stable Colossus reference can later be resized to a micro or macro test scale without changing its identity.
+
+A second example, `examples/experiments/big3r-colossus-profile-procedural-petri-dish.json`, demonstrates seeded independent dimension ranges for an approximately 100 m Colossus in a 1 m world envelope, including a 0.01 world-envelope multiplier.
