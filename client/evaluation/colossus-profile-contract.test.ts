@@ -27,6 +27,7 @@ function profile(overrides: Partial<ColossusProfile> = {}): ColossusProfile {
     generation: {
       mode: "authored",
       seed: 13163,
+      algorithm: "mulberry32-v1",
       npcHeightRatio: 0.2,
       bossHeightRatio: 0.75,
       nextParentScaleFactor: 10,
