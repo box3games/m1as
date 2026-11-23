@@ -96,7 +96,7 @@ test("keeps every placement anchor inside a 1m envelope without shrinking huge e
     assert.equal(placement.anchorInsideEnvelope, true);
     assert.equal(placement.collisionResolved, false);
   }
-  assert.equal(layout.placements[0].dimensions.heightMeters, layout.placements[0].dimensions.heightMeters);
+  assert.ok(layout.placements[0].dimensions.heightMeters > layout.worldEnvelope.heightMeters);
   assert.equal(layout.placements[0].extentExceedsEnvelope, true);
   assert.ok(layout.diagnostics.footprintCountExceedingEnvelope > 0);
 });
@@ -145,4 +145,38 @@ test("authority flags make clear that no world, growth, hierarchy, or presentati
   assert.equal(layout.authority.growthStateModified, false);
   assert.equal(layout.authority.hierarchyPromoted, false);
   assert.equal(layout.authority.cameraOrPresentationModified, false);
+});
+
+
+test("maps normalized anchors into asymmetric world-envelope metre coordinates", () => {
+  const base = buildColossusWorldGenerationPlan(profile());
+  const generation = {
+    ...base,
+    worldEnvelope: {
+      ...base.worldEnvelope,
+      dimensions: { widthMeters: 10, heightMeters: 4, depthMeters: 20 },
+    },
+  };
+  const layout = buildWorldSpatialLayoutPlan(generation, config({
+    npcCount: 1,
+    bossCount: 0,
+    includeTransitionGate: false,
+  }));
+  const npc = layout.placements.find(item => item.kind === "npc")!;
+  assert.equal(npc.positionMeters.x, npc.normalizedPosition.x * 10);
+  assert.equal(npc.positionMeters.z, npc.normalizedPosition.z * 20);
+  assert.equal(npc.positionMeters.y, 0);
+});
+
+test("preserves oversized landmark dimensions and reports envelope footprint mismatch", () => {
+  const base = buildColossusWorldGenerationPlan(profile());
+  const layout = buildWorldSpatialLayoutPlan(base, config({
+    npcCount: 0,
+    bossCount: 0,
+    includeTransitionGate: false,
+  }));
+  const largest = layout.placements.find(item => item.kind === "world-landmark" && item.relativeHeightRatio === 5)!;
+  assert.equal(largest.dimensions.heightMeters, base.colossus.dimensions.heightMeters * 5);
+  assert.equal(largest.extentExceedsEnvelope, true);
+  assert.equal(largest.footprintFitsEnvelope, false);
 });
