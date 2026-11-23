@@ -211,7 +211,7 @@ export class Big3rStageCoordinator {
                     const ownerId = `scene-reference:${reference.propId}`;
                     return [
                         {
-                            anchorId: "bounds-bottom",
+                            anchorId: `reference:${reference.propId}:bounds-bottom`,
                             ownerId,
                             group: "environment" as const,
                             semantic: `reference-prop-bottom:${reference.name}`,
@@ -222,13 +222,13 @@ export class Big3rStageCoordinator {
                             sourceVersion: "1.0.0",
                         },
                         {
-                            anchorId: "bounds-top",
+                            anchorId: `reference:${reference.propId}:bounds-top`,
                             ownerId,
                             group: "environment" as const,
                             semantic: `reference-prop-top:${reference.name}`,
                             coordinateSpace: "stage-world" as const,
                             position: reference.top,
-                            parentAnchorId: "bounds-bottom",
+                            parentAnchorId: `reference:${reference.propId}:bounds-bottom`,
                             access: "read-only" as const,
                             source: "big3r-reference-prop",
                             sourceVersion: "1.0.0",
