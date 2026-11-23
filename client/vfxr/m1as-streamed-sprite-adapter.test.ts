@@ -22,8 +22,11 @@ test("loads an authenticated M1AS image stream as a VFXR sprite subject",async()
  loaded.dispose();
 });
 test("accepts M1AS video streams and preserves stream metadata",async()=>{
- const videoAsset={...asset,mimeType:"video/webm"};const loaded=await loadVfxrM1asStreamedSprite({asset:videoAsset,signedUrl:"https://m1as.test/video?sig=x",userId:"user-1"},makeResolver(640,360));
- assert.equal(loaded.subject.assetKind,"m1as-video");assert.ok(Math.abs(loaded.subject.initialDimensions.x-16/9)<1e-9);loaded.dispose();
+ const seen:unknown[]=[];
+ const videoAsset={...asset,mimeType:"video/webm"};const loaded=await loadVfxrM1asStreamedSprite({asset:videoAsset,signedUrl:"https://m1as.test/video?sig=x",userId:"user-1"},makeResolver(640,360,seen));
+ assert.equal(loaded.subject.assetKind,"m1as-video");assert.ok(Math.abs(loaded.subject.initialDimensions.x-16/9)<1e-9);
+ assert.equal((seen[0] as {options:{flipY:boolean}}).options.flipY,false);
+ loaded.dispose();
 });
 test("requires explicit snapshot mode for streamed GLB and rejects unsupported streams",async()=>{
  const glb={...asset,mimeType:"model/gltf-binary",displayName:"hero.glb"};
