@@ -363,6 +363,55 @@ export class M1ASVFXEngine {
     // PUBLIC GROWTH, STIMULUS & CAMERA CONTROLS
     // =========================================================================
 
+
+    /** Read-only world-space positions for the active GLB skeleton. Names are preserved verbatim. */
+    public getCharacterAnchorNodes(): Array<{
+        boneName: string;
+        parentBoneName?: string;
+        worldPosition: { x: number; y: number; z: number };
+    }> {
+        this.subjectRoot.updateWorldMatrix(true, true);
+        return Array.from(this.bones.values(), (bone) => {
+            const position = bone.getWorldPosition(new THREE.Vector3());
+            const parent = bone.parent as THREE.Bone | null;
+            return {
+                boneName: bone.name,
+                ...(parent?.isBone ? { parentBoneName: parent.name } : {}),
+                worldPosition: { x: position.x, y: position.y, z: position.z },
+            };
+        });
+    }
+
+    /** Read-only world bounds for props explicitly registered with the reference role. */
+    public getReferenceSceneAnchors(): Array<{
+        propId: string;
+        name: string;
+        bottom: { x: number; y: number; z: number };
+        top: { x: number; y: number; z: number };
+    }> {
+        const references: Array<{
+            propId: string;
+            name: string;
+            bottom: { x: number; y: number; z: number };
+            top: { x: number; y: number; z: number };
+        }> = [];
+        for (const prop of this.sceneProps.values()) {
+            if (prop.role !== "reference") continue;
+            prop.root.updateWorldMatrix(true, true);
+            const bounds = new THREE.Box3().setFromObject(prop.root);
+            if (bounds.isEmpty()) continue;
+            const x = (bounds.min.x + bounds.max.x) * 0.5;
+            const z = (bounds.min.z + bounds.max.z) * 0.5;
+            references.push({
+                propId: prop.id,
+                name: prop.name,
+                bottom: { x, y: bounds.min.y, z },
+                top: { x, y: bounds.max.y, z },
+            });
+        }
+        return references;
+    }
+
     public getCanvas(): HTMLCanvasElement {
         return this.canvas;
     }
