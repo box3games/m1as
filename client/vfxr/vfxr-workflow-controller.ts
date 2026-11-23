@@ -120,6 +120,7 @@ export class VfxrWorkflowController {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x030712, 1);
     this.camera.position.set(0, 0, 10);
+    this.renderer.setAnimationLoop(() => this.render());
     this.scene.background = new THREE.Color(0x030712);
     this.loadButton.addEventListener("click", () => void this.loadSelected(options.userId, options.getSignedAssetUrl));
     this.growButton.addEventListener("click", () => this.grow());
@@ -238,9 +239,9 @@ export class VfxrWorkflowController {
     try {
       const parsed = JSON.parse(this.transitionInput.value) as { transitionId?: unknown };
       if (typeof parsed.transitionId !== "string") throw new TypeError("Transition ID is required.");
-      const document = this.poseTarget.getDocument(parsed.transitionId);
-      if (!document) throw new Error("Author the sequence before exporting.");
-      const blob = new Blob([JSON.stringify(document, null, 2)], { type: "application/json" });
+      const sequenceDocument = this.poseTarget.getDocument(parsed.transitionId);
+      if (!sequenceDocument) throw new Error("Author the sequence before exporting.");
+      const blob = new Blob([JSON.stringify(sequenceDocument, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -282,6 +283,7 @@ export class VfxrWorkflowController {
     this.disposed = true;
     window.removeEventListener("resize", this.resize);
     this.disposeActive();
+    this.renderer.setAnimationLoop(null);
     this.renderer.dispose();
     this.root.remove();
   }
