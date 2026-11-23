@@ -17,7 +17,9 @@ const asset:M1asAsset={id:"asset-123",displayName:"Hero.webp",mimeType:"image/we
 test("loads an authenticated M1AS image stream as a VFXR sprite subject",async()=>{
  const seen:unknown[]=[];const loaded=await loadVfxrM1asStreamedSprite({asset,signedUrl:"https://m1as.test/signed",userId:"user-1",targetHeightMeters:2},makeResolver(256,512,seen));
  assert.equal(loaded.subject.assetId,"asset-123");assert.equal(loaded.subject.assetKind,"m1as-image");assert.equal(loaded.subject.initialDimensions.y,2);assert.equal(loaded.subject.initialDimensions.x,1);assert.equal(loaded.source.streamCapability,"declared");
- assert.equal(loaded.sprite.scale.y,2);assert.equal((seen[0] as {options:{userId:string}}).options.userId,"user-1");loaded.dispose();
+ assert.equal(loaded.sprite.scale.y,2);assert.equal((seen[0] as {options:{userId:string}}).options.userId,"user-1");
+ assert.equal((seen[0] as {options:{flipY:boolean}}).options.flipY,true);
+ loaded.dispose();
 });
 test("accepts M1AS video streams and preserves stream metadata",async()=>{
  const videoAsset={...asset,mimeType:"video/webm"};const loaded=await loadVfxrM1asStreamedSprite({asset:videoAsset,signedUrl:"https://m1as.test/video?sig=x",userId:"user-1"},makeResolver(640,360));
