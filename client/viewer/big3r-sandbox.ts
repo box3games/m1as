@@ -31,7 +31,7 @@ import { captureCharacterPresentation, capturePerspectiveCamera } from "../exper
 import { captureExperientialScale } from "../experiments/experiential-scale-adapter.js";
 import { applyPresentationAccentEvaluation } from "../experiments/presentation-accent-adapter.js";
 import { validateExperientialScaleProfileSet, type ExperientialScaleProfileSet } from "../growth/experiential-scale.js";
-import { TwoDimensionalSpriteLab } from "./two-dimensional-sprite-lab.js";
+import { TwoDimensionalSpriteLab, type StreamedGlbGrowthSubject } from "./two-dimensional-sprite-lab.js";
 import { M1ASVFXGrowthModel } from "../growth/model-adapters.js";
 import type { GrowthModelCommand } from "../growth/model-contract.js";
 
@@ -84,6 +84,9 @@ export class Big3rSandboxController {
     private growTimeReadout: HTMLElement | null = null;
     private lastGrowthFlowSampleTimeSeconds = -1;
     private experientialScaleProfiles: ExperientialScaleProfileSet | null = this.loadExperientialScaleProfiles();
+    private growthLab: TwoDimensionalSpriteLab;
+    private activeAssetIdentity: StreamedGlbGrowthSubject | null = null;
+    private pendingGrowthRecipe: { recipeId: string; adapter: M1ASVFXGrowthModel; context: { experimentId: string; simulationTimeSeconds: number; configurationVersion: string }; startedAt: number; commands: Array<{ atSeconds: number; command: GrowthModelCommand }>; nextIndex: number } | null = null;
 
     private readonly streamingHud = document.getElementById("vfxStreamingHud") as HTMLElement | null;
     private readonly heightReticle = document.getElementById("vfxHeightReticle") as HTMLElement | null;
@@ -132,7 +135,9 @@ export class Big3rSandboxController {
         this.userId = options.userId;
         this.engineFactory = options.engineFactory;
         this.bindEvents();
-        new TwoDimensionalSpriteLab(this.stageContainer);
+        this.growthLab = new TwoDimensionalSpriteLab(this.stageContainer, {
+            executeGrowthRecipe: (recipe) => this.executeGrowthRecipe(recipe),
+        });
     }
 
     isActive(): boolean {
@@ -175,13 +180,16 @@ export class Big3rSandboxController {
         });
     }
 
-    async mount(glbSignedUrl: string, vfxWebmSignedUrl = ""): Promise<void> {
+    async mount(glbSignedUrl: string, vfxWebmSignedUrl = "", assetIdentity?: StreamedGlbGrowthSubject): Promise<void> {
         if (!glbSignedUrl || !glbSignedUrl.trim()) {
             alert("Please provide a valid .glb signed URL first.");
             return;
         }
 
         this.glbUrlInput.value = glbSignedUrl;
+        this.activeAssetIdentity = null;
+        this.pendingGrowthRecipe = null;
+        this.growthLab.setActiveStreamedSubject(null);
         this.growthModelControls?.remove();
         this.growthModelControls = null;
         this.growthModelSelect = null;
@@ -227,6 +235,7 @@ export class Big3rSandboxController {
                 cinematicCamera: this.cinematicCamToggle.checked,
                 onPropsChanged: (props) => this.renderActivePropsUI(props),
                 onFrame: (simulationTimeSeconds, frameNumber) => {
+                    this.advanceGrowthRecipe(simulationTimeSeconds, frameNumber);
                     this.experimentCoordinator?.tick(simulationTimeSeconds, frameNumber);
                     if (this.growTimeController) {
                         this.growTimeController.advance(simulationTimeSeconds);
@@ -287,6 +296,8 @@ export class Big3rSandboxController {
                 }
             });
 
+            this.activeAssetIdentity = assetIdentity ?? null;
+            this.growthLab.setActiveStreamedSubject(this.activeAssetIdentity);
             this.installGrowthModelSelector(this.activeEngine);
             this.installExperimentControls(this.activeEngine as unknown as M1ASVFXEngine);
             this.installGrowTimeControls(this.activeEngine as unknown as M1ASVFXEngine);
@@ -581,6 +592,120 @@ export class Big3rSandboxController {
 
 
     /** Selects the growth implementation while preserving the mounted GLB and scene. */
+
+    private async executeGrowthRecipe(rawRecipe: unknown): Promise<string> {
+        if (!this.activeEngine) throw new Error("Mount an M1AS GLB before executing a growth recipe.");
+        if (!this.activeAssetIdentity) throw new Error("The active GLB has no M1AS asset identity. Load it from the M1AS asset list, not an untracked URL.");
+        const engine = this.activeEngine as M1ASVFXEngine;
+        if (engine.getGrowthModel() !== "m1as-vfx") {
+            throw new Error("Select M1AS VFX Growth before scheduling this recipe. Baseline scaling is not the M1AS queue adapter.");
+        }
+        if (this.pendingGrowthRecipe) throw new Error("A growth recipe is already running. Let it finish before scheduling another.");
+        if (!rawRecipe || typeof rawRecipe !== "object") throw new Error("Recipe must be a JSON object.");
+        const recipe = rawRecipe as { schemaVersion?: unknown; id?: unknown; title?: unknown; subject?: { assetKind?: unknown }; commands?: unknown };
+        if (recipe.schemaVersion !== "m1as-growth-recipe/1.0" ||
+            typeof recipe.id !== "string" || !recipe.id.trim() ||
+            !Array.isArray(recipe.commands) || recipe.commands.length === 0) {
+            throw new Error("Expected schemaVersion m1as-growth-recipe/1.0, a recipe id, and a non-empty commands array.");
+        }
+        if (recipe.subject?.assetKind && recipe.subject.assetKind !== this.activeAssetIdentity.assetKind) {
+            throw new Error("Recipe assetKind does not match the active M1AS GLB subject.");
+        }
+        const commandIds = new Set<string>();
+        let previousOffset = -1;
+        const commands: Array<{ atSeconds: number; command: GrowthModelCommand }> = [];
+        for (const [index, rawCommand] of recipe.commands.entries()) {
+            if (!rawCommand || typeof rawCommand !== "object") throw new Error("Command " + (index + 1) + " must be an object.");
+            const item = rawCommand as Record<string, unknown>;
+            const atSeconds = item.atSeconds === undefined ? 0 : item.atSeconds;
+            if (typeof atSeconds !== "number" || !Number.isFinite(atSeconds) || atSeconds < 0 || atSeconds < previousOffset) {
+                throw new Error("Command " + (index + 1) + " atSeconds must be finite, non-negative, and in non-decreasing order.");
+            }
+            previousOffset = atSeconds;
+            if (typeof item.commandId !== "string" || !item.commandId.trim()) throw new Error("Command " + (index + 1) + " needs a commandId.");
+            if (commandIds.has(item.commandId)) throw new Error("Duplicate commandId: " + item.commandId);
+            commandIds.add(item.commandId);
+            let command: GrowthModelCommand;
+            if (item.kind === "discrete") {
+                const amount = item.amount as { kind?: unknown; fraction?: unknown; scale?: unknown } | undefined;
+                const validAmount = amount && (
+                    amount.kind === "relative_change"
+                        ? typeof amount.fraction === "number" && Number.isFinite(amount.fraction) && amount.fraction >= 0
+                        : amount.kind === "absolute_target" && typeof amount.scale === "number" && Number.isFinite(amount.scale) && amount.scale > 0
+                );
+                if (!validAmount || typeof item.stimulus !== "string") throw new Error("Discrete command " + item.commandId + " has an invalid stimulus or amount.");
+                command = { kind: "discrete", commandId: item.commandId, stimulus: item.stimulus, amount: amount!.kind === "relative_change" ? { kind: "relative_change", fraction: amount!.fraction as number } : { kind: "absolute_target", scale: amount!.scale as number } };
+            } else if (item.kind === "flow") {
+                if (typeof item.supplySeconds !== "number" || !Number.isFinite(item.supplySeconds) || item.supplySeconds <= 0 ||
+                    typeof item.flowMultiplier !== "number" || !Number.isFinite(item.flowMultiplier) || item.flowMultiplier <= 0) {
+                    throw new Error("Flow command " + item.commandId + " requires positive supplySeconds and flowMultiplier.");
+                }
+                command = { kind: "flow", commandId: item.commandId, supplySeconds: item.supplySeconds, flowMultiplier: item.flowMultiplier, stimulus: typeof item.stimulus === "string" ? item.stimulus : "Buff" };
+            } else if (item.kind === "hold") {
+                if (typeof item.active !== "boolean") throw new Error("Hold command " + item.commandId + " requires active true or false.");
+                command = { kind: "hold", commandId: item.commandId, active: item.active, stimulus: typeof item.stimulus === "string" ? item.stimulus : "Buff" };
+            } else {
+                throw new Error("Command " + (index + 1) + " kind must be discrete, flow, or hold.");
+            }
+            commands.push({ atSeconds, command });
+        }
+
+        const startTime = engine.getSimulationTimeSeconds();
+        const context = {
+            experimentId: "recipe-" + recipe.id + "-" + Math.floor(startTime * 1000),
+            simulationTimeSeconds: startTime,
+            configurationVersion: String(recipe.schemaVersion),
+        };
+        const adapter = new M1ASVFXGrowthModel(engine);
+        adapter.initialize({
+            subjectId: this.activeAssetIdentity.assetId,
+            assetId: this.activeAssetIdentity.assetId,
+            assetKind: this.activeAssetIdentity.assetKind,
+            initialDimensions: { x: 1, y: 1, z: 1 },
+            worldUnit: "meters",
+        }, context);
+        this.pendingGrowthRecipe = { recipeId: recipe.id, adapter, context, startedAt: startTime, commands, nextIndex: 0 };
+        this.diagnostics.info("growth-recipe", "M1AS GLB growth recipe scheduled on the engine simulation clock.", {
+            recipeId: recipe.id, assetId: this.activeAssetIdentity.assetId, commandCount: commands.length,
+            startSimulationTimeSeconds: startTime, scheduledOffsetsSeconds: commands.map(item => item.atSeconds),
+        });
+        return "Scheduled " + commands.length + " command(s) for " + String(recipe.title || recipe.id) +
+            " on " + this.activeAssetIdentity.displayName + ". Timing is relative to the active M1AS simulation clock.";
+    }
+
+    private advanceGrowthRecipe(simulationTimeSeconds: number, frameNumber: number): void {
+        const pending = this.pendingGrowthRecipe;
+        if (!pending) return;
+        while (pending.nextIndex < pending.commands.length) {
+            const scheduled = pending.commands[pending.nextIndex];
+            if (simulationTimeSeconds - pending.startedAt < scheduled.atSeconds) break;
+            const result = pending.adapter.apply(scheduled.command, {
+                ...pending.context,
+                simulationTimeSeconds,
+            });
+            this.diagnostics.log({
+                level: result.accepted ? "info" : "warn",
+                category: "growth-recipe",
+                message: result.accepted ? "Scheduled growth recipe command submitted to M1AS engine." : "M1AS engine rejected a scheduled growth recipe command.",
+                experimentId: this.experimentCoordinator?.experimentId,
+                simulationTimeSeconds,
+                frameNumber,
+                data: { recipeId: pending.recipeId, commandId: result.commandId, scheduledAtSeconds: scheduled.atSeconds, accepted: result.accepted, reason: result.reason },
+            });
+            this.experimentCoordinator?.trigger("growth_recipe_command", simulationTimeSeconds, frameNumber);
+            pending.nextIndex += 1;
+            if (!result.accepted) {
+                this.diagnostics.warn("growth-recipe", "Recipe execution stopped after a rejected command.", { recipeId: pending.recipeId, commandId: result.commandId, reason: result.reason });
+                this.pendingGrowthRecipe = null;
+                return;
+            }
+        }
+        if (pending.nextIndex >= pending.commands.length) {
+            this.diagnostics.info("growth-recipe", "M1AS GLB growth recipe completed.", { recipeId: pending.recipeId, commandCount: pending.commands.length });
+            this.pendingGrowthRecipe = null;
+        }
+    }
+
     private installGrowthModelSelector(engine: IVfxEngine): void {
         this.growthModelControls?.remove();
         this.growthModelControls = null;
@@ -638,84 +763,6 @@ export class Big3rSandboxController {
 
         const m1asEngine = engine as M1ASVFXEngine;
 
-        // Growth recipes are executed by the existing M1ASVFX engine through its shared GrowthModel adapter.
-        const recipeInput = document.createElement("input");
-        recipeInput.type = "file";
-        recipeInput.accept = "application/json,.json";
-        recipeInput.hidden = true;
-        const loadRecipeButton = document.createElement("button");
-        loadRecipeButton.type = "button";
-        loadRecipeButton.textContent = "Load GLB Growth Recipe";
-        const recipeStatus = document.createElement("span");
-        recipeStatus.textContent = "No growth recipe loaded.";
-        const recipeAdapter = new M1ASVFXGrowthModel(m1asEngine);
-        loadRecipeButton.addEventListener("click", () => recipeInput.click());
-        recipeInput.addEventListener("change", async () => {
-            const file = recipeInput.files?.item(0);
-            if (!file) return;
-            try {
-                const parsed: unknown = JSON.parse(await file.text());
-                if (!parsed || typeof parsed !== "object") throw new Error("Recipe must be a JSON object.");
-                const recipe = parsed as { schemaVersion?: unknown; id?: unknown; title?: unknown; commands?: unknown };
-                if (recipe.schemaVersion !== "m1as-growth-recipe/1.0" ||
-                    typeof recipe.id !== "string" || !Array.isArray(recipe.commands) || recipe.commands.length === 0) {
-                    throw new Error("Expected schemaVersion m1as-growth-recipe/1.0, an id, and a non-empty commands array.");
-                }
-                const commands = recipe.commands as GrowthModelCommand[];
-                const commandIds = new Set<string>();
-                for (const [index, command] of commands.entries()) {
-                    if (!command || typeof command !== "object" ||
-                        !["discrete", "flow"].includes(command.kind) ||
-                        typeof command.commandId !== "string" || !command.commandId.trim()) {
-                        throw new Error(`Command ${index + 1} must be a discrete or flow command with a valid commandId. Hold commands are not supported by this immediate-submit recipe version.`);
-                    }
-                    if (commandIds.has(command.commandId)) throw new Error(`Duplicate commandId: ${command.commandId}`);
-                    commandIds.add(command.commandId);
-                    if (command.kind === "discrete" &&
-                        (!command.amount || (command.amount.kind === "relative_change"
-                            ? !Number.isFinite(command.amount.fraction) || command.amount.fraction < 0
-                            : command.amount.kind !== "absolute_target" || !Number.isFinite(command.amount.scale) || command.amount.scale <= 0))) {
-                        throw new Error(`Command ${index + 1} has an invalid growth amount.`);
-                    }
-                    if (command.kind === "flow" &&
-                        (!Number.isFinite(command.supplySeconds) || command.supplySeconds <= 0 ||
-                         !Number.isFinite(command.flowMultiplier) || command.flowMultiplier <= 0)) {
-                        throw new Error(`Command ${index + 1} has invalid flow settings.`);
-                    }
-                }
-                const context = {
-                    experimentId: `recipe-${String(recipe.id)}-${Date.now()}`,
-                    simulationTimeSeconds: m1asEngine.getSimulationTimeSeconds(),
-                    configurationVersion: String(recipe.schemaVersion),
-                };
-                recipeAdapter.initialize({
-                    subjectId: "active-streamed-glb",
-                    assetId: "active-streamed-glb",
-                    assetKind: "glb",
-                    initialDimensions: { x: 1, y: 1, z: 1 },
-                    worldUnit: "meters",
-                }, context);
-                const outcomes = commands.map(command => recipeAdapter.apply(command, context));
-                const accepted = outcomes.filter(outcome => outcome.accepted).length;
-                recipeStatus.textContent = `${String(recipe.title || recipe.id)} · ${accepted}/${outcomes.length} commands accepted by M1AS growth engine.`;
-                this.diagnostics.info("growth-recipe", "GLB growth recipe executed through M1ASVFXGrowthModel.", {
-                    recipeId: recipe.id, commandCount: outcomes.length,
-                    accepted, rejected: outcomes.length - accepted,
-                    outcomes: outcomes.map(outcome => ({ commandId: outcome.commandId, accepted: outcome.accepted, reason: outcome.reason })),
-                });
-            } catch (error) {
-                recipeStatus.textContent = `Recipe load failed: ${error instanceof Error ? error.message : String(error)}`;
-                this.diagnostics.error("growth-recipe", "GLB growth recipe was rejected.", { error });
-            } finally {
-                recipeInput.value = "";
-            }
-        });
-        select.addEventListener("change", () => {
-            loadRecipeButton.disabled = select.value !== "m1as-vfx";
-            if (loadRecipeButton.disabled) recipeStatus.textContent = "Select M1AS VFX Growth to execute recipes through the legacy queue adapter.";
-        });
-        loadRecipeButton.disabled = select.value !== "m1as-vfx";
-
         const breathingStart = document.createElement("button");
         breathingStart.type = "button";
         breathingStart.textContent = "Start Biological Breathing";
@@ -747,7 +794,7 @@ export class Big3rSandboxController {
         });
         select.addEventListener("change", refreshBreathingControls);
         refreshBreathingControls();
-        panel.append(label, status, loadRecipeButton, recipeInput, recipeStatus, breathingStart, breathingPause, breathingStatus);
+        panel.append(label, status, breathingStart, breathingPause, breathingStatus);
         this.controlBar.prepend(panel);
         this.growthModelControls = panel;
         this.growthModelSelect = select;
