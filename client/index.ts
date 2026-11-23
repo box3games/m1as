@@ -161,3 +161,4 @@ export {
   type PortableExecutionStatus,
   type PortableExecutionRecord,
 } from "./evaluation/portable-evaluation-router.js";
+export { GrowthModelPortableAdapter } from "./evaluation/growth-model-portable-adapter.js";
