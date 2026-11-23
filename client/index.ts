@@ -196,3 +196,6 @@ export {
   promoteScaleParent,
 } from "./evaluation/scale-reference-hierarchy-contract.js";
 export type * from "./evaluation/scale-reference-hierarchy-contract.js";
+
+export { assessFramingIntegrity } from "./evaluation/framing-integrity-monitor.js";
+export type * from "./evaluation/framing-integrity-monitor.js";
