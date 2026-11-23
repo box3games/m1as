@@ -47,6 +47,7 @@ function isStructuralEvent(value: unknown): value is StructuralResponseEvent {
  */
 export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
   private readonly targets = new Map<string, VfxrStructuralEffectTarget>();
+  private readonly appliedEvents = new Map<string, string>();
 
   public readonly descriptor: PortableEngineDescriptor = {
     id: "vfxr.structural-response",
@@ -124,6 +125,7 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
       const target = this.targets.get(targetId);
       if (!target || !eventId) return { accepted: false, reason: "A registered targetId and eventId are required to clear a VFXR response." };
       await target.clear?.(eventId);
+      this.appliedEvents.delete(eventId);
       return { accepted: true, output: { targetId, eventId, cleared: true } };
     }
     if (!isStructuralEvent(command.payload) || !command.payload.targetId ||\n        !command.payload.asset || !command.payload.asset.assetId?.trim()) {
@@ -132,7 +134,19 @@ export class VfxrStructuralResponseAdapter implements PortableEngineAdapter {
     const event = command.payload;
     const target = this.targets.get(event.targetId);
     if (!target) return { accepted: false, reason: `VFXR target "${event.targetId}" is not registered.` };
+    const previouslyAppliedTarget = this.appliedEvents.get(event.eventId);
+    if (previouslyAppliedTarget) {
+      if (previouslyAppliedTarget !== target.targetId) {
+        return { accepted: false, reason: "Event ID was previously applied to a different VFXR target." };
+      }
+      return {
+        accepted: true,
+        output: { targetId: target.targetId, eventId: event.eventId, duplicate: true },
+        telemetry: { pipeline: "VFXR", duplicateEventSuppressed: true },
+      };
+    }
     const result = await target.apply(event);
+    if (result.accepted) this.appliedEvents.set(event.eventId, target.targetId);
     return {
       accepted: result.accepted,
       ...(result.accepted ? {
