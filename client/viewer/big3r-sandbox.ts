@@ -608,6 +608,10 @@ export class Big3rSandboxController {
             !Array.isArray(recipe.commands) || recipe.commands.length === 0) {
             throw new Error("Expected schemaVersion m1as-growth-recipe/1.0, a recipe id, and a non-empty commands array.");
         }
+        const execution = (rawRecipe as { execution?: { model?: unknown } }).execution;
+        if (execution?.model && execution.model !== "m1as-vfx-queue") {
+            throw new Error("This recipe targets a different growth model. Select the M1AS VFX queue model.");
+        }
         if (recipe.subject?.assetKind && recipe.subject.assetKind !== this.activeAssetIdentity.assetKind) {
             throw new Error("Recipe assetKind does not match the active M1AS GLB subject.");
         }
@@ -634,16 +638,17 @@ export class Big3rSandboxController {
                         : amount.kind === "absolute_target" && typeof amount.scale === "number" && Number.isFinite(amount.scale) && amount.scale > 0
                 );
                 if (!validAmount || typeof item.stimulus !== "string") throw new Error("Discrete command " + item.commandId + " has an invalid stimulus or amount.");
-                command = { kind: "discrete", commandId: item.commandId, stimulus: item.stimulus, amount: amount!.kind === "relative_change" ? { kind: "relative_change", fraction: amount!.fraction as number } : { kind: "absolute_target", scale: amount!.scale as number } };
+                if (item.requestedDurationSeconds !== undefined) throw new Error("Discrete command " + item.commandId + " requests a duration, but the legacy M1AS queue owns its transition timing. Use atSeconds to schedule when the command is submitted.");
+                command = { kind: "discrete", commandId: item.commandId, stimulus: item.stimulus, amount: amount!.kind === "relative_change" ? { kind: "relative_change", fraction: amount!.fraction as number } : { kind: "absolute_target", scale: amount!.scale as number }, parameters: this.parseGrowthRecipeParameters(item.parameters, item.commandId) };
             } else if (item.kind === "flow") {
                 if (typeof item.supplySeconds !== "number" || !Number.isFinite(item.supplySeconds) || item.supplySeconds <= 0 ||
                     typeof item.flowMultiplier !== "number" || !Number.isFinite(item.flowMultiplier) || item.flowMultiplier <= 0) {
                     throw new Error("Flow command " + item.commandId + " requires positive supplySeconds and flowMultiplier.");
                 }
-                command = { kind: "flow", commandId: item.commandId, supplySeconds: item.supplySeconds, flowMultiplier: item.flowMultiplier, stimulus: typeof item.stimulus === "string" ? item.stimulus : "Buff" };
+                command = { kind: "flow", commandId: item.commandId, supplySeconds: item.supplySeconds, flowMultiplier: item.flowMultiplier, stimulus: typeof item.stimulus === "string" ? item.stimulus : "Buff", parameters: this.parseGrowthRecipeParameters(item.parameters, item.commandId) };
             } else if (item.kind === "hold") {
                 if (typeof item.active !== "boolean") throw new Error("Hold command " + item.commandId + " requires active true or false.");
-                command = { kind: "hold", commandId: item.commandId, active: item.active, stimulus: typeof item.stimulus === "string" ? item.stimulus : "Buff" };
+                command = { kind: "hold", commandId: item.commandId, active: item.active, stimulus: typeof item.stimulus === "string" ? item.stimulus : "Buff", parameters: this.parseGrowthRecipeParameters(item.parameters, item.commandId) };
             } else {
                 throw new Error("Command " + (index + 1) + " kind must be discrete, flow, or hold.");
             }
@@ -671,6 +676,26 @@ export class Big3rSandboxController {
         });
         return "Scheduled " + commands.length + " command(s) for " + String(recipe.title || recipe.id) +
             " on " + this.activeAssetIdentity.displayName + ". Timing is relative to the active M1AS simulation clock.";
+    }
+
+
+    private parseGrowthRecipeParameters(
+        value: unknown,
+        commandId: string,
+    ): Record<string, number | string | boolean> | undefined {
+        if (value === undefined) return undefined;
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+            throw new Error("Command " + commandId + " parameters must be an object of scalar values.");
+        }
+        const parameters: Record<string, number | string | boolean> = {};
+        for (const [key, parameter] of Object.entries(value)) {
+            if (typeof parameter !== "string" && typeof parameter !== "boolean" &&
+                (typeof parameter !== "number" || !Number.isFinite(parameter))) {
+                throw new Error("Command " + commandId + " parameter " + key + " must be a finite number, string, or boolean.");
+            }
+            parameters[key] = parameter as number | string | boolean;
+        }
+        return parameters;
     }
 
     private advanceGrowthRecipe(simulationTimeSeconds: number, frameNumber: number): void {
