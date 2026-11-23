@@ -258,3 +258,16 @@ The renderer-neutral `assessFramingIntegrity` function converts a measured proje
 - The resulting assessment retains subject, growth-state, configuration, and simulation-time identity so IGP transitions can validate against the exact diagnostic sample.
 
 This is a deterministic assessment layer, not a live camera controller. It does not change CameraRig5Mode, move a camera, modify near/far planes, contract the environment, or alter authoritative growth and stage scale. Renderer adapters remain responsible for producing trustworthy projection bounds, depth range, and recovery-capability evidence.
+
+
+## 18. Configurable Colossus profile and world envelope
+
+The renderer-independent `colossus-profile-contract.ts` defines a versioned JSON profile for a Colossus scale reference. Colossus identity is the stable reference ID and authored `kind: "colossus"` / `role: "parent"`; it is never inferred from a dimension threshold. A Colossus can therefore be configured at microscopic, character-sized, 1 m, 20 m, 100 m, or much larger dimensions without losing its identity.
+
+The profile stores three independent dimension axes in canonical metres for both the Colossus and the world envelope. The envelope is intentionally not required to contain the Colossus: a 1 m Petri-dish test world can present a 20 m or 100 m Colossus through later presentation/world-generation systems. This contract records those dimensions; it does not itself shrink the world, generate geometry, or create an infinite space.
+
+Runtime resizing is a pure profile operation controlled by an explicit flag. It changes configured dimensions and configuration version while preserving reference identity and world-envelope dimensions. A separate adapter maps the configured comparison axis into the existing persistent scale-reference hierarchy node, so the hierarchy is extended rather than duplicated.
+
+Generation metadata records an authored or deterministic mode, an unsigned 32-bit seed, and the versioned `mulberry32-v1` algorithm. Deterministic mode samples independent width/height/depth ranges reproducibly. It generates dimensions only; world-map topology, assets, placement, and Colossus mesh generation remain downstream systems.
+
+Validation accepts any finite positive representable metre value, including very small scientific-notation values, and imposes no minimum/maximum gameplay size. Zero, negative, non-finite, or underflowed-to-zero values are rejected. Physical growth, stage-relative scale, camera framing, and IGP presentation remain separate authorities.
