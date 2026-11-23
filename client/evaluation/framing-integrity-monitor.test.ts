@@ -30,7 +30,7 @@ test("distinguishes recoverable screen clipping from unrecoverable framing", () 
     nativeRecoveryAvailable: true,
   }));
   assert.equal(recoverable.trigger, "subject-clipped");
-  assert.equal(recoverable.visibleOccupancy, 0.8);
+  assert.equal(recoverable.visibleOccupancy, 0.72);
 
   const unrecoverable = assessFramingIntegrity(observation({
     projectedBounds: { left: -0.2, top: 0.1, right: 0.8, bottom: 1.1 },
