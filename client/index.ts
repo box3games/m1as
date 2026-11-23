@@ -276,3 +276,7 @@ export type {
   CharacterPoseTransition,
   CharacterPoseTransitionSample,
 } from "./evaluation/character-pose-transition-contract.js";
+
+
+export { Big3rPoseTransitionAdapter, VfxrPoseTransitionAdapter } from "./evaluation/character-pose-transition-adapters.js";
+export type { PoseTransitionTargetResult, Big3rPoseTransitionTarget, VfxrPoseTransitionTarget, PoseTransitionDispatchResult } from "./evaluation/character-pose-transition-adapters.js";
