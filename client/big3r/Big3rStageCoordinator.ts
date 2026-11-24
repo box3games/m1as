@@ -110,9 +110,10 @@ export class Big3rStageCoordinator {
         slot: FaceSlotKey,
         assetType: FaceAssetType,
         value: string,
-        label?: string
+        label?: string,
+        rotationDegrees: 0 | 90 | 180 | 270 = 0
     ): Promise<void> {
-        this.roomSlotConfigs.set(slot, { slot, assetType, value, label });
+        this.roomSlotConfigs.set(slot, { slot, assetType, value, label, rotationDegrees });
         const scene = this.engine.getScene();
 
         if (slot === 'bg') {
@@ -129,7 +130,7 @@ export class Big3rStageCoordinator {
         const idx = Number(slot);
         const mat = this.roomFaceMaterials[idx];
         if (!mat) return;
-        await this.surfaceResolver.applyToMaterial(`room_face_${idx}`, mat, assetType, value, label);
+        await this.surfaceResolver.applyToMaterial(`room_face_${idx}`, mat, assetType, value, label, rotationDegrees);
         mat.side = this.doubleSidedRoom ? THREE.DoubleSide : THREE.BackSide;
         mat.needsUpdate = true;
     }
@@ -345,7 +346,7 @@ export class Big3rStageCoordinator {
         this.setRoomDoubleSided(Boolean(preset.doubleSidedRoom));
         this.engine.setRoomCeiling(preset.roomCeilingHeight || 3.2);
         for (const slotCfg of preset.roomSlots) {
-            await this.paintRoomFace(slotCfg.slot, slotCfg.assetType, slotCfg.value, slotCfg.label);
+            await this.paintRoomFace(slotCfg.slot, slotCfg.assetType, slotCfg.value, slotCfg.label, slotCfg.rotationDegrees ?? 0);
         }
     }
 
