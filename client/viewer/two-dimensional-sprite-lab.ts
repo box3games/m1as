@@ -57,48 +57,57 @@ export class TwoDimensionalSpriteLab {
     this.root = document.createElement("section");
     this.root.className = "big3r-2d-sprite-lab";
     this.root.innerHTML = `
-      <div class="big3r-2d-sprite-lab__header">
-        <div>
-          <h3>Character Growth Lab</h3>
-          <p>Primary workspace: click “Load GLB · Growth Lab / VFX Stage” on an M1AS asset card. The Lab controls that same authenticated GLB; it does not fetch or render a duplicate.</p>
-        </div>
-        <span class="big3r-2d-sprite-lab__tag">M1AS GLB GROWTH</span>
-      </div>
-      <section class="big3r-glb-growth-workspace">
-        <div class="big3r-glb-growth-workspace__subject" data-role="glb-subject">No M1AS GLB mounted. Choose “Load GLB · Growth Lab / VFX Stage” on a GLB asset card.</div>
-        <label class="big3r-glb-growth-workspace__label">Master growth recipe JSON
-          <textarea data-role="glb-recipe" rows="12" spellcheck="false"></textarea>
-        </label>
-        <div class="big3r-glb-growth-workspace__actions">
-          <input data-role="glb-recipe-file" type="file" accept="application/json,.json" hidden>
-          <button data-role="glb-load-recipe" type="button">Load Recipe</button>
-          <button data-role="glb-run-recipe" type="button" disabled>Schedule on GLB</button>
-          <button data-role="glb-save-recipe" type="button">Save Recipe JSON</button>
-        </div>
-        <div class="big3r-2d-sprite-lab__status" data-role="glb-recipe-status">Mount an M1AS GLB to enable recipe execution. Commands can use atSeconds offsets on the engine simulation clock.</div>
-      </section>
-      <h4 class="big3r-sprite-adapter-heading">Optional 2D Sprite Adapter Test</h4>
-      <div class="big3r-2d-sprite-lab__files">
-        <label>Character image <input data-role="image" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
-        <label>Experiment JSON <input data-role="config" type="file" accept="application/json,.json"></label>
-        <button data-action="load" type="button">Load Experiment</button>
-      </div>
-      <div class="big3r-2d-sprite-lab__workspace">
-        <div class="big3r-2d-sprite-lab__preview-wrap">
-          <div class="big3r-2d-sprite-lab__preview" data-role="preview"></div>
-          <div class="big3r-2d-sprite-lab__controls">
-            <button data-role="play" data-action="play" type="button" disabled>Play</button>
-            <button data-role="pause" data-action="pause" type="button" disabled>Pause</button>
-            <button data-role="step" data-action="step" type="button" disabled>Step</button>
-            <button data-role="reset" data-action="reset" type="button" disabled>Reset</button>
-            <button data-role="export" data-action="export" type="button" disabled>Export Telemetry</button>
+
+<details class="big3r-2d-sprite-lab" open>
+  <summary class="big3r-2d-sprite-lab__header" style="cursor: pointer;">
+    <div>
+      <h3 style="display: inline;">🧪 Character Growth Lab</h3>
+      <p>Primary workspace: click Load GLB · Growth Lab / VFX Stage on an M1AS asset card. The Lab controls that same authenticated GLB; it does not fetch or render a duplicate.</p>
+    </div>
+    <span class="big3r-2d-sprite-lab__tag">M1AS GLB GROWTH</span>
+  </summary>
+
+  <section class="big3r-glb-growth-workspace">
+    <div class="big3r-glb-growth-workspace__subject" data-role="glb-subject">No M1AS GLB mounted. Choose Load GLB · Growth Lab / VFX Stage on a GLB asset card.</div>
+    <label class="big3r-glb-growth-workspace__label">Master growth recipe JSON
+      <textarea data-role="glb-recipe" rows="12" spellcheck="false"></textarea>
+    </label>
+    <div class="big3r-glb-growth-workspace__actions">
+      <input data-role="glb-recipe-file" type="file" accept="application/json,.json" hidden>
+      <button data-role="glb-load-recipe" type="button">Load Recipe</button>
+      <button data-role="glb-run-recipe" type="button" disabled>Schedule on GLB</button>
+      <button data-role="glb-save-recipe" type="button">Save Recipe JSON</button>
+    </div>
+    <div class="big3r-2d-sprite-lab__status" data-role="glb-recipe-status">Mount an M1AS GLB to enable recipe execution. Commands can use atSeconds offsets on the engine simulation clock.</div>
+  </section>
+
+  <!-- 2. Separate collapsible toggle for the 2D Sprite Adapter Test -->
+  <details open style="margin-top: 12px;">
+    <summary class="big3r-sprite-adapter-heading" style="cursor: pointer; font-weight: 600;">
+      👻 Optional 2D Sprite Adapter Test
+    </summary>
+    <div class="big3r-2d-sprite-lab__files">
+      <label>Character image <input data-role="image" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
+      <label>Experiment JSON <input data-role="config" type="file" accept="application/json,.json"></label>
+    </div>
+    <div class="big3r-2d-sprite-lab__workspace">
+            <div class="big3r-2d-sprite-lab__preview-wrap">
+              <div class="big3r-2d-sprite-lab__preview" data-role="preview"></div>
+              <div class="big3r-2d-sprite-lab__controls">
+                <button data-role="play" data-action="play" type="button" disabled>Play</button>
+                <button data-role="pause" data-action="pause" type="button" disabled>Pause</button>
+                <button data-role="step" data-action="step" type="button" disabled>Step</button>
+                <button data-role="reset" data-action="reset" type="button" disabled>Reset</button>
+                <button data-role="export" data-action="export" type="button" disabled>Export Telemetry</button>
+              </div>
+            </div>
+            <div class="big3r-2d-sprite-lab__readouts">
+              <div class="big3r-2d-sprite-lab__status" data-role="status">Choose a character image and experiment JSON to begin.</div>
+              <div data-role="telemetry" class="big3r-2d-sprite-lab__telemetry">No experiment loaded.</div>
+            </div>
           </div>
-        </div>
-        <div class="big3r-2d-sprite-lab__readouts">
-          <div class="big3r-2d-sprite-lab__status" data-role="status">Choose a character image and experiment JSON to begin.</div>
-          <div data-role="telemetry" class="big3r-2d-sprite-lab__telemetry">No experiment loaded.</div>
-        </div>
-      </div>`;
+      </details>
+    </details>`;
     host.insertAdjacentElement("afterend", this.root);
 
     const get = <T extends HTMLElement>(role: string): T => {
@@ -201,8 +210,8 @@ export class TwoDimensionalSpriteLab {
   private saveGrowthRecipe(): void {
     try {
       const parsed: unknown = JSON.parse(this.recipeInput.value);
-      const id = parsed && typeof parsed === "object" && "id" in parsed && typeof (parsed as {id?:unknown}).id === "string"
-        ? (parsed as {id:string}).id : "glb-growth-recipe";
+      const id = parsed && typeof parsed === "object" && "id" in parsed && typeof (parsed as { id?: unknown }).id === "string"
+        ? (parsed as { id: string }).id : "glb-growth-recipe";
       const blob = new Blob([JSON.stringify(parsed, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");

@@ -23,7 +23,7 @@
 <body>
 
     <h1>13163R Streaming Test BIG3R + M1AS</h1>
-
+    <button id="loadAssets" class="playground-btn">Load Assets</button>
     <div class="playground-panel playground-panel--recorder">
         <h3 class="panel-title panel-title--recorder">🎬 .webm VFX &amp; CCSA Composition Recorder</h3>
         <p class="panel-subtitle panel-subtitle--slate">
@@ -72,7 +72,7 @@
             <select id="recSourceMode" class="m1as-select m1as-select--lg">
                 <option value="big3r">🍄 Source: BIG3R Growth &amp; Cinema Sandbox</option>
                 <option value="ccsa">🚀 Source: Live CCSA 3D Stage</option>
-                <option value="procedural-big3r-tube-ceiling">🍄 BIG3R — Procedural Tube Growth (36s)</option>
+                <option value="procedural-big3r-tube-ceiling">🥒 BIG3R — Procedural Tube Growth (36s)</option>
                 <option value="procedural-growth">✨ Procedural Alpha VFX: Growth Surge (1.5s)</option>
                 <option value="procedural-fireball">🔥 Procedural Alpha VFX: Colossal Burst (1.5s)</option>
                 <option value="procedural-collapse">💥 Procedural Alpha VFX: Gate Shatter &amp; Dust (1.8s)</option>
@@ -86,7 +86,9 @@
             <!-- New VCR Camera Options -->
             <div className="VCR cameraOptions">
                 <div id="recBig3rControls" class="big3r-camera-controls is-hidden">
-                    <section class="playground-form playground-form--wrap">
+                    <div class="m1as-select m1as-select--lg">📼 VCR
+
+                        <section class="playground-form playground-form--wrap">
                         <label class="m1as-select m1as-select--lg">
                             Growth Direction
                             <select id="recBig3rDirection" class="">
@@ -171,6 +173,9 @@
                             <button id="recBig3rDeleteCamera" type="button"
                                 class="playground-btn btn--danger">Delete</button>
                         </div>
+
+                    </div>
+                    
                     </section>
                 </div>
 
@@ -217,13 +222,7 @@
 
 <!-- BIG3R SANDBOX -->
 <div id="vfxControlBar" class="vfx-control-bar">
-
-    <!-- VFX PROP LIST -->
-    <div id="vfxPropListContainer" class="vfx-prop-list"></div>
-
-    <!-- BIG3R TEST ENVIRONMENT CONTROLS -->
-    <section class="sandbox-test-environment-control-group">
-
+            <section class="growth-control-panel-1">
         <div class="vfx-control-row">
             <label class="control-group-label">Mode:</label>
             <select id="vfxGrowthMode" class="m1as-select">
@@ -246,8 +245,44 @@
             <button id="vfxChaosBtn" class="playground-btn btn--violet">🌀 Colossal Chaos</button>
             <button id="vfxResetBtn" class="playground-btn btn--slate">↺ Reset</button>
         </div>
+        </section>
 
-        <div class="vfx-control-row vfx-control-row--divided">
+    <!-- VFX PROP LIST -->
+    <div id="vfxPropListContainer" class="vfx-prop-list"></div>
+
+
+    <!-- BIG3R RENDERING SCREEN -->
+    <section class="big3r-sandbox-render-screen">
+
+        <div id="vfxHeightReticle" class="vfx-telemetry-badge is-hidden">
+            ⊕ Height Reticle: 1.00x (1.60m)
+        </div>
+
+        <section class="sandbox-details m1as-selet">
+            <div id="ttlStatus" class="ttl-status" style="color: #10b981 !important;"></div>
+            <div id="vfxStreamingHud" class=""
+                style="color: #10b981;">
+                Telemetry HUD: Awaiting active stage...
+            </div>
+            
+
+            
+            <span id="vfxTelemetryBadge" class="vfx-telemetry-badge m1as-select">
+                Tier 1: Broken Jar | Scale: 1.00x | Posture: STAND | Golden Buf: 0.00
+            </span>
+
+        </section>
+
+        <!-- 3DR viewport -->
+        <div id="vfxStageContainer" class="vfx-stage-container">
+            <div class="stage-placeholder stage-placeholder--vfx">
+                VFX Stage idle. Provide a signed .glb URL above or click
+                "🍄 VFX Stage" on an asset card...
+            </div>
+        </div>
+            <!-- BIG3R TEST ENVIRONMENT CONTROLS -->
+    <details class="sandbox-test-environment-control-group">
+        <summary class="vfx-control-row vfx-control-row--divided">
             <label class="control-group-label">Nested Box Stage:</label>
             <select id="vfxBoxPreset" class="m1as-select">
                 <option value="1.6">1. Broken Jar (1.6m Ceiling)</option>
@@ -268,7 +303,7 @@
                 <input type="checkbox" id="vfxCinematicCamToggle" checked />
                 🎥 Cinematic Low-Angle &amp; FOV Kick
             </label>
-        </div>
+        </summary>
 
         <div class="vfx-control-row vfx-control-row--divided-tight">
             <label class="control-group-label control-group-label--sky">CCSA Room Slot:</label>
@@ -356,36 +391,8 @@
             <button id="vfxRespawnPropsBtn" class="playground-btn btn--slate-dark">↺ Respawn Broken</button>
         </div>
 
-    </section>
+    </details>
 
-    <!-- BIG3R RENDERING SCREEN -->
-    <section class="big3r-sandbox-render-screen">
-
-        <div id="vfxHeightReticle" class="vfx-telemetry-badge is-hidden">
-            ⊕ Height Reticle: 1.00x (1.60m)
-        </div>
-
-        <section class="sandbox-details m1as-selet">
-            
-            <div id="vfxStreamingHud" class="rec-status m1as-select"
-                style="color: #10b981;">
-                Telemetry HUD: Awaiting active stage...
-            </div>
-            <div id="ttlStatus" class="ttl-status" style="color: #10b981 !important;"></div>
-
-            
-            <span id="vfxTelemetryBadge" class="vfx-telemetry-badge m1as-select">
-                Tier 1: Broken Jar | Scale: 1.00x | Posture: STAND | Golden Buf: 0.00
-            </span>
-
-        </section>
-
-        <div id="vfxStageContainer" class="vfx-stage-container">
-            <div class="stage-placeholder stage-placeholder--vfx">
-                VFX Stage idle. Provide a signed .glb URL above or click
-                "🍄 VFX Stage" on an asset card...
-            </div>
-        </div>
 
     </section>
 
@@ -395,7 +402,7 @@
 <!-- note pad -->
 <div style="margin-top: 12px; padding: 10px; background: #111827; border: 1px solid #374151; border-radius: 6px; font-family: monospace;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="color: #9ca3af; font-size: 12px;">TEAM SCRATCHPAD</span>
+        <span style="color: #9ca3af; font-size: 12px;"> 📄 TEAM SCRATCHPAD</span>
         <div>
             <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('teamNotes').value); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy', 1500);" 
                     style="background: #10b981; color: #064e3b; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;">
@@ -436,7 +443,6 @@
             </div>
         </div>
     </div>
-    <button id="loadAssets" class="playground-btn">Load Public Assets</button>
     <div id="assetList"></div>
 </body>
 

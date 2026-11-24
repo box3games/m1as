@@ -67,7 +67,7 @@ export class VfxrWorkflowController {
     this.root.className = "playground-panel vfxr-streamed-workflow";
     this.root.style.cssText = "margin-top:18px;padding:18px;background:#111827;color:#e5e7eb;border:1px solid #334155;border-radius:10px";
     this.root.innerHTML = `
-      <h2 style="margin:0 0 6px;color:#a78bfa">VFXR · 2D Growth & Pose Authoring</h2>
+      <h2 style="margin:0 0 6px;color:#a78bfa">🎞️ VFXR · 2D Growth & Pose Authoring</h2>
       <p style="margin:0 0 14px;color:#cbd5e1">Independent VFXR workspace. Select an authenticated M1AS image, video/WEBM, or GLB snapshot stream. The stable M1AS asset ID follows the subject into 2D growth and pose authoring.</p>
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px">
         <label style="display:grid;gap:4px;flex:1;min-width:220px">M1AS streamed asset<select data-role="asset" style="padding:9px;background:#030712;color:#e5e7eb;border:1px solid #475569;border-radius:6px"><option value="">Load public assets first…</option></select></label>

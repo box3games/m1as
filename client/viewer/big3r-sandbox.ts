@@ -928,7 +928,7 @@ export class Big3rSandboxController {
         panel.style.borderRadius = "10px";
 
         const heading = document.createElement("strong");
-        heading.textContent = "Grow Time · Resource Prototype";
+        heading.textContent = "🌱⏱️ Grow Time · Resource Prototype";
         heading.style.gridColumn = "1 / -1";
         panel.appendChild(heading);
 
