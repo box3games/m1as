@@ -104,6 +104,7 @@ export class Big3rSandboxController {
     private readonly roomAssetTypeSelect = document.getElementById("vfxRoomAssetType") as HTMLSelectElement | null;
     private readonly roomValueInput = document.getElementById("vfxRoomValueInput") as HTMLInputElement | null;
     private readonly paintRoomBtn = document.getElementById("vfxPaintRoomBtn") as HTMLButtonElement | null;
+    private roomImageRotationSelect: HTMLSelectElement | null = null;
     private readonly doubleSidedToggle = document.getElementById("vfxDoubleSidedRoomToggle") as HTMLInputElement | null;
     private readonly exportPresetBtn = document.getElementById("vfxExportPresetBtn") as HTMLButtonElement | null;
     private readonly importPresetBtn = document.getElementById("vfxImportPresetBtn") as HTMLButtonElement | null;
@@ -1271,13 +1272,32 @@ export class Big3rSandboxController {
             this.activeEngine?.resetAllProps();
         });
 
+        if (this.paintRoomBtn) {
+            const rotationLabel = document.createElement("label");
+            rotationLabel.className = "vfx-room-image-rotation";
+            rotationLabel.textContent = "Image rotation";
+            const rotationSelect = document.createElement("select");
+            rotationSelect.id = "vfxRoomImageRotation";
+            rotationSelect.setAttribute("aria-label", "Wall image rotation");
+            for (const degrees of [0, 90, 180, 270] as const) {
+                const option = document.createElement("option");
+                option.value = String(degrees);
+                option.textContent = `${degrees}°`;
+                rotationSelect.appendChild(option);
+            }
+            rotationLabel.appendChild(rotationSelect);
+            this.paintRoomBtn.insertAdjacentElement("afterend", rotationLabel);
+            this.roomImageRotationSelect = rotationSelect;
+        }
+
         this.paintRoomBtn?.addEventListener("click", async () => {
             if (!this.coordinator || !this.roomSlotSelect || !this.roomAssetTypeSelect || !this.roomValueInput) return;
             const rawSlot = this.roomSlotSelect.value;
             const slot: FaceSlotKey = rawSlot === "bg" ? "bg" : Number(rawSlot);
             const assetType = this.roomAssetTypeSelect.value as FaceAssetType;
             const value = this.roomValueInput.value.trim();
-            await this.coordinator.paintRoomFace(slot, assetType, value);
+            const rotation = Number(this.roomImageRotationSelect?.value ?? 0) as 0 | 90 | 180 | 270;
+            await this.coordinator.paintRoomFace(slot, assetType, value, undefined, rotation);
         });
 
         this.doubleSidedToggle?.addEventListener("change", () => {
