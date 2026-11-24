@@ -97,6 +97,8 @@ export interface Big3rRoomSlotPreset {
     assetType: FaceAssetType;
     value: string;
     label?: string;
+    /** Clockwise image rotation applied to this room face texture. */
+    rotationDegrees?: 0 | 90 | 180 | 270;
 }
 
 export interface Big3rPropPreset {
