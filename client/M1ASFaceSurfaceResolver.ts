@@ -109,7 +109,9 @@ export class M1ASFaceSurfaceResolver {
           safeUrl,
           (tex) => {
             tex.colorSpace = THREE.SRGBColorSpace;
-            tex.flipY = false;
+            // ImageLoader textures use the standard top-left image orientation.
+            // Keep wall/surface image content upright; video orientation is handled separately.
+            tex.flipY = true;
             mat.map = tex;
             // Preserve PNG/WebP alpha transparency on planes & room overlays
             mat.transparent = true;

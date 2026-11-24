@@ -58,7 +58,7 @@ export async function loadVfxrM1asStreamedSprite(
   const resolverMime = sourceKind === "m1as-glb-snapshot" ? "model/gltf-binary" : asset.mimeType;
   let handle: ManagedTextureHandle;
   try {
-    handle = await resolver(input.signedUrl, resolverMime, { userId: input.userId, label: asset.displayName, flipY: false, resolver: surfaceResolver });
+    handle = await resolver(input.signedUrl, resolverMime, { userId: input.userId, label: asset.displayName, flipY: sourceKind === "m1as-image", resolver: surfaceResolver });
   } catch (error) {
     surfaceResolver.destroy();
     throw error;
