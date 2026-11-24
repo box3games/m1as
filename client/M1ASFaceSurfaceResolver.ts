@@ -65,7 +65,8 @@ export class M1ASFaceSurfaceResolver {
     mat: THREE.MeshStandardMaterial,
     type: FaceAssetType,
     value: string,
-    label?: string
+    label?: string,
+    rotationDegrees = 0
   ): Promise<void> {
     this.cleanupSlot(slotKey, mat);
 
@@ -110,6 +111,11 @@ export class M1ASFaceSurfaceResolver {
           (tex) => {
             tex.colorSpace = THREE.SRGBColorSpace;
             tex.flipY = false;
+            if (rotationDegrees !== 0) {
+              tex.center.set(0.5, 0.5);
+              tex.rotation = THREE.MathUtils.degToRad(rotationDegrees);
+              tex.updateMatrix();
+            }
             mat.map = tex;
             // Preserve PNG/WebP alpha transparency on planes & room overlays
             mat.transparent = true;
