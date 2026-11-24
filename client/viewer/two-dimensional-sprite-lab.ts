@@ -108,7 +108,14 @@ export class TwoDimensionalSpriteLab {
           </div>
       </details>
     </details>`;
-    host.insertAdjacentElement("afterend", this.root);
+    const controlBar = host.closest<HTMLElement>(".vfx-control-bar");
+    const growthControlsGroup = controlBar?.querySelector<HTMLElement>(
+      "#big3r-growth-controls-group"
+    );
+    const insertionAnchor = growthControlsGroup
+      ?? host.closest<HTMLElement>(".big3r-sandbox-render-screen")
+      ?? host;
+    insertionAnchor.insertAdjacentElement("afterend", this.root);
 
     const get = <T extends HTMLElement>(role: string): T => {
       const element = this.root.querySelector<T>(`[data-role="${role}"]`);

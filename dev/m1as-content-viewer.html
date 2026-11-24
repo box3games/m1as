@@ -222,31 +222,6 @@
 
 <!-- BIG3R SANDBOX -->
 <div id="vfxControlBar" class="vfx-control-bar">
-            <section class="growth-control-panel-1">
-        <div class="vfx-control-row">
-            <label class="control-group-label">Mode:</label>
-            <select id="vfxGrowthMode" class="m1as-select">
-                <option value="click">Click / Tap Impulse</option>
-                <option value="tap">Rapid Mash Cascade</option>
-                <option value="hold">Hold-to-Charge Surge</option>
-                <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
-            </select>
-
-            <label class="control-group-label">Stimulus:</label>
-            <select id="vfxStimulusType" class="m1as-select">
-                <option value="Consumption">Consumption (Proportional Height)</option>
-                <option value="Exercise">Exercise (Upper Body → Golden Ratio Buffer)</option>
-                <option value="Buff">Buff / Growth Tool (High Pressure)</option>
-                <option value="Environmental">Environmental Surge</option>
-            </select>
-
-            <button id="vfxPulseBtn" class="playground-btn">🌱 Queue Stimulus (Space)</button>
-            <button id="vfxHoldBtn" class="playground-btn btn--amber">✊ Hold Charge</button>
-            <button id="vfxChaosBtn" class="playground-btn btn--violet">🌀 Colossal Chaos</button>
-            <button id="vfxResetBtn" class="playground-btn btn--slate">↺ Reset</button>
-        </div>
-        </section>
-
     <!-- VFX PROP LIST -->
     <div id="vfxPropListContainer" class="vfx-prop-list"></div>
 
@@ -395,6 +370,35 @@
 
 
     </section>
+
+    <div id="big3r-growth-controls-group"
+        class="big3r-growth-controls-group"
+        style="display: grid; gap: 8px;">
+        <section class="growth-control-panel-1">
+            <div class="vfx-control-row">
+                <label class="control-group-label">Mode:</label>
+                <select id="vfxGrowthMode" class="m1as-select">
+                    <option value="click">Click / Tap Impulse</option>
+                    <option value="tap">Rapid Mash Cascade</option>
+                    <option value="hold">Hold-to-Charge Surge</option>
+                    <option value="chaos-delayed">Chaos Factor (Delayed Colossal)</option>
+                </select>
+
+                <label class="control-group-label">Stimulus:</label>
+                <select id="vfxStimulusType" class="m1as-select">
+                    <option value="Consumption">Consumption (Proportional Height)</option>
+                    <option value="Exercise">Exercise (Upper Body → Golden Ratio Buffer)</option>
+                    <option value="Buff">Buff / Growth Tool (High Pressure)</option>
+                    <option value="Environmental">Environmental Surge</option>
+                </select>
+
+                <button id="vfxPulseBtn" class="playground-btn">🌱 Queue Stimulus (Space)</button>
+                <button id="vfxHoldBtn" class="playground-btn btn--amber">✊ Hold Charge</button>
+                <button id="vfxChaosBtn" class="playground-btn btn--violet">🌀 Colossal Chaos</button>
+                <button id="vfxResetBtn" class="playground-btn btn--slate">↺ Reset</button>
+            </div>
+        </section>
+    </div>
 
 </div>
 <!-- END BIG3R SANDBOX -->

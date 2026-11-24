@@ -898,7 +898,14 @@ export class Big3rSandboxController {
         select.addEventListener("change", refreshBreathingControls);
         refreshBreathingControls();
         panel.append(label, status, breathingStart, breathingPause, breathingStatus);
-        this.controlBar.prepend(panel);
+        const growthControlsGroup = this.controlBar.querySelector(
+            "#big3r-growth-controls-group"
+        );
+        if (growthControlsGroup) {
+            growthControlsGroup.appendChild(panel);
+        } else {
+            this.controlBar.appendChild(panel);
+        }
         this.growthModelControls = panel;
         this.growthModelSelect = select;
         this.growthModelStatus = status;
@@ -1132,12 +1139,12 @@ export class Big3rSandboxController {
 
         panel.append(aButton, bButton, rButton, conversion, pressRate, holdRate, conversionRate,
             spendDuration, growthScaleRate, flowRate, stacking, aKey, bKey, rKey, readout, status, stopFlowButton);
-        const renderScreen = this.controlBar.querySelector(
-            ".big3r-sandbox-render-screen"
+        const growthControlsGroup = this.controlBar.querySelector(
+            "#big3r-growth-controls-group"
         );
 
-        if (renderScreen) {
-            renderScreen.insertAdjacentElement("afterend", panel);
+        if (growthControlsGroup) {
+            growthControlsGroup.appendChild(panel);
         } else {
             this.controlBar.appendChild(panel);
         }
